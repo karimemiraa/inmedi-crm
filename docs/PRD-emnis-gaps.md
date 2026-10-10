@@ -1,6 +1,6 @@
 # PRD — InMedi CRM: Emnis Gap-Fill, Relational Integrity & Advanced Reporting
 
-- **Status:** APPROVED — building (all 7 phases)
+- **Status:** ✅ DELIVERED (all 7 build phases, 2026-10-10)
 - **Decisions (2026-10-10):** Q1 demo data = **yes, seed realistic demo data** (keep an "empty" reset too). Q2 commission basis = **Aufträge/orders**, per-rep rate + global default. Q3 recurring generation = **manual button**.
 - **Author:** Claude (pair-building with Karim)
 - **Date:** 2026-10-10
@@ -95,6 +95,23 @@ The InMedi CRM has 26 modules but three weaknesses block it from being a complet
 - **Q1 — Demo data.** Seed a small, clearly-labeled realistic dataset (≈8 customers with contacts, orders, invoices, deals, cost entries, one event) so every new feature is visibly testable? *Recommend: yes* — otherwise Provision/Betreuungskosten/pivot show empty tables. The existing "reset to empty" stays available in Settings.
 - **Q2 — Commission basis.** Compute Provision on **Aufträge (orders)** = realized sales, attributed to the order's Außendienst? *Recommend: yes, orders, per-rep rate with a global default.* Alternative bases: won deals, or paid invoices.
 - **Q3 — Recurring-order generation.** No backend scheduler exists, so generation is a **manual "fällige Aufträge erzeugen" button** (recommend) rather than auto-firing on app load.
+
+## 6b. Delivery log (what shipped)
+
+All phases merged to `main-pkf2ce`, one commit each; every phase build-verified and
+runtime-smoke-tested (Playwright across all routes, 0 console errors).
+
+- **G1 Messen** — `Events.jsx`: events + mixed attendee lists (accounts/contacts/leads), budget vs. cost, surfaced on Account/Contact pages.
+- **G2 Provision** — `Provision.jsx` + `lib/commission.js`: per-rep commission on Aufträge, configurable rates, CSV; column on Territories. Figures unit-verified.
+- **G3 Daueraufträge** — `RecurringOrders.jsx`: schedules + manual "generate due" creating linked orders; verified end-to-end.
+- **G4 Dubletten** — `Duplicates.jsx` + `lib/dedupe.js`: detection + merge re-pointing all child records; audit-logged; unit-verified.
+- **G5 Relational integrity** — all 20 audited gaps closed: new ContactDetail page, 6 new Account tabs, clickable record links app-wide, missing FK selectors in every create form, lead↔account provenance, cross-linked drawers.
+- **G6 Pivot** — `Reports.jsx`: 2-D Kreuztabelle (row × column × measure) with totals + CSV, alongside the list builder; Betreuungskosten added as a source.
+- **G7 Betreuungskosten-Analyse** — `CareCostAnalysis.jsx`: care-cost vs revenue per Kunde/Außendienst/Gebiet, Netto, Kostenquote, defizitär flagging.
+- **Foundation** — new collections (events, recurringOrders), commission config, realistic cross-linked demo dataset + empty-reset option, JSON export.
+
+Deferred by decision (not in scope this session): real email send/receive (needs backend),
+PDF generation, standalone audit-log page, backend/database/auth/deploy.
 
 ## 7. Risks
 
