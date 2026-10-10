@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom';
 import { initials } from '../lib/format.js';
-import { X, Inbox, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+
+// Sortable table header cell. Pairs with useSort(): <SortTh label sortKey sort onSort />
+export function SortTh({ label, sortKey, sort, onSort, align, style }) {
+  const dir = sort.key === sortKey ? sort.dir : null;
+  const Icon = dir === 'asc' ? ChevronUp : dir === 'desc' ? ChevronDown : ChevronsUpDown;
+  return (
+    <th className={align === 'right' ? 'right' : ''} style={{ cursor: 'pointer', userSelect: 'none', ...style }} onClick={() => onSort(sortKey)} title="Sortieren">
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: dir ? 'var(--brand)' : 'inherit', flexDirection: align === 'right' ? 'row-reverse' : 'row' }}>
+        {label}<Icon size={12} style={{ opacity: dir ? 1 : 0.35 }} />
+      </span>
+    </th>
+  );
+}
 
 // Clickable deep-link to a record detail page. Stops row-click propagation so it
 // works inside clickable table rows/drawers. Falls back to plain text when unresolved.

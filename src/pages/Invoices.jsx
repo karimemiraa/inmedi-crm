@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, FileText, Euro, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -22,12 +23,18 @@ export default function Invoices() {
   const [adding, setAdding] = useState(false);
 
   useOpenParam(db.invoices, setSel);
+  const { sort, toggle, apply } = useSort('issue', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
-  const rows = useMemo(() => db.invoices.filter((i) =>
-    (status === 'All' || i.status === status) &&
-    (!q || i.number.toLowerCase().includes(q.toLowerCase()) || acct(i.accountId)?.name.toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate)), [db.invoices, q, status]);
+  const rows = useMemo(() => {
+    const filtered = db.invoices.filter((i) =>
+      (status === 'All' || i.status === status) &&
+      (!q || i.number.toLowerCase().includes(q.toLowerCase()) || acct(i.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      number: (i) => i.number, account: (i) => acct(i.accountId)?.name, issue: (i) => new Date(i.issueDate).getTime(),
+      due: (i) => new Date(i.dueDate).getTime(), status: (i) => i.status, total: (i) => i.total, open: (i) => i.total - i.paid,
+    });
+  }, [db.invoices, q, status, sort]);
 
   const invoiced = db.invoices.reduce((s, i) => s + i.total, 0);
   const openItems = db.invoices.reduce((s, i) => s + (i.total - i.paid), 0);
@@ -79,7 +86,15 @@ export default function Invoices() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Nummer</th><th>Konto</th><th>Datum</th><th>Fällig</th><th>Status</th><th className="right">Gesamt</th><th className="right">Offen</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Nummer" sortKey="number" sort={sort} onSort={toggle} />
+            <SortTh label="Konto" sortKey="account" sort={sort} onSort={toggle} />
+            <SortTh label="Datum" sortKey="issue" sort={sort} onSort={toggle} />
+            <SortTh label="Fällig" sortKey="due" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Gesamt" sortKey="total" sort={sort} onSort={toggle} align="right" />
+            <SortTh label="Offen" sortKey="open" sort={sort} onSort={toggle} align="right" />
+          </tr></thead>
           <tbody>
             {rows.map((i) => (
               <tr key={i.id} onClick={() => setSel(i)}>

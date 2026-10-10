@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Presentation, CalendarClock, Users, Euro, Trash2, MapPin } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
@@ -25,11 +26,17 @@ export default function Events() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
   useOpenParam(db.events, setSel);
+  const { sort, toggle, apply } = useSort('start', 'desc');
 
-  const rows = useMemo(() => db.events.filter((e) =>
-    (status === 'Alle' || e.status === status) &&
-    (!q || e.name.toLowerCase().includes(q.toLowerCase()) || (e.location || '').toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => new Date(b.startDate) - new Date(a.startDate)), [db.events, q, status]);
+  const rows = useMemo(() => {
+    const filtered = db.events.filter((e) =>
+      (status === 'Alle' || e.status === status) &&
+      (!q || e.name.toLowerCase().includes(q.toLowerCase()) || (e.location || '').toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      name: (e) => e.name, type: (e) => e.type, location: (e) => e.location, start: (e) => new Date(e.startDate).getTime(),
+      status: (e) => e.status, attendees: (e) => e.attendees?.length || 0, cost: (e) => e.cost || 0,
+    });
+  }, [db.events, q, status, sort]);
 
   const upcoming = db.events.filter((e) => e.status === 'Geplant' || new Date(e.startDate) > NOW).length;
   const totalCost = db.events.reduce((s, e) => s + (Number(e.cost) || 0), 0);
@@ -75,7 +82,15 @@ export default function Events() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Veranstaltung</th><th>Typ</th><th>Ort</th><th>Zeitraum</th><th>Status</th><th className="right">Teilnehmer</th><th className="right">Kosten</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Veranstaltung" sortKey="name" sort={sort} onSort={toggle} />
+            <SortTh label="Typ" sortKey="type" sort={sort} onSort={toggle} />
+            <SortTh label="Ort" sortKey="location" sort={sort} onSort={toggle} />
+            <SortTh label="Zeitraum" sortKey="start" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Teilnehmer" sortKey="attendees" sort={sort} onSort={toggle} align="right" />
+            <SortTh label="Kosten" sortKey="cost" sort={sort} onSort={toggle} align="right" />
+          </tr></thead>
           <tbody>
             {rows.map((e) => (
               <tr key={e.id} onClick={() => setSel(e)}>

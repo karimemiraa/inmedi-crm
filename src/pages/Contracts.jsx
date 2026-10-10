@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileSignature, Repeat, CalendarClock, XCircle } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems, { BILLING_FACTOR } from '../components/LineItems.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
@@ -34,11 +35,17 @@ export default function Contracts() {
   const [adding, setAdding] = useState(false);
 
   useOpenParam(db.contracts, setSel);
+  const { sort, toggle, apply } = useSort('start', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
-  const rows = useMemo(() => db.contracts.filter((c) =>
-    (status === 'Alle' || c.status === status) &&
-    (!q || c.number.toLowerCase().includes(q.toLowerCase()) || c.title.toLowerCase().includes(q.toLowerCase()) || acct(c.accountId)?.name.toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => new Date(b.startDate) - new Date(a.startDate)), [db.contracts, q, status]);
+  const rows = useMemo(() => {
+    const filtered = db.contracts.filter((c) =>
+      (status === 'Alle' || c.status === status) &&
+      (!q || c.number.toLowerCase().includes(q.toLowerCase()) || c.title.toLowerCase().includes(q.toLowerCase()) || acct(c.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      number: (c) => c.number, title: (c) => c.title, account: (c) => acct(c.accountId)?.name, status: (c) => c.status,
+      start: (c) => new Date(c.startDate).getTime(), term: (c) => c.termMonths, annual: (c) => contractValues(c.items).annual,
+    });
+  }, [db.contracts, q, status, sort]);
 
   const active = db.contracts.filter((c) => c.status === 'Aktiv');
   const mrr = active.reduce((s, c) => s + contractValues(c.items).annual, 0) / 12;
@@ -71,7 +78,15 @@ export default function Contracts() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Nr.</th><th>Betreff</th><th>Kunde</th><th>Status</th><th>Start</th><th>Laufzeit</th><th className="right">Jahreswert</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Nr." sortKey="number" sort={sort} onSort={toggle} />
+            <SortTh label="Betreff" sortKey="title" sort={sort} onSort={toggle} />
+            <SortTh label="Kunde" sortKey="account" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Start" sortKey="start" sort={sort} onSort={toggle} />
+            <SortTh label="Laufzeit" sortKey="term" sort={sort} onSort={toggle} />
+            <SortTh label="Jahreswert" sortKey="annual" sort={sort} onSort={toggle} align="right" />
+          </tr></thead>
           <tbody>
             {rows.map((c) => {
               const v = contractValues(c.items);

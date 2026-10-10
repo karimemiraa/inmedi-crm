@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Package } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Modal, Field } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Modal, Field, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney } from '../lib/format.js';
 import { Package2, Boxes, AlertTriangle, Tag } from 'lucide-react';
@@ -13,11 +14,17 @@ export default function Products() {
   const [cat, setCat] = useState('All');
   const [adding, setAdding] = useState(false);
 
+  const { sort, toggle, apply } = useSort('name', 'asc');
   const cats = useMemo(() => ['All', ...Array.from(new Set(db.products.map((p) => p.category)))], [db.products]);
-  const rows = useMemo(() => db.products.filter((p) =>
-    (cat === 'All' || p.category === cat) &&
-    (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()))
-  ), [db.products, q, cat]);
+  const rows = useMemo(() => {
+    const filtered = db.products.filter((p) =>
+      (cat === 'All' || p.category === cat) &&
+      (!q || p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      sku: (p) => p.sku, name: (p) => p.name, category: (p) => p.category, unit: (p) => p.unit,
+      price: (p) => p.price, stock: (p) => p.stock, status: (p) => (p.stock < 20 ? 0 : 1),
+    });
+  }, [db.products, q, cat, sort]);
 
   const lowStock = db.products.filter((p) => p.stock < 20).length;
   const catalogValue = db.products.reduce((s, p) => s + p.price * p.stock, 0);
@@ -48,7 +55,15 @@ export default function Products() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Artikelnr.</th><th>Produkt</th><th>Kategorie</th><th>Einheit</th><th className="right">Preis</th><th className="right">Bestand</th><th>Status</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Artikelnr." sortKey="sku" sort={sort} onSort={toggle} />
+            <SortTh label="Produkt" sortKey="name" sort={sort} onSort={toggle} />
+            <SortTh label="Kategorie" sortKey="category" sort={sort} onSort={toggle} />
+            <SortTh label="Einheit" sortKey="unit" sort={sort} onSort={toggle} />
+            <SortTh label="Preis" sortKey="price" sort={sort} onSort={toggle} align="right" />
+            <SortTh label="Bestand" sortKey="stock" sort={sort} onSort={toggle} align="right" />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+          </tr></thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.id}>

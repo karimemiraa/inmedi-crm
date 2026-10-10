@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, ShoppingCart } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Drawer, KpiCard, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Drawer, KpiCard, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -20,11 +21,17 @@ export default function Orders() {
   const [adding, setAdding] = useState(null); // 'Angebot' | 'Auftrag'
 
   useOpenParam(db.orders, setSel);
+  const { sort, toggle, apply } = useSort('date', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
-  const rows = useMemo(() => db.orders.filter((o) =>
-    (kind === 'All' || o.kind === kind) &&
-    (!q || o.number.toLowerCase().includes(q.toLowerCase()) || acct(o.accountId)?.name.toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => new Date(b.date) - new Date(a.date)), [db.orders, q, kind]);
+  const rows = useMemo(() => {
+    const filtered = db.orders.filter((o) =>
+      (kind === 'All' || o.kind === kind) &&
+      (!q || o.number.toLowerCase().includes(q.toLowerCase()) || acct(o.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      number: (o) => o.number, kind: (o) => o.kind, account: (o) => acct(o.accountId)?.name,
+      pos: (o) => o.items.length, status: (o) => o.status, date: (o) => new Date(o.date).getTime(), total: (o) => o.total,
+    });
+  }, [db.orders, q, kind, sort]);
 
   const orderVal = db.orders.filter((o) => o.kind === 'Auftrag').reduce((s, o) => s + o.total, 0);
   const quoteVal = db.orders.filter((o) => o.kind === 'Angebot').reduce((s, o) => s + o.total, 0);
@@ -55,7 +62,15 @@ export default function Orders() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Nummer</th><th>Art</th><th>Konto</th><th>Pos.</th><th>Status</th><th>Datum</th><th className="right">Gesamt</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Nummer" sortKey="number" sort={sort} onSort={toggle} />
+            <SortTh label="Art" sortKey="kind" sort={sort} onSort={toggle} />
+            <SortTh label="Konto" sortKey="account" sort={sort} onSort={toggle} />
+            <SortTh label="Pos." sortKey="pos" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Datum" sortKey="date" sort={sort} onSort={toggle} />
+            <SortTh label="Gesamt" sortKey="total" sort={sort} onSort={toggle} align="right" />
+          </tr></thead>
           <tbody>
             {rows.map((o) => (
               <tr key={o.id} onClick={() => setSel(o)}>

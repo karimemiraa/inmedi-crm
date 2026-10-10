@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Cpu, Wrench, AlertTriangle, Repeat, Download } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
@@ -31,11 +32,17 @@ export default function Devices() {
   const [adding, setAdding] = useState(false);
 
   useOpenParam(db.devices, setSel);
+  const { sort, toggle, apply } = useSort('name', 'asc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
-  const rows = useMemo(() => db.devices.filter((d) =>
-    (kind === 'All' || d.kind === kind) &&
-    (!q || d.name.toLowerCase().includes(q.toLowerCase()) || d.serial.toLowerCase().includes(q.toLowerCase()) || acct(d.accountId)?.name.toLowerCase().includes(q.toLowerCase()))
-  ), [db.devices, q, kind]);
+  const rows = useMemo(() => {
+    const filtered = db.devices.filter((d) =>
+      (kind === 'All' || d.kind === kind) &&
+      (!q || d.name.toLowerCase().includes(q.toLowerCase()) || d.serial.toLowerCase().includes(q.toLowerCase()) || acct(d.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      name: (d) => d.name, serial: (d) => d.serial, account: (d) => acct(d.accountId)?.name, kind: (d) => d.kind,
+      status: (d) => d.status, mtk: (d) => (d.nextMtk ? new Date(d.nextMtk).getTime() : null), stk: (d) => (d.nextStk ? new Date(d.nextStk).getTime() : null),
+    });
+  }, [db.devices, q, kind, sort]);
 
   const dueSoon = db.devices.filter((d) => [d.nextMtk, d.nextStk].some((x) => x && daysUntil(x) < 30)).length;
   const loaners = db.devices.filter((d) => d.kind === 'Leihgerät' && d.status === 'Im Einsatz').length;
@@ -81,7 +88,15 @@ export default function Devices() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Gerät</th><th>Seriennr.</th><th>Kunde</th><th>Art</th><th>Status</th><th>Nächste MTK</th><th>Nächste STK</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Gerät" sortKey="name" sort={sort} onSort={toggle} />
+            <SortTh label="Seriennr." sortKey="serial" sort={sort} onSort={toggle} />
+            <SortTh label="Kunde" sortKey="account" sort={sort} onSort={toggle} />
+            <SortTh label="Art" sortKey="kind" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Nächste MTK" sortKey="mtk" sort={sort} onSort={toggle} />
+            <SortTh label="Nächste STK" sortKey="stk" sort={sort} onSort={toggle} />
+          </tr></thead>
           <tbody>
             {rows.map((d) => (
               <tr key={d.id} onClick={() => setSel(d)}>
