@@ -54,7 +54,7 @@ export default function Territories() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis width={64} tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={{ border: '1px solid var(--border)', borderRadius: 10, fontSize: 12.5 }} cursor={{ fill: 'var(--brand-050)' }} />
+              <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={{ border: '1px solid var(--border)', borderRadius: 10, fontSize: 12.5, background: 'var(--surface)', color: 'var(--text)' }} cursor={{ fill: 'var(--brand-050)' }} />
               <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={40}>
                 {terrData.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>

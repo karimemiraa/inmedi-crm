@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, Plus, PanelLeft, ChevronDown, Building2, Users, Target, ShoppingCart, Receipt, Package, UserPlus, Presentation } from 'lucide-react';
+import { Search, Bell, Menu, Plus, PanelLeft, ChevronDown, Building2, Users, Target, ShoppingCart, Receipt, Package, UserPlus, Presentation, Sun, Moon } from 'lucide-react';
 import { useStore } from '../data/store.js';
 import { Avatar } from './ui.jsx';
 import { openLink } from '../lib/nav.js';
@@ -17,6 +17,15 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
   const searchRef = useRef();
   const notifRef = useRef();
   const inputRef = useRef();
+
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('inmedi-theme') || 'system'; } catch (e) { return 'system'; } });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', theme);
+    try { localStorage.setItem('inmedi-theme', theme); } catch (e) {}
+  }, [theme]);
+  const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
 
   useEffect(() => {
     const h = (e) => {
@@ -103,6 +112,8 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
           </div>
         )}
       </div>
+
+      <button className="icon-btn" title={isDark ? 'Helles Design' : 'Dunkles Design'} onClick={() => setTheme(isDark ? 'light' : 'dark')}>{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
 
       <button className="icon-btn" title="Schnell erfassen" onClick={onQuickAdd}><Plus size={18} /></button>
 

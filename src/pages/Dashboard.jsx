@@ -240,5 +240,5 @@ export default function Dashboard() {
 
 const tooltipStyle = {
   border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-lg)',
-  fontSize: 12.5, padding: '8px 12px',
+  fontSize: 12.5, padding: '8px 12px', background: 'var(--surface)', color: 'var(--text)',
 };
