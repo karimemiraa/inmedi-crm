@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, FileText, ShoppingCart } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Empty, Drawer, KpiCard, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
@@ -15,8 +15,9 @@ export default function Orders() {
   const db = useStore();
   const toast = useToast();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [q, setQ] = useState('');
-  const [kind, setKind] = useState('All');
+  const [kind, setKind] = useState(['Auftrag', 'Angebot'].includes(params.get('kind')) ? params.get('kind') : 'All');
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'Angebot' | 'Auftrag'
 

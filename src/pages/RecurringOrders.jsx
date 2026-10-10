@@ -88,7 +88,7 @@ export default function RecurringOrders() {
               </tr>
             ))}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Keine Daueraufträge" hint="Legen Sie wiederkehrende Bestellungen je Kunde an." />}</div>
+        </table>{rows.length === 0 && <Empty label="Keine Daueraufträge" hint="Wiederkehrende Bestellungen je Kunde." action={{ label: 'Neuer Dauerauftrag', onClick: () => setAdding(true) }} />}</div>
       </div>
 
       {sel && <RODrawer db={db} ro={db.recurringOrders.find((r) => r.id === sel.id) || sel} onClose={() => setSel(null)} toast={toast} />}

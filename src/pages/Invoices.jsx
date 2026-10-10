@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Download, FileText, Euro, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
@@ -17,8 +17,9 @@ export default function Invoices() {
   const db = useStore();
   const toast = useToast();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('All');
+  const [status, setStatus] = useState(params.get('status') || 'All');
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
@@ -28,7 +29,7 @@ export default function Invoices() {
 
   const rows = useMemo(() => {
     const filtered = db.invoices.filter((i) =>
-      (status === 'All' || i.status === status) &&
+      (status === 'All' || (status === 'offen' ? (i.total - i.paid) > 0 : i.status === status)) &&
       (!q || i.number.toLowerCase().includes(q.toLowerCase()) || acct(i.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
     return apply(filtered, {
       number: (i) => i.number, account: (i) => acct(i.accountId)?.name, issue: (i) => new Date(i.issueDate).getTime(),
@@ -79,7 +80,7 @@ export default function Invoices() {
           <Search size={16} /><input placeholder="Nach Nummer oder Konto suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className="select" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
-          {[['All', 'Alle Status'], ['Entwurf', 'Entwurf'], ['Versendet', 'Versendet'], ['Teilbezahlt', 'Teilbezahlt'], ['Bezahlt', 'Bezahlt'], ['Überfällig', 'Überfällig']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          {[['All', 'Alle Status'], ['offen', 'Offene Posten'], ['Entwurf', 'Entwurf'], ['Versendet', 'Versendet'], ['Teilbezahlt', 'Teilbezahlt'], ['Bezahlt', 'Bezahlt'], ['Überfällig', 'Überfällig']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <span className="muted tiny" style={{ marginLeft: 'auto' }}>{rows.length} angezeigt</span>
       </div>

@@ -104,7 +104,7 @@ export default function Events() {
               </tr>
             ))}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Keine Veranstaltungen" hint="Legen Sie oben rechts die erste Messe oder Veranstaltung an." />}</div>
+        </table>{rows.length === 0 && <Empty label="Keine Veranstaltungen" hint="Messen, Kongresse, Hausmessen & Webinare." action={{ label: 'Neue Veranstaltung', onClick: () => setAdding(true) }} />}</div>
       </div>
 
       {sel && <EventDrawer db={db} event={db.events.find((e) => e.id === sel.id) || sel} onClose={() => setSel(null)} toast={toast} />}

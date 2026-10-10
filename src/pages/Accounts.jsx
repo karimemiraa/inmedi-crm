@@ -138,7 +138,7 @@ export default function Accounts() {
               ))}
             </tbody>
           </table>
-          {rows.length === 0 && <Empty label="Keine Firmen für diese Filter" />}
+          {rows.length === 0 && <Empty label="Keine Firmen für diese Filter" action={{ label: 'Neue Firma anlegen', onClick: () => setAdding(true) }} />}
         </div>
       </div>
 

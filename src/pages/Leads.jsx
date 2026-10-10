@@ -95,7 +95,7 @@ export default function Leads() {
               </tr>
             ))}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Keine passenden Interessenten" />}</div>
+        </table>{rows.length === 0 && <Empty label="Keine passenden Interessenten" action={{ label: 'Neuer Interessent', onClick: () => setAdding(true) }} />}</div>
       </div>
       {adding && <NewLead db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>

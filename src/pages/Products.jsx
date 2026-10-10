@@ -77,7 +77,7 @@ export default function Products() {
               </tr>
             ))}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Keine passenden Produkte" />}</div>
+        </table>{rows.length === 0 && <Empty label="Keine passenden Produkte" action={{ label: 'Neues Produkt anlegen', onClick: () => setAdding(true) }} />}</div>
       </div>
       {adding && <NewProduct db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>

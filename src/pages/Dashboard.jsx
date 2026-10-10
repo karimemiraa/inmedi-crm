@@ -90,10 +90,10 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
-        <KpiCard icon={Euro} tone="brand" label="Umsatz (gewonnen)" value={fmtMoneyShort(m.revenue)} />
-        <KpiCard icon={TrendingUp} tone="teal" label="Offene Pipeline" value={fmtMoneyShort(m.pipeline)} />
-        <KpiCard icon={Trophy} tone="green" label="Abschlussquote" value={m.winRate + ' %'} />
-        <KpiCard icon={Building2} tone="purple" label="Aktive Firmen" value={m.activeAccounts} />
+        <KpiCard icon={Euro} tone="brand" label="Umsatz (gewonnen)" value={fmtMoneyShort(m.revenue)} to="/reports" />
+        <KpiCard icon={TrendingUp} tone="teal" label="Offene Pipeline" value={fmtMoneyShort(m.pipeline)} to="/pipeline" />
+        <KpiCard icon={Trophy} tone="green" label="Abschlussquote" value={m.winRate + ' %'} to="/reports" />
+        <KpiCard icon={Building2} tone="purple" label="Aktive Firmen" value={m.activeAccounts} to="/accounts" />
       </div>
 
       {/* Charts row 1 */}
@@ -146,7 +146,7 @@ export default function Dashboard() {
               <XAxis type="number" tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" width={92} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={tooltipStyle} cursor={{ fill: 'var(--brand-050)' }} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
+              <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18} cursor="pointer" onClick={() => nav('/pipeline')}>
                 {m.byStage.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>
             </BarChart>
@@ -160,7 +160,7 @@ export default function Dashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis width={64} tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={tooltipStyle} cursor={{ fill: 'var(--brand-050)' }} />
-              <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={34}>
+              <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={34} cursor="pointer" onClick={() => nav('/territories')}>
                 {m.byTerritory.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>
             </BarChart>

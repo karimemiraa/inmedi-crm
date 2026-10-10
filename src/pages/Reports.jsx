@@ -183,10 +183,10 @@ export default function Reports() {
       </div>
 
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
-        <KpiCard icon={TrendingUp} tone="brand" label="Umsatz (Aufträge)" value={fmtMoneyShort(kpi.revenue)} />
-        <KpiCard icon={BarChart3} tone="amber" label="Angebotsvolumen" value={fmtMoneyShort(kpi.quotes)} />
-        <KpiCard icon={BarChart3} tone="red" label="Offene Posten" value={fmtMoneyShort(kpi.invOpen)} />
-        <KpiCard icon={TrendingUp} tone="green" label="Gewonnene Deals" value={kpi.wonDeals} />
+        <KpiCard icon={TrendingUp} tone="brand" label="Umsatz (Aufträge)" value={fmtMoneyShort(kpi.revenue)} to="/orders?kind=Auftrag" />
+        <KpiCard icon={BarChart3} tone="amber" label="Angebotsvolumen" value={fmtMoneyShort(kpi.quotes)} to="/orders?kind=Angebot" />
+        <KpiCard icon={BarChart3} tone="red" label="Offene Posten" value={fmtMoneyShort(kpi.invOpen)} to="/invoices?status=offen" />
+        <KpiCard icon={TrendingUp} tone="green" label="Gewonnene Deals" value={kpi.wonDeals} to="/pipeline" />
       </div>
 
       {/* Report builder */}

@@ -103,7 +103,7 @@ export default function Contracts() {
               );
             })}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Noch keine Verträge" hint="Über die Schaltfläche oben den ersten Laufzeitvertrag anlegen." />}</div>
+        </table>{rows.length === 0 && <Empty label="Noch keine Verträge" hint="Laufzeitverträge mit wiederkehrender Abrechnung." action={{ label: 'Neuer Vertrag', onClick: () => setAdding(true) }} />}</div>
       </div>
 
       {sel && <ContractDrawer db={db} contract={sel} onClose={() => setSel(null)} toast={toast} setSel={setSel} />}
