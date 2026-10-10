@@ -39,6 +39,7 @@ import Ideas from './pages/Ideas.jsx';
 import Messages from './pages/Messages.jsx';
 import Devices from './pages/Devices.jsx';
 import CostCalc from './pages/CostCalc.jsx';
+import CareCostAnalysis from './pages/CareCostAnalysis.jsx';
 import DataProtection from './pages/DataProtection.jsx';
 import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
@@ -64,6 +65,7 @@ const router = createHashRouter([
       { path: 'quality', element: <Quality /> },
       { path: 'devices', element: <Devices /> },
       { path: 'cost-calc', element: <CostCalc /> },
+      { path: 'care-cost', element: <CareCostAnalysis /> },
       { path: 'products', element: <Products /> },
       { path: 'activities', element: <Activities /> },
       { path: 'leads', element: <Leads /> },
