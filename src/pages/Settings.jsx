@@ -24,6 +24,18 @@ export default function Settings() {
   const [modal, setModal] = useState(null); // 'field' | 'rule' | 'user'
   const [editRule, setEditRule] = useState(null);
 
+  const exportAll = () => {
+    try {
+      const blob = new Blob([JSON.stringify(store.get(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `inmedi-crm-daten-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Alle Daten exportiert (JSON)');
+    } catch (e) { toast('Export fehlgeschlagen'); }
+  };
+
   return (
     <div className="page">
       <div className="page-head"><div><h1>Einstellungen</h1><div className="sub">InMedi CRM für Ihr Team konfigurieren</div></div></div>
@@ -120,11 +132,12 @@ export default function Settings() {
           {tab === 'branding' && <Branding toast={toast} db={db} />}
 
           {tab === 'data' && (
-            <Card title="Daten" sub="Demodaten liegen in Ihrem Browser (localStorage)">
-              <p className="muted" style={{ marginBottom: 16 }}>InMedi CRM läuft mit realistischen Demodaten, damit Sie jede Funktion ausprobieren können. Zurücksetzen stellt den ursprünglichen Datensatz wieder her; hier würde eine echte API/Datenbank angebunden.</p>
+            <Card title="Daten" sub="Daten liegen in Ihrem Browser (localStorage)">
+              <p className="muted" style={{ marginBottom: 16 }}>InMedi CRM wird mit realistischen Demodaten ausgeliefert, damit Sie jede Funktion ausprobieren können. Sie können den Demodatensatz jederzeit wiederherstellen oder vollständig leeren, um „von 0" zu starten. Im Produktivbetrieb würde hier eine echte API/Datenbank angebunden.</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={() => toast('Daten exportiert (JSON)')}>Alle Daten exportieren</button>
-                <button className="btn danger" onClick={() => { if (confirm('Alle Demodaten auf den ursprünglichen Datensatz zurücksetzen?')) { store.reset(); toast('Demodaten zurückgesetzt'); } }}><Trash2 size={14} /> Demodaten zurücksetzen</button>
+                <button className="btn" onClick={exportAll}>Alle Daten exportieren (JSON)</button>
+                <button className="btn" onClick={() => { if (confirm('Demodatensatz wiederherstellen? Vorhandene Änderungen gehen verloren.')) { store.reset(); toast('Demodaten wiederhergestellt'); } }}><Trash2 size={14} /> Demodaten wiederherstellen</button>
+                <button className="btn danger" onClick={() => { if (confirm('Alle Daten löschen und leer starten? Dies kann nicht rückgängig gemacht werden.')) { store.reset({ empty: true }); toast('Alle Daten gelöscht'); } }}><Trash2 size={14} /> Alle Daten löschen</button>
               </div>
             </Card>
           )}
