@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, LifeBuoy, Clock, CheckCircle2, AlertTriangle, Phone, Mail, Globe, BookOpen } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Drawer, Card, Field, Modal } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, KpiCard, Drawer, Card, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -12,6 +13,7 @@ const CHANNEL_ICON = { Telefon: Phone, 'E-Mail': Mail, Web: Globe };
 export default function Service() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Offen');
   const [adding, setAdding] = useState(false);
@@ -68,7 +70,7 @@ export default function Service() {
                   return (
                     <tr key={t.id} onClick={() => setSel(t)}>
                       <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number} · {t.category}</div></td>
-                      <td>{acct(t.accountId)?.name}</td>
+                      <td><AccountLink account={acct(t.accountId)} /></td>
                       <td><span className="chip" style={{ padding: '3px 8px' }}><Ch size={12} /> {t.channel}</span></td>
                       <td><Badge tone={PRIO_TONE[t.priority]}>{t.priority}</Badge></td>
                       <td><Badge tone={STATUS_TONE[t.status]} dot>{t.status}</Badge></td>
@@ -116,8 +118,9 @@ export default function Service() {
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
-            <dt>Konto</dt><dd>{acct(sel.accountId)?.name}</dd>
-            <dt>Kontakt</dt><dd>{db.contacts.find((c) => c.id === sel.contactId)?.name || '—'}</dd>
+            <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
+            <dt>Kontakt</dt><dd>{sel.contactId ? <ContactLink contact={db.contacts.find((c) => c.id === sel.contactId)} /> : '—'}</dd>
+            {sel.deviceId && <><dt>Gerät</dt><dd><span className="rec-link" onClick={() => nav('/devices')}>{db.devices.find((d) => d.id === sel.deviceId)?.name || '—'}</span></dd></>}
             <dt>Kanal</dt><dd>{sel.channel}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
             <dt>Erstellt</dt><dd>{fmtDate(sel.createdAt)}</dd>
@@ -131,14 +134,18 @@ export default function Service() {
 }
 
 function NewTicket({ db, onClose, toast }) {
-  const [f, setF] = useState({ accountId: db.accounts[0]?.id, channel: 'Telefon', priority: 'Mittel', category: 'Technische Anfrage', subject: '' });
+  const firstContact = (aid) => db.contacts.find((c) => c.accountId === aid)?.id || '';
+  const [f, setF] = useState({ accountId: db.accounts[0]?.id, contactId: firstContact(db.accounts[0]?.id), deviceId: '', channel: 'Telefon', priority: 'Mittel', category: 'Technische Anfrage', subject: '' });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const setAccount = (v) => setF((p) => ({ ...p, accountId: v, contactId: firstContact(v), deviceId: '' }));
+  const accContacts = db.contacts.filter((c) => c.accountId === f.accountId);
+  const accDevices = db.devices.filter((d) => d.accountId === f.accountId);
   const save = () => {
     if (!f.subject) return;
     const n = 'TK-' + (4804 + db.tickets.length + 1);
     const acc = db.accounts.find((a) => a.id === f.accountId);
     store.add('tickets', {
-      number: n, subject: f.subject, accountId: f.accountId, contactId: db.contacts.find((c) => c.accountId === f.accountId)?.id || null,
+      number: n, subject: f.subject, accountId: f.accountId, contactId: f.contactId || null, deviceId: f.deviceId || null,
       ownerId: acc?.innendienstId || db.meta.currentUserId, channel: f.channel, category: f.category,
       priority: f.priority, status: 'Neu', createdAt: new Date().toISOString(), resolvedAt: null,
     });
@@ -149,7 +156,9 @@ function NewTicket({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('subject', e.target.value)} placeholder="Kurzbeschreibung des Anliegens" autoFocus /></Field></div>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Ansprechpartner"><select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+        <Field label="Betroffenes Gerät"><select className="select" value={f.deviceId} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Kein Gerät —</option>{accDevices.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.serial})</option>)}</select></Field>
         <Field label="Kategorie"><select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{['Technische Anfrage', 'Reklamation', 'Retoure', 'Wartung', 'Rechnungsfrage'].map((c) => <option key={c}>{c}</option>)}</select></Field>
         <Field label="Kanal"><select className="select" value={f.channel} onChange={(e) => set('channel', e.target.value)}>{['Telefon', 'E-Mail', 'Web'].map((c) => <option key={c}>{c}</option>)}</select></Field>
         <Field label="Priorität"><select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((c) => <option key={c}>{c}</option>)}</select></Field>

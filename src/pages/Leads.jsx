@@ -26,15 +26,17 @@ export default function Leads() {
   const hot = db.leads.filter((l) => l.score >= 70).length;
 
   const convert = (lead) => {
-    store.add('accounts', {
+    if (lead.accountId) { toast('Interessent wurde bereits umgewandelt'); return; }
+    const acc = store.add('accounts', {
       kundennummer: 'K-' + (10001 + db.accounts.length), name: lead.company, type: 'Praxis',
       tier: 'Interessent', status: 'Interessent', territoryId: db.territories[0].id,
       ownerId: lead.ownerId, innendienstId: (db.users[1] || db.users[0]).id, city: lead.city || '', zip: '', street: '',
       country: 'Deutschland', phone: lead.phone, email: lead.email, website: '', vatId: '',
       paymentTerms: '30 Tage netto', discount: 0, revenueYTD: 0, beds: 0,
       createdAt: new Date().toISOString(), color: lead.color, notes: lead.notes || [],
+      customValues: {}, priceList: [], leadId: lead.id,
     });
-    store.update('leads', lead.id, { status: 'Qualifiziert' });
+    store.update('leads', lead.id, { status: 'Qualifiziert', accountId: acc.id });
     toast(`${lead.company} in Konto umgewandelt`);
   };
 

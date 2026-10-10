@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Cpu, Wrench, AlertTriangle, Repeat, Download } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtDate } from '../lib/format.js';
@@ -22,6 +23,7 @@ function InspCell({ iso }) {
 export default function Devices() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState('All');
   const [sel, setSel] = useState(null);
@@ -83,7 +85,7 @@ export default function Devices() {
               <tr key={d.id} onClick={() => setSel(d)}>
                 <td><div className="cell-main">{d.name}</div><div className="cell-sub">{d.category}</div></td>
                 <td className="muted nowrap">{d.serial}</td>
-                <td>{acct(d.accountId)?.name}</td>
+                <td><AccountLink account={acct(d.accountId)} /></td>
                 <td><Badge tone={KIND_TONE[d.kind]}>{d.kind}</Badge></td>
                 <td><Badge tone={STATUS_TONE[d.status]} dot>{d.status}</Badge></td>
                 <td><InspCell iso={d.nextMtk} /></td>
@@ -105,7 +107,9 @@ export default function Devices() {
             <Badge tone={STATUS_TONE[sel.status]} dot>{sel.status}</Badge>
           </div>
           <dl className="kv">
-            <dt>Kunde</dt><dd>{acct(sel.accountId)?.name}</dd>
+            <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
+            {sel.orderId && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav('/orders')}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
+            {sel.contractId && <><dt>Vertrag</dt><dd><span className="rec-link" onClick={() => nav('/contracts')}>{db.contracts.find((c) => c.id === sel.contractId)?.number || '—'}</span></dd></>}
             <dt>Kategorie</dt><dd>{sel.category}</dd>
             <dt>Seriennummer</dt><dd>{sel.serial}</dd>
             <dt>UDI</dt><dd style={{ fontSize: 12 }}>{sel.udi}</dd>
@@ -128,8 +132,10 @@ export default function Devices() {
 }
 
 function NewDevice({ db, onClose, toast }) {
-  const [f, setF] = useState({ category: 'Diagnostik', accountId: db.accounts[0]?.id, kind: 'Verkauf', status: 'Im Einsatz', ownerId: db.users.find((u) => u.title?.includes('Service'))?.id || db.users[0].id });
+  const [f, setF] = useState({ category: 'Diagnostik', accountId: db.accounts[0]?.id, kind: 'Verkauf', status: 'Im Einsatz', orderId: '', contractId: '', ownerId: db.users.find((u) => u.title?.includes('Service'))?.id || db.users[0].id });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const accOrders = db.orders.filter((o) => o.accountId === f.accountId && o.kind === 'Auftrag');
+  const accContracts = db.contracts.filter((c) => c.accountId === f.accountId);
   const save = () => {
     if (!f.name || !f.serial) { toast('Name und Seriennummer erforderlich'); return; }
     store.add('devices', {
@@ -137,7 +143,7 @@ function NewDevice({ db, onClose, toast }) {
       kind: f.kind, status: f.status, installedAt: new Date().toISOString(),
       lastMtk: null, nextMtk: f.nextMtk ? new Date(f.nextMtk).toISOString() : null,
       lastStk: null, nextStk: f.nextStk ? new Date(f.nextStk).toISOString() : null,
-      ownerId: f.ownerId, notes: '',
+      ownerId: f.ownerId, notes: '', orderId: f.orderId || null, contractId: f.contractId || null,
     });
     toast('Gerät angelegt'); onClose();
   };
@@ -150,8 +156,10 @@ function NewDevice({ db, onClose, toast }) {
         <Field label="Seriennummer"><input className="input" onChange={(e) => set('serial', e.target.value)} /></Field>
         <Field label="UDI (optional)"><input className="input" onChange={(e) => set('udi', e.target.value)} /></Field>
         <Field label="Kategorie"><select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('orderId', ''); set('contractId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
         <Field label="Art"><select className="select" value={f.kind} onChange={(e) => set('kind', e.target.value)}>{['Verkauf', 'Leihgerät', 'Konsignation'].map((k) => <option key={k}>{k}</option>)}</select></Field>
+        <Field label="Aus Auftrag (optional)"><select className="select" value={f.orderId} onChange={(e) => set('orderId', e.target.value)}><option value="">— Ohne —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number}</option>)}</select></Field>
+        <Field label="Vertrag (optional)"><select className="select" value={f.contractId} onChange={(e) => set('contractId', e.target.value)}><option value="">— Ohne —</option>{accContracts.map((c) => <option key={c.id} value={c.id}>{c.number} · {c.title}</option>)}</select></Field>
         <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Im Einsatz', 'Lager', 'In Wartung', 'Defekt'].map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Nächste MTK"><input className="input" type="date" onChange={(e) => set('nextMtk', e.target.value)} /></Field>
         <Field label="Nächste STK"><input className="input" type="date" onChange={(e) => set('nextStk', e.target.value)} /></Field>

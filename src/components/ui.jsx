@@ -1,5 +1,26 @@
+import { Link } from 'react-router-dom';
 import { initials } from '../lib/format.js';
 import { X, Inbox, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+
+// Clickable deep-link to a record detail page. Stops row-click propagation so it
+// works inside clickable table rows/drawers. Falls back to plain text when unresolved.
+export function RecordLink({ to, label, muted, onClick }) {
+  if (!label) return <span className="muted">—</span>;
+  if (!to) return <span className={muted ? 'muted' : undefined}>{label}</span>;
+  return (
+    <Link className="rec-link" to={to} onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}>{label}</Link>
+  );
+}
+export function AccountLink({ account, id, name }) {
+  const aid = account?.id || id;
+  const label = account?.name ?? name;
+  return <RecordLink to={aid ? '/accounts/' + aid : null} label={label} />;
+}
+export function ContactLink({ contact, id, name }) {
+  const cid = contact?.id || id;
+  const label = contact?.name ?? name;
+  return <RecordLink to={cid ? '/contacts/' + cid : null} label={label} />;
+}
 
 export function Avatar({ name, color = '#a81e22', size, src }) {
   if (src) {

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, FileText, Euro, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Modal, Field } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink } from '../components/ui.jsx';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
@@ -13,6 +14,7 @@ const NOW = new Date();
 export default function Invoices() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('All');
   const [sel, setSel] = useState(null);
@@ -80,7 +82,7 @@ export default function Invoices() {
             {rows.map((i) => (
               <tr key={i.id} onClick={() => setSel(i)}>
                 <td className="cell-main nowrap">{i.number}</td>
-                <td>{acct(i.accountId)?.name}</td>
+                <td><AccountLink account={acct(i.accountId)} /></td>
                 <td className="nowrap">{fmtDate(i.issueDate)}</td>
                 <td className="nowrap">{fmtDate(i.dueDate)}</td>
                 <td><Badge tone={STATUS_TONE[i.status]} dot>{i.status}</Badge></td>
@@ -102,7 +104,8 @@ export default function Invoices() {
             <Badge tone={STATUS_TONE[sel.status]} dot>{sel.status}</Badge>
           </div>
           <dl className="kv" style={{ marginBottom: 18 }}>
-            <dt>Konto</dt><dd>{acct(sel.accountId)?.name}</dd>
+            <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
+            {sel.orderId && <><dt>Auftrag</dt><dd><span className="rec-link" onClick={() => nav('/orders')}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
             <dt>Rechnungsdatum</dt><dd>{fmtDate(sel.issueDate)}</dd>
             <dt>Fällig am</dt><dd>{fmtDate(sel.dueDate)}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
@@ -132,17 +135,24 @@ export default function Invoices() {
 
 function NewInvoice({ db, onClose, toast }) {
   const [accountId, setAccountId] = useState(db.accounts[0]?.id);
+  const [orderId, setOrderId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0,10));
   const [status, setStatus] = useState('Entwurf');
   const [items, setItems] = useState([]);
   const total = items.reduce((s, it) => s + it.qty * it.price, 0);
+  const accOrders = db.orders.filter((o) => o.accountId === accountId && o.kind === 'Auftrag');
+  const pickOrder = (oid) => {
+    setOrderId(oid);
+    const o = db.orders.find((x) => x.id === oid);
+    if (o) setItems(o.items.map((it) => ({ ...it }))); // Positionen aus Auftrag übernehmen
+  };
   const save = () => {
     if (items.length === 0) { toast('Bitte mindestens eine Position hinzufügen'); return; }
     const iss = new Date(issueDate); const due = new Date(iss); due.setDate(due.getDate() + 30);
     const n = 'RE-' + (25010 + db.invoices.length + 1);
     store.add('invoices', {
       number: n, accountId, ownerId: db.accounts.find((a) => a.id === accountId)?.ownerId || db.meta.currentUserId,
-      orderId: null, status, issueDate: iss.toISOString(), dueDate: due.toISOString(),
+      orderId: orderId || null, status, issueDate: iss.toISOString(), dueDate: due.toISOString(),
       items, total, paid: status === 'Bezahlt' ? total : 0,
     });
     toast('Rechnung erstellt'); onClose();
@@ -151,9 +161,10 @@ function NewInvoice({ db, onClose, toast }) {
     <Modal title="Neue Rechnung" wide onClose={onClose}
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Gesamt: {fmtMoney(total)}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <Field label="Kunde"><select className="select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><select className="select" value={accountId} onChange={(e) => { setAccountId(e.target.value); setOrderId(''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
         <Field label="Rechnungsdatum"><input className="input" type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
         <Field label="Status"><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>{['Entwurf', 'Versendet', 'Bezahlt'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <div className="full"><Field label="Aus Auftrag (optional — übernimmt Positionen)"><select className="select" value={orderId} onChange={(e) => pickOrder(e.target.value)}><option value="">— Ohne Auftragsbezug —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number} · {fmtMoney(o.total)}</option>)}</select></Field></div>
       </div>
       <h4 style={{ marginBottom: 10 }}>Positionen</h4>
       <LineItems products={db.products} items={items} setItems={setItems} />

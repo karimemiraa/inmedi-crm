@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Mail, Search, Info, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Modal, Field, AccountLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 
@@ -45,7 +45,7 @@ export default function Messages() {
             {rows.map((m) => (
               <tr key={m.id} style={{ cursor: 'default' }}>
                 <td className="cell-main"><Mail size={14} style={{ verticalAlign: -2, marginRight: 8, color: 'var(--brand)' }} />{m.subject}</td>
-                <td>{acct(m.accountId)?.name || '—'}</td>
+                <td><AccountLink account={acct(m.accountId)} /></td>
                 <td>{user(m.ownerId) && <div className="avatar-row"><Avatar size="sm" name={user(m.ownerId).name} color={user(m.ownerId).color} src={user(m.ownerId).avatar} /><span className="tiny">{user(m.ownerId).name.split(' ')[0]}</span></div>}</td>
                 <td className="muted tiny nowrap">{relDate(m.dueDate)}</td>
               </tr>

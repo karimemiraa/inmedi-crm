@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MapPin, Building2, BedDouble, CalendarCheck, Star, FileText,
   Pencil, Plus, Trash2, Hash, Percent, Receipt, CheckSquare, Clock, FileSignature,
+  Cpu, LifeBuoy, Presentation, ShieldAlert, Wrench,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field, ContactLink } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
@@ -22,8 +23,14 @@ const TABS = [
   { key: 'contacts', label: 'Ansprechpartner' },
   { key: 'deals', label: 'Deals' },
   { key: 'activities', label: 'Aktivitäten' },
+  { key: 'invoices', label: 'Rechnungen' },
+  { key: 'devices', label: 'Geräte' },
+  { key: 'serviceqm', label: 'Service & QM' },
+  { key: 'events', label: 'Messen' },
   { key: 'documents', label: 'Dokumente' },
 ];
+const INV_TONE = { Entwurf: 'gray', Versendet: 'blue', Teilbezahlt: 'amber', Bezahlt: 'green', Überfällig: 'red' };
+const TICKET_TONE = { Neu: 'blue', 'In Bearbeitung': 'amber', 'Wartet auf Kunde': 'purple', Gelöst: 'green' };
 const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'gray' };
 
 export default function AccountDetail() {
@@ -44,6 +51,11 @@ export default function AccountDetail() {
   const invoices = db.invoices.filter((o) => o.accountId === id);
   const activities = db.activities.filter((x) => x.accountId === id).sort((x, y) => new Date(y.dueDate) - new Date(x.dueDate));
   const docs = db.documents.filter((d) => d.accountId === id);
+  const devices = db.devices.filter((d) => d.accountId === id);
+  const tickets = db.tickets.filter((t) => t.accountId === id);
+  const serviceOrders = db.serviceOrders.filter((s) => s.accountId === id);
+  const incidents = db.incidents.filter((i) => i.accountId === id);
+  const events = db.events.filter((e) => (e.attendees || []).some((at) => at.refType === 'account' && at.refId === id));
   const aussen = db.users.find((u) => u.id === a.ownerId);
   const innen = db.users.find((u) => u.id === a.innendienstId);
   const terr = db.territories.find((t) => t.id === a.territoryId);
@@ -99,6 +111,9 @@ export default function AccountDetail() {
             {t.key === 'contacts' && ` (${contacts.length})`}
             {t.key === 'deals' && ` (${deals.length})`}
             {t.key === 'invoices' && ` (${invoices.length})`}
+            {t.key === 'devices' && ` (${devices.length})`}
+            {t.key === 'serviceqm' && ` (${tickets.length + serviceOrders.length + incidents.length})`}
+            {t.key === 'events' && ` (${events.length})`}
           </button>
         ))}
       </div>
@@ -169,7 +184,7 @@ export default function AccountDetail() {
           <thead><tr><th>Name</th><th>Position</th><th>E-Mail</th><th>Telefon</th><th>Letzter Kontakt</th></tr></thead>
           <tbody>
             {contacts.map((c) => (
-              <tr key={c.id}>
+              <tr key={c.id} onClick={() => nav('/contacts/' + c.id)}>
                 <td><div className="avatar-row"><Avatar size="sm" name={c.name} color={c.color} /><span className="cell-main">{c.name} {c.isPrimary && <Badge tone="brand">Hauptkontakt</Badge>}</span></div></td>
                 <td>{c.title}</td><td className="muted">{c.email}</td><td className="muted">{c.phone}</td><td>{relDate(c.lastContact)}</td>
               </tr>
@@ -209,6 +224,122 @@ export default function AccountDetail() {
             </div>
           ))}
         </div></Card>
+      )}
+
+      {tab === 'invoices' && (
+        <Card title="Rechnungen" sub="Offene Posten & Zahlungsstatus" pad={false}>
+          <div className="table-wrap"><table className="tbl">
+            <thead><tr><th>Nummer</th><th>Auftrag</th><th>Datum</th><th>Status</th><th className="right">Gesamt</th><th className="right">Offen</th></tr></thead>
+            <tbody>
+              {invoices.map((i) => {
+                const ord = orders.find((o) => o.id === i.orderId);
+                return (
+                  <tr key={i.id} onClick={() => nav('/invoices')}>
+                    <td className="cell-main nowrap">{i.number}</td>
+                    <td className="muted">{ord?.number || '—'}</td>
+                    <td className="nowrap">{fmtDate(i.issueDate)}</td>
+                    <td><Badge tone={INV_TONE[i.status]} dot>{i.status}</Badge></td>
+                    <td className="right"><b>{fmtMoney(i.total)}</b></td>
+                    <td className="right" style={{ color: i.total - i.paid > 0 ? 'var(--red)' : 'var(--text-3)' }}>{fmtMoney(i.total - i.paid)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>{invoices.length === 0 && <Empty label="Keine Rechnungen" />}</div>
+        </Card>
+      )}
+
+      {tab === 'devices' && (
+        <Card title="Geräte" sub="Installierte Geräte, Leihgeräte & Konsignation" pad={false}>
+          <div className="table-wrap"><table className="tbl">
+            <thead><tr><th>Gerät</th><th>Seriennr.</th><th>Art</th><th>Status</th><th>Herkunft</th></tr></thead>
+            <tbody>
+              {devices.map((d) => {
+                const ord = orders.find((o) => o.id === d.orderId);
+                const con = db.contracts.find((c) => c.id === d.contractId);
+                return (
+                  <tr key={d.id} onClick={() => nav('/devices')}>
+                    <td className="cell-main"><Cpu size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{d.name}</td>
+                    <td className="muted nowrap">{d.serial}</td>
+                    <td><Badge tone={d.kind === 'Verkauf' ? 'teal' : d.kind === 'Leihgerät' ? 'amber' : 'purple'}>{d.kind}</Badge></td>
+                    <td><Badge tone={d.status === 'Im Einsatz' ? 'green' : 'gray'} dot>{d.status}</Badge></td>
+                    <td className="muted tiny">{ord ? 'Auftrag ' + ord.number : con ? 'Vertrag ' + con.number : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>{devices.length === 0 && <Empty label="Keine Geräte" />}</div>
+        </Card>
+      )}
+
+      {tab === 'serviceqm' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Card title="Tickets" sub="Kundendienst & Reklamationen" pad={false}>
+            <div className="table-wrap"><table className="tbl">
+              <thead><tr><th>Ticket</th><th>Gerät</th><th>Priorität</th><th>Status</th></tr></thead>
+              <tbody>
+                {tickets.map((t) => (
+                  <tr key={t.id} onClick={() => nav('/service')}>
+                    <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number}</div></td>
+                    <td className="muted">{devices.find((d) => d.id === t.deviceId)?.name || '—'}</td>
+                    <td><Badge tone={t.priority === 'Hoch' ? 'red' : t.priority === 'Niedrig' ? 'gray' : 'amber'}>{t.priority}</Badge></td>
+                    <td><Badge tone={TICKET_TONE[t.status]} dot>{t.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>{tickets.length === 0 && <Empty label="Keine Tickets" />}</div>
+          </Card>
+          <Card title="Serviceaufträge" sub="Wartung, Reparatur, MTK/STK" pad={false}>
+            <div className="table-wrap"><table className="tbl">
+              <thead><tr><th>Nr.</th><th>Typ</th><th>Gerät</th><th>Status</th></tr></thead>
+              <tbody>
+                {serviceOrders.map((s) => (
+                  <tr key={s.id} onClick={() => nav('/service-orders')}>
+                    <td className="cell-main nowrap">{s.number}</td><td>{s.type}</td>
+                    <td className="muted">{devices.find((d) => d.id === s.deviceId)?.name || '—'}</td>
+                    <td><Badge tone={s.status === 'Erledigt' ? 'green' : 'blue'} dot>{s.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>{serviceOrders.length === 0 && <Empty label="Keine Serviceaufträge" />}</div>
+          </Card>
+          <Card title="QM & Vigilanz" sub="Vorkommnisse (MDR/MPDG)" pad={false}>
+            <div className="table-wrap"><table className="tbl">
+              <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Schweregrad</th><th>Status</th></tr></thead>
+              <tbody>
+                {incidents.map((i) => (
+                  <tr key={i.id} onClick={() => nav('/quality')}>
+                    <td className="cell-main nowrap">{i.number}</td><td>{i.title}</td>
+                    <td><Badge tone={i.severity === 'Schwerwiegend' ? 'red' : i.severity === 'Hoch' ? 'amber' : 'gray'} dot>{i.severity}</Badge></td>
+                    <td><Badge tone={i.status === 'Abgeschlossen' ? 'green' : 'blue'} dot>{i.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>{incidents.length === 0 && <Empty label="Keine Vorkommnisse" />}</div>
+          </Card>
+        </div>
+      )}
+
+      {tab === 'events' && (
+        <Card title="Messen & Veranstaltungen" sub="Teilnahmen dieser Firma" pad={false}>
+          <div className="table-wrap"><table className="tbl">
+            <thead><tr><th>Veranstaltung</th><th>Typ</th><th>Datum</th><th>Rolle</th><th>Status</th></tr></thead>
+            <tbody>
+              {events.map((e) => {
+                const at = e.attendees.find((x) => x.refType === 'account' && x.refId === id);
+                return (
+                  <tr key={e.id} onClick={() => nav('/events')}>
+                    <td className="cell-main"><Presentation size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{e.name}</td>
+                    <td><Badge tone="teal">{e.type}</Badge></td>
+                    <td className="nowrap">{fmtDate(e.startDate)}</td>
+                    <td>{at?.role || '—'}</td>
+                    <td><Badge tone="gray" dot>{at?.status || '—'}</Badge></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>{events.length === 0 && <Empty label="Keine Messe-Teilnahmen" />}</div>
+        </Card>
       )}
 
       {tab === 'documents' && (

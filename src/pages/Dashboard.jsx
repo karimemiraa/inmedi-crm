@@ -9,7 +9,7 @@ import {
   Phone, CalendarCheck, Mail, Users, CheckCircle2,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { KpiCard, Card, Avatar, Badge } from '../components/ui.jsx';
+import { KpiCard, Card, Avatar, Badge, AccountLink } from '../components/ui.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate, relDate, initials } from '../lib/format.js';
 
 const MONTHS_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
@@ -203,7 +203,7 @@ export default function Dashboard() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{t.subject}</div>
-                    <div className="muted tiny">{acctName(t.accountId)}</div>
+                    <div className="muted tiny"><AccountLink id={t.accountId} name={acctName(t.accountId)} /></div>
                   </div>
                   <Badge tone={overdue ? 'red' : t.priority === 'Hoch' ? 'amber' : 'gray'}>{relDate(t.dueDate)}</Badge>
                 </div>
@@ -222,7 +222,7 @@ export default function Dashboard() {
                     <tr key={d.id} onClick={() => nav('/pipeline')}>
                       <td>
                         <div className="cell-main">{d.name}</div>
-                        <div className="cell-sub">{acctName(d.accountId)}</div>
+                        <div className="cell-sub"><AccountLink id={d.accountId} name={acctName(d.accountId)} /></div>
                       </td>
                       <td><Badge tone="blue" dot>{stage?.name}</Badge></td>
                       <td className="right"><b>{fmtMoneyShort(d.value)}</b></td>

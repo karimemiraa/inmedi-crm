@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, GripVertical } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, ScoreMeter, Drawer, Field, Empty } from '../components/ui.jsx';
+import { Avatar, Badge, ScoreMeter, Drawer, Field, Empty, AccountLink, ContactLink } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -103,7 +104,7 @@ export default function Pipeline() {
               {db.deals.map((d) => (
                 <tr key={d.id} onClick={() => setSel(d)}>
                   <td className="cell-main">{d.name}</td>
-                  <td>{acct(d.accountId)?.name}</td>
+                  <td><AccountLink account={acct(d.accountId)} /></td>
                   <td><Badge tone="blue" dot>{db.stages.find((s) => s.id === d.stage)?.name}</Badge></td>
                   <td>{owner(d.ownerId)?.name.split(' ')[0]}</td>
                   <td><ScoreMeter value={d.score} /></td>
@@ -125,8 +126,11 @@ export default function Pipeline() {
 function DealDrawer({ deal, onClose }) {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const a = db.accounts.find((x) => x.id === deal.accountId);
   const o = db.users.find((u) => u.id === deal.ownerId);
+  const contact = db.contacts.find((c) => c.id === deal.contactId);
+  const relOrders = db.orders.filter((x) => x.dealId === deal.id);
   const setStage = (stage) => { store.update('deals', deal.id, { stage }); toast('Phase aktualisiert'); };
 
   return (
@@ -143,12 +147,14 @@ function DealDrawer({ deal, onClose }) {
       </Field>
       <div style={{ height: 14 }} />
       <dl className="kv">
-        <dt>Konto</dt><dd>{a?.name}</dd>
+        <dt>Konto</dt><dd><AccountLink account={a} /></dd>
+        <dt>Ansprechpartner</dt><dd>{contact ? <ContactLink contact={contact} /> : '—'}</dd>
         <dt>Betreuer</dt><dd>{o?.name}</dd>
         <dt>Score</dt><dd><ScoreMeter value={deal.score} /></dd>
         <dt>Erw. Abschluss</dt><dd>{fmtDate(deal.expectedClose)}</dd>
         <dt>Erstellt</dt><dd>{fmtDate(deal.createdAt)}</dd>
         <dt>Produkte</dt><dd>{deal.products.map((pid) => db.products.find((p) => p.id === pid)?.name).filter(Boolean).join(', ') || '—'}</dd>
+        {relOrders.length > 0 && <><dt>Aufträge/Angebote</dt><dd>{relOrders.map((x) => <span key={x.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav('/orders')}>{x.number}</span>)}</dd></>}
       </dl>
     </Drawer>
   );

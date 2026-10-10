@@ -15,6 +15,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Accounts from './pages/Accounts.jsx';
 import AccountDetail from './pages/AccountDetail.jsx';
 import Contacts from './pages/Contacts.jsx';
+import ContactDetail from './pages/ContactDetail.jsx';
 import Pipeline from './pages/Pipeline.jsx';
 import Orders from './pages/Orders.jsx';
 import Invoices from './pages/Invoices.jsx';
@@ -47,6 +48,7 @@ const router = createHashRouter([
       { path: 'accounts', element: <Accounts /> },
       { path: 'accounts/:id', element: <AccountDetail /> },
       { path: 'contacts', element: <Contacts /> },
+      { path: 'contacts/:id', element: <ContactDetail /> },
       { path: 'pipeline', element: <Pipeline /> },
       { path: 'orders', element: <Orders /> },
       { path: 'invoices', element: <Invoices /> },
