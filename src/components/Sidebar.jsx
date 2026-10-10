@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
   LifeBuoy, Receipt, Cpu, Calculator, ShieldCheck, LogOut, Wrench, ShieldAlert,
-  FileSignature, Lightbulb, Mail,
+  FileSignature, Lightbulb, Mail, Presentation,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
@@ -57,6 +57,7 @@ const GROUPS = [
       { to: '/cost-calc', icon: Calculator, label: 'Kostenkalkulation' },
       { to: '/territories', icon: Map, label: 'Gebiete & Team' },
       { to: '/campaigns', icon: Megaphone, label: 'Kampagnen' },
+      { to: '/events', icon: Presentation, label: 'Messen & Events' },
     ],
   },
   {

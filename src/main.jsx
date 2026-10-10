@@ -28,6 +28,7 @@ import Activities from './pages/Activities.jsx';
 import Leads from './pages/Leads.jsx';
 import LeadDetail from './pages/LeadDetail.jsx';
 import Campaigns from './pages/Campaigns.jsx';
+import Events from './pages/Events.jsx';
 import Territories from './pages/Territories.jsx';
 import Reports from './pages/Reports.jsx';
 import Documents from './pages/Documents.jsx';
@@ -63,6 +64,7 @@ const router = createHashRouter([
       { path: 'leads', element: <Leads /> },
       { path: 'leads/:id', element: <LeadDetail /> },
       { path: 'campaigns', element: <Campaigns /> },
+      { path: 'events', element: <Events /> },
       { path: 'territories', element: <Territories /> },
       { path: 'reports', element: <Reports /> },
       { path: 'documents', element: <Documents /> },
