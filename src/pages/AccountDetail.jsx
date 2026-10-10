@@ -19,6 +19,7 @@ const TABS = [
   { key: 'custom', label: 'Zusatzfelder' },
   { key: 'notes', label: 'Notizen' },
   { key: 'process', label: 'Vorgänge' },
+  { key: 'recurring', label: 'Daueraufträge' },
   { key: 'conditions', label: 'Konditionen' },
   { key: 'contacts', label: 'Ansprechpartner' },
   { key: 'deals', label: 'Deals' },
@@ -56,6 +57,7 @@ export default function AccountDetail() {
   const serviceOrders = db.serviceOrders.filter((s) => s.accountId === id);
   const incidents = db.incidents.filter((i) => i.accountId === id);
   const events = db.events.filter((e) => (e.attendees || []).some((at) => at.refType === 'account' && at.refId === id));
+  const recurring = db.recurringOrders.filter((r) => r.accountId === id);
   const aussen = db.users.find((u) => u.id === a.ownerId);
   const innen = db.users.find((u) => u.id === a.innendienstId);
   const terr = db.territories.find((t) => t.id === a.territoryId);
@@ -111,6 +113,7 @@ export default function AccountDetail() {
             {t.key === 'contacts' && ` (${contacts.length})`}
             {t.key === 'deals' && ` (${deals.length})`}
             {t.key === 'invoices' && ` (${invoices.length})`}
+            {t.key === 'recurring' && ` (${recurring.length})`}
             {t.key === 'devices' && ` (${devices.length})`}
             {t.key === 'serviceqm' && ` (${tickets.length + serviceOrders.length + incidents.length})`}
             {t.key === 'events' && ` (${events.length})`}
@@ -209,6 +212,26 @@ export default function AccountDetail() {
       )}
 
       {tab === 'process' && <ProcessHistory deals={deals} orders={orders} invoices={invoices} contracts={db.contracts.filter((c) => c.accountId === id)} stage={stage} nav={nav} />}
+
+      {tab === 'recurring' && (
+        <Card title="Daueraufträge" sub="Wiederkehrende Bestellungen dieses Kunden" pad={false}
+          action={<button className="btn ghost sm" onClick={() => nav('/recurring-orders')}>Alle verwalten</button>}>
+          <div className="table-wrap"><table className="tbl">
+            <thead><tr><th>Intervall</th><th>Positionen</th><th>Nächste Fälligkeit</th><th>Status</th><th className="right">Betrag/Lauf</th></tr></thead>
+            <tbody>
+              {recurring.map((r) => (
+                <tr key={r.id} onClick={() => nav('/recurring-orders')}>
+                  <td className="cell-main">{r.interval}</td>
+                  <td className="muted">{r.items.length} Position(en)</td>
+                  <td className="nowrap">{fmtDate(r.nextDue)}</td>
+                  <td><Badge tone={r.active ? 'green' : 'gray'} dot>{r.active ? 'Aktiv' : 'Pausiert'}</Badge></td>
+                  <td className="right"><b>{fmtMoney(r.items.reduce((s, it) => s + it.qty * it.price, 0))}</b></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>{recurring.length === 0 && <Empty label="Keine Daueraufträge" />}</div>
+        </Card>
+      )}
 
       {tab === 'activities' && (
         <Card pad={false}><div style={{ padding: '16px 20px' }}>

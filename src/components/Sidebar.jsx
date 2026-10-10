@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
   LifeBuoy, Receipt, Cpu, Calculator, ShieldCheck, LogOut, Wrench, ShieldAlert,
-  FileSignature, Lightbulb, Mail, Presentation,
+  FileSignature, Lightbulb, Mail, Presentation, Repeat,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
@@ -37,6 +37,7 @@ const GROUPS = [
     items: [
       { to: '/pipeline', icon: Target, label: 'Pipeline', countKey: 'openDeals' },
       { to: '/orders', icon: ShoppingCart, label: 'Angebote & Aufträge' },
+      { to: '/recurring-orders', icon: Repeat, label: 'Daueraufträge', countKey: 'dueRecurring' },
       { to: '/contracts', icon: FileSignature, label: 'Verträge' },
       { to: '/invoices', icon: Receipt, label: 'Rechnungen' },
       { to: '/products', icon: Package, label: 'Produkte' },
@@ -82,6 +83,7 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
     dueDevices: db.devices.filter((d) => [d.nextMtk, d.nextStk].some((x) => x && new Date(x) - new Date() < 30 * 86400000)).length,
     openOrders: db.serviceOrders.filter((s) => s.status !== 'Erledigt').length,
     openIncidents: db.incidents.filter((i) => i.meldepflichtig && i.status !== 'Abgeschlossen').length,
+    dueRecurring: db.recurringOrders.filter((r) => r.active && new Date(r.nextDue) <= new Date()).length,
   };
   const nav = useNavigate();
 

@@ -18,6 +18,7 @@ import Contacts from './pages/Contacts.jsx';
 import ContactDetail from './pages/ContactDetail.jsx';
 import Pipeline from './pages/Pipeline.jsx';
 import Orders from './pages/Orders.jsx';
+import RecurringOrders from './pages/RecurringOrders.jsx';
 import Invoices from './pages/Invoices.jsx';
 import Contracts from './pages/Contracts.jsx';
 import Service from './pages/Service.jsx';
@@ -52,6 +53,7 @@ const router = createHashRouter([
       { path: 'contacts/:id', element: <ContactDetail /> },
       { path: 'pipeline', element: <Pipeline /> },
       { path: 'orders', element: <Orders /> },
+      { path: 'recurring-orders', element: <RecurringOrders /> },
       { path: 'invoices', element: <Invoices /> },
       { path: 'contracts', element: <Contracts /> },
       { path: 'service', element: <Service /> },
