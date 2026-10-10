@@ -42,6 +42,14 @@ npm run build    # production build to /dist
 
 Plus global search, notifications, quick-add (account/contact/deal/activity), clickable record links everywhere, and a responsive layout.
 
+### Ease-of-use & professional polish
+
+- **Deep-linking** — every record reference opens that exact record (via `?open=<id>`), not just its list.
+- **Global search** (⌘K) spans Firmen, Ansprechpartner, Interessenten, Deals, Aufträge, Rechnungen, Produkte and Messen, each deep-linked, with ↑/↓/↵ keyboard navigation.
+- **Sortable tables** — click any column header to sort (asc/desc) on all major lists.
+- **Dashboard drill-downs** — KPI cards and charts jump into the matching (filtered) view; empty states carry a primary create button.
+- **Dark mode** — sun/moon toggle in the top bar, remembers your choice and follows the OS by default.
+
 ## Tech
 
 - **React 18 + Vite**, React Router (hash routing), Recharts, lucide-react.
