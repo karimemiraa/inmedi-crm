@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, FileText, Euro, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
@@ -20,6 +21,7 @@ export default function Invoices() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.invoices, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
   const rows = useMemo(() => db.invoices.filter((i) =>
@@ -105,7 +107,7 @@ export default function Invoices() {
           </div>
           <dl className="kv" style={{ marginBottom: 18 }}>
             <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
-            {sel.orderId && <><dt>Auftrag</dt><dd><span className="rec-link" onClick={() => nav('/orders')}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
+            {sel.orderId && <><dt>Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', sel.orderId))}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
             <dt>Rechnungsdatum</dt><dd>{fmtDate(sel.issueDate)}</dd>
             <dt>Fällig am</dt><dd>{fmtDate(sel.dueDate)}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>

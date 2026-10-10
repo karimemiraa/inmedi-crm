@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, ShoppingCart } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Empty, Drawer, KpiCard, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -18,6 +19,7 @@ export default function Orders() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'Angebot' | 'Auftrag'
 
+  useOpenParam(db.orders, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const rows = useMemo(() => db.orders.filter((o) =>
     (kind === 'All' || o.kind === kind) &&
@@ -80,9 +82,9 @@ export default function Orders() {
             <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Datum</dt><dd>{fmtDate(sel.date)}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
-            {sel.dealId && <><dt>Deal</dt><dd><span className="rec-link" onClick={() => nav('/pipeline')}>{db.deals.find((d) => d.id === sel.dealId)?.name || '—'}</span></dd></>}
+            {sel.dealId && <><dt>Deal</dt><dd><span className="rec-link" onClick={() => nav(openLink('/pipeline', sel.dealId))}>{db.deals.find((d) => d.id === sel.dealId)?.name || '—'}</span></dd></>}
             {db.invoices.filter((i) => i.orderId === sel.id).length > 0 && (
-              <><dt>Rechnungen</dt><dd>{db.invoices.filter((i) => i.orderId === sel.id).map((i) => <span key={i.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav('/invoices')}>{i.number}</span>)}</dd></>
+              <><dt>Rechnungen</dt><dd>{db.invoices.filter((i) => i.orderId === sel.id).map((i) => <span key={i.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav(openLink('/invoices', i.id))}>{i.number}</span>)}</dd></>
             )}
           </dl>
           <h3 style={{ fontSize: 14, marginBottom: 10 }}>Positionen</h3>

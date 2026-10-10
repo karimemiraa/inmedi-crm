@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, GripVertical } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, ScoreMeter, Drawer, Field, Empty, AccountLink, ContactLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -15,6 +16,7 @@ export default function Pipeline() {
   const [dragId, setDragId] = useState(null);
   const [overCol, setOverCol] = useState(null);
   const [sel, setSel] = useState(null);
+  useOpenParam(db.deals, setSel);
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const owner = (id) => db.users.find((u) => u.id === id);
@@ -154,7 +156,7 @@ function DealDrawer({ deal, onClose }) {
         <dt>Erw. Abschluss</dt><dd>{fmtDate(deal.expectedClose)}</dd>
         <dt>Erstellt</dt><dd>{fmtDate(deal.createdAt)}</dd>
         <dt>Produkte</dt><dd>{deal.products.map((pid) => db.products.find((p) => p.id === pid)?.name).filter(Boolean).join(', ') || '—'}</dd>
-        {relOrders.length > 0 && <><dt>Aufträge/Angebote</dt><dd>{relOrders.map((x) => <span key={x.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav('/orders')}>{x.number}</span>)}</dd></>}
+        {relOrders.length > 0 && <><dt>Aufträge/Angebote</dt><dd>{relOrders.map((x) => <span key={x.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav(openLink('/orders', x.id))}>{x.number}</span>)}</dd></>}
       </dl>
     </Drawer>
   );

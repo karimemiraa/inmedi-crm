@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Presentation, CalendarClock, Users, Euro, Trash2, MapPin } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -23,6 +24,7 @@ export default function Events() {
   const [status, setStatus] = useState('Alle');
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
+  useOpenParam(db.events, setSel);
 
   const rows = useMemo(() => db.events.filter((e) =>
     (status === 'Alle' || e.status === status) &&

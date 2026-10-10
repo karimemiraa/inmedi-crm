@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Wrench, CalendarClock, PlayCircle, CheckCircle2, Cpu } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate, relDate } from '../lib/format.js';
 
@@ -22,6 +23,7 @@ export default function ServiceOrders() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.serviceOrders, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const dev = (id) => db.devices.find((d) => d.id === id);
   const tech = (id) => db.users.find((u) => u.id === id);
@@ -114,7 +116,7 @@ export default function ServiceOrders() {
             <dt>Geplant</dt><dd>{fmtDate(sel.scheduledDate)}</dd>
             <dt>Aufwand</dt><dd>{sel.hours} Std. · Material {fmtMoney(sel.partsCost)}</dd>
             <dt>Kostenschätzung</dt><dd><b>{fmtMoney(sel.hours * hourly + sel.partsCost)}</b></dd>
-            {sel.ticketId && <><dt>Ticket</dt><dd><span className="rec-link" onClick={() => nav('/service')}>{db.tickets.find((t) => t.id === sel.ticketId)?.number}</span></dd></>}
+            {sel.ticketId && <><dt>Ticket</dt><dd><span className="rec-link" onClick={() => nav(openLink('/service', sel.ticketId))}>{db.tickets.find((t) => t.id === sel.ticketId)?.number}</span></dd></>}
           </dl>
         </Drawer>
       )}

@@ -345,7 +345,7 @@ table.tbl td.right, table.tbl th.right { font-variant-numeric: tabular-nums; }
 .kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px 14px; font-size: 13.5px; }
 .kv dt { color: var(--text-3); font-weight: 500; }
 .kv dd { margin: 0; font-weight: 600; }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
 .tabs button { border: 0; background: transparent; padding: 11px 14px; font-weight: 600; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tabs button.active { color: var(--brand); border-bottom-color: var(--brand); }
 .list-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }

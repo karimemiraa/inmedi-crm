@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Cpu, Wrench, AlertTriangle, Repeat, Download } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtDate } from '../lib/format.js';
@@ -29,6 +30,7 @@ export default function Devices() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.devices, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const rows = useMemo(() => db.devices.filter((d) =>
     (kind === 'All' || d.kind === kind) &&
@@ -108,8 +110,8 @@ export default function Devices() {
           </div>
           <dl className="kv">
             <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
-            {sel.orderId && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav('/orders')}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
-            {sel.contractId && <><dt>Vertrag</dt><dd><span className="rec-link" onClick={() => nav('/contracts')}>{db.contracts.find((c) => c.id === sel.contractId)?.number || '—'}</span></dd></>}
+            {sel.orderId && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', sel.orderId))}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
+            {sel.contractId && <><dt>Vertrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/contracts', sel.contractId))}>{db.contracts.find((c) => c.id === sel.contractId)?.number || '—'}</span></dd></>}
             <dt>Kategorie</dt><dd>{sel.category}</dd>
             <dt>Seriennummer</dt><dd>{sel.serial}</dd>
             <dt>UDI</dt><dd style={{ fontSize: 12 }}>{sel.udi}</dd>

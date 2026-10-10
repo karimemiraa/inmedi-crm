@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Repeat, CalendarClock, PlayCircle, Pause, Trash2, Zap } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { useOpenParam } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -35,6 +36,7 @@ export default function RecurringOrders() {
   const toast = useToast();
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
+  useOpenParam(db.recurringOrders, setSel);
 
   const rows = useMemo(() => [...db.recurringOrders].sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue)), [db.recurringOrders]);
   const acct = (id) => db.accounts.find((a) => a.id === id);

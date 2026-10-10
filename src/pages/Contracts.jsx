@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileSignature, Repeat, CalendarClock, XCircle } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems, { BILLING_FACTOR } from '../components/LineItems.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -32,6 +33,7 @@ export default function Contracts() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.contracts, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const rows = useMemo(() => db.contracts.filter((c) =>
     (status === 'Alle' || c.status === status) &&
@@ -126,7 +128,7 @@ function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
       <dl className="kv">
         <dt>Kunde</dt><dd><AccountLink account={acct(c.accountId)} /></dd>
         <dt>Ansprechpartner</dt><dd>{contact ? <ContactLink contact={contact} /> : '—'}</dd>
-        {fromOrder && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav('/orders')}>{fromOrder.number}</span></dd></>}
+        {fromOrder && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', fromOrder.id))}>{fromOrder.number}</span></dd></>}
         <dt>Verantwortlich</dt><dd>{db.users.find((u) => u.id === c.ownerId)?.name}</dd>
         <dt>Start / Ende</dt><dd>{fmtDate(c.startDate)} – {fmtDate(endDate(c.startDate, c.termMonths))}</dd>
         <dt>Laufzeit</dt><dd>{c.termMonths} Monate</dd>

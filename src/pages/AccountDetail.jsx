@@ -10,6 +10,7 @@ import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field, ContactLink } fro
 import Notes from '../components/Notes.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
+import { openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { ACT_LABEL } from '../lib/labels.js';
 import { fmtMoney, fmtMoneyShort, fmtDate, relDate } from '../lib/format.js';
@@ -200,7 +201,7 @@ export default function AccountDetail() {
           <thead><tr><th>Deal</th><th>Phase</th><th>Score</th><th>Erw. Abschluss</th><th className="right">Wert</th></tr></thead>
           <tbody>
             {deals.map((d) => (
-              <tr key={d.id} onClick={() => nav('/pipeline')}>
+              <tr key={d.id} onClick={() => nav(openLink('/pipeline', d.id))}>
                 <td className="cell-main">{d.name}</td>
                 <td><Badge tone="blue" dot>{stage(d.stage)?.name}</Badge></td>
                 <td><ScoreMeter value={d.score} /></td>
@@ -220,7 +221,7 @@ export default function AccountDetail() {
             <thead><tr><th>Intervall</th><th>Positionen</th><th>Nächste Fälligkeit</th><th>Status</th><th className="right">Betrag/Lauf</th></tr></thead>
             <tbody>
               {recurring.map((r) => (
-                <tr key={r.id} onClick={() => nav('/recurring-orders')}>
+                <tr key={r.id} onClick={() => nav(openLink('/recurring-orders', r.id))}>
                   <td className="cell-main">{r.interval}</td>
                   <td className="muted">{r.items.length} Position(en)</td>
                   <td className="nowrap">{fmtDate(r.nextDue)}</td>
@@ -257,7 +258,7 @@ export default function AccountDetail() {
               {invoices.map((i) => {
                 const ord = orders.find((o) => o.id === i.orderId);
                 return (
-                  <tr key={i.id} onClick={() => nav('/invoices')}>
+                  <tr key={i.id} onClick={() => nav(openLink('/invoices', i.id))}>
                     <td className="cell-main nowrap">{i.number}</td>
                     <td className="muted">{ord?.number || '—'}</td>
                     <td className="nowrap">{fmtDate(i.issueDate)}</td>
@@ -281,7 +282,7 @@ export default function AccountDetail() {
                 const ord = orders.find((o) => o.id === d.orderId);
                 const con = db.contracts.find((c) => c.id === d.contractId);
                 return (
-                  <tr key={d.id} onClick={() => nav('/devices')}>
+                  <tr key={d.id} onClick={() => nav(openLink('/devices', d.id))}>
                     <td className="cell-main"><Cpu size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{d.name}</td>
                     <td className="muted nowrap">{d.serial}</td>
                     <td><Badge tone={d.kind === 'Verkauf' ? 'teal' : d.kind === 'Leihgerät' ? 'amber' : 'purple'}>{d.kind}</Badge></td>
@@ -302,7 +303,7 @@ export default function AccountDetail() {
               <thead><tr><th>Ticket</th><th>Gerät</th><th>Priorität</th><th>Status</th></tr></thead>
               <tbody>
                 {tickets.map((t) => (
-                  <tr key={t.id} onClick={() => nav('/service')}>
+                  <tr key={t.id} onClick={() => nav(openLink('/service', t.id))}>
                     <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number}</div></td>
                     <td className="muted">{devices.find((d) => d.id === t.deviceId)?.name || '—'}</td>
                     <td><Badge tone={t.priority === 'Hoch' ? 'red' : t.priority === 'Niedrig' ? 'gray' : 'amber'}>{t.priority}</Badge></td>
@@ -317,7 +318,7 @@ export default function AccountDetail() {
               <thead><tr><th>Nr.</th><th>Typ</th><th>Gerät</th><th>Status</th></tr></thead>
               <tbody>
                 {serviceOrders.map((s) => (
-                  <tr key={s.id} onClick={() => nav('/service-orders')}>
+                  <tr key={s.id} onClick={() => nav(openLink('/service-orders', s.id))}>
                     <td className="cell-main nowrap">{s.number}</td><td>{s.type}</td>
                     <td className="muted">{devices.find((d) => d.id === s.deviceId)?.name || '—'}</td>
                     <td><Badge tone={s.status === 'Erledigt' ? 'green' : 'blue'} dot>{s.status}</Badge></td>
@@ -331,7 +332,7 @@ export default function AccountDetail() {
               <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Schweregrad</th><th>Status</th></tr></thead>
               <tbody>
                 {incidents.map((i) => (
-                  <tr key={i.id} onClick={() => nav('/quality')}>
+                  <tr key={i.id} onClick={() => nav(openLink('/quality', i.id))}>
                     <td className="cell-main nowrap">{i.number}</td><td>{i.title}</td>
                     <td><Badge tone={i.severity === 'Schwerwiegend' ? 'red' : i.severity === 'Hoch' ? 'amber' : 'gray'} dot>{i.severity}</Badge></td>
                     <td><Badge tone={i.status === 'Abgeschlossen' ? 'green' : 'blue'} dot>{i.status}</Badge></td>
@@ -351,7 +352,7 @@ export default function AccountDetail() {
               {events.map((e) => {
                 const at = e.attendees.find((x) => x.refType === 'account' && x.refId === id);
                 return (
-                  <tr key={e.id} onClick={() => nav('/events')}>
+                  <tr key={e.id} onClick={() => nav(openLink('/events', e.id))}>
                     <td className="cell-main"><Presentation size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{e.name}</td>
                     <td><Badge tone="teal">{e.type}</Badge></td>
                     <td className="nowrap">{fmtDate(e.startDate)}</td>
@@ -383,10 +384,10 @@ export default function AccountDetail() {
 
 function ProcessHistory({ deals, orders, invoices, contracts = [], stage, nav }) {
   const events = [
-    ...deals.map((d) => ({ kind: 'Deal', date: d.createdAt, title: d.name, sub: stage(d.stage)?.name, amount: d.value, tone: 'purple', to: '/pipeline' })),
-    ...orders.map((o) => ({ kind: o.kind, date: o.date, title: o.number, sub: o.status, amount: o.total, tone: o.kind === 'Angebot' ? 'amber' : 'teal', to: '/orders' })),
-    ...contracts.map((c) => ({ kind: 'Vertrag', date: c.startDate, title: c.number + ' · ' + c.title, sub: c.status, amount: c.items.reduce((s, it) => s + it.qty * it.price, 0), tone: 'green', to: '/contracts' })),
-    ...invoices.map((i) => ({ kind: 'Rechnung', date: i.issueDate, title: i.number, sub: i.status, amount: i.total, open: i.total - i.paid, tone: 'blue', to: '/invoices' })),
+    ...deals.map((d) => ({ kind: 'Deal', date: d.createdAt, title: d.name, sub: stage(d.stage)?.name, amount: d.value, tone: 'purple', to: '/pipeline', id: d.id })),
+    ...orders.map((o) => ({ kind: o.kind, date: o.date, title: o.number, sub: o.status, amount: o.total, tone: o.kind === 'Angebot' ? 'amber' : 'teal', to: '/orders', id: o.id })),
+    ...contracts.map((c) => ({ kind: 'Vertrag', date: c.startDate, title: c.number + ' · ' + c.title, sub: c.status, amount: c.items.reduce((s, it) => s + it.qty * it.price, 0), tone: 'green', to: '/contracts', id: c.id })),
+    ...invoices.map((i) => ({ kind: 'Rechnung', date: i.issueDate, title: i.number, sub: i.status, amount: i.total, open: i.total - i.paid, tone: 'blue', to: '/invoices', id: i.id })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const totalOrders = orders.filter((o) => o.kind === 'Auftrag').reduce((s, o) => s + o.total, 0);
@@ -398,7 +399,7 @@ function ProcessHistory({ deals, orders, invoices, contracts = [], stage, nav })
         <thead><tr><th>Vorgang</th><th>Referenz</th><th>Status</th><th>Datum</th><th className="right">Betrag</th></tr></thead>
         <tbody>
           {events.map((e, k) => (
-            <tr key={k} onClick={() => nav(e.to)}>
+            <tr key={k} onClick={() => nav(openLink(e.to, e.id))}>
               <td><Badge tone={e.tone}>{e.kind}</Badge></td>
               <td className="cell-main">{e.title}</td>
               <td className="muted">{e.sub}{e.open > 0 ? ` · offen ${fmtMoney(e.open)}` : ''}</td>

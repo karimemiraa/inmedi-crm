@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, LifeBuoy, Clock, CheckCircle2, AlertTriangle, Phone, Mail, Globe, BookOpen } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Empty, KpiCard, Drawer, Card, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -19,6 +20,7 @@ export default function Service() {
   const [adding, setAdding] = useState(false);
   const [sel, setSel] = useState(null);
 
+  useOpenParam(db.tickets, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
   const rows = useMemo(() => {
@@ -120,7 +122,7 @@ export default function Service() {
           <dl className="kv">
             <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Kontakt</dt><dd>{sel.contactId ? <ContactLink contact={db.contacts.find((c) => c.id === sel.contactId)} /> : '—'}</dd>
-            {sel.deviceId && <><dt>Gerät</dt><dd><span className="rec-link" onClick={() => nav('/devices')}>{db.devices.find((d) => d.id === sel.deviceId)?.name || '—'}</span></dd></>}
+            {sel.deviceId && <><dt>Gerät</dt><dd><span className="rec-link" onClick={() => nav(openLink('/devices', sel.deviceId))}>{db.devices.find((d) => d.id === sel.deviceId)?.name || '—'}</span></dd></>}
             <dt>Kanal</dt><dd>{sel.channel}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
             <dt>Erstellt</dt><dd>{fmtDate(sel.createdAt)}</dd>

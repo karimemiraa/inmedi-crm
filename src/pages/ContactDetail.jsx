@@ -5,6 +5,7 @@ import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Card, Empty, Modal, Field, AccountLink, ScoreMeter } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
+import { openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { ACT_LABEL } from '../lib/labels.js';
 import { fmtMoney, fmtDate, relDate } from '../lib/format.js';
@@ -103,7 +104,7 @@ export default function ContactDetail() {
               <thead><tr><th>Nr.</th><th>Betreff</th><th>Status</th></tr></thead>
               <tbody>
                 {contracts.map((v) => (
-                  <tr key={v.id} onClick={() => nav('/contracts')}>
+                  <tr key={v.id} onClick={() => nav(openLink('/contracts', v.id))}>
                     <td className="cell-main nowrap">{v.number}</td><td>{v.title}</td><td><Badge tone={v.status === 'Aktiv' ? 'green' : 'gray'} dot>{v.status}</Badge></td>
                   </tr>
                 ))}
@@ -134,7 +135,7 @@ export default function ContactDetail() {
           <thead><tr><th>Deal</th><th>Phase</th><th>Score</th><th className="right">Wert</th></tr></thead>
           <tbody>
             {deals.map((d) => (
-              <tr key={d.id} onClick={() => nav('/pipeline')}>
+              <tr key={d.id} onClick={() => nav(openLink('/pipeline', d.id))}>
                 <td className="cell-main">{d.name}</td>
                 <td><Badge tone="blue" dot>{stage(d.stage)?.name}</Badge></td>
                 <td><ScoreMeter value={d.score} /></td>
@@ -150,7 +151,7 @@ export default function ContactDetail() {
           <thead><tr><th>Ticket</th><th>Kategorie</th><th>Priorität</th><th>Status</th><th>Erstellt</th></tr></thead>
           <tbody>
             {tickets.map((t) => (
-              <tr key={t.id} onClick={() => nav('/service')}>
+              <tr key={t.id} onClick={() => nav(openLink('/service', t.id))}>
                 <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number}</div></td>
                 <td>{t.category}</td>
                 <td><Badge tone={t.priority === 'Hoch' ? 'red' : t.priority === 'Niedrig' ? 'gray' : 'amber'}>{t.priority}</Badge></td>
@@ -169,7 +170,7 @@ export default function ContactDetail() {
             {events.map((e) => {
               const at = e.attendees.find((x) => x.refType === 'contact' && x.refId === id);
               return (
-                <tr key={e.id} onClick={() => nav('/events')}>
+                <tr key={e.id} onClick={() => nav(openLink('/events', e.id))}>
                   <td className="cell-main">{e.name}</td><td><Badge tone="teal">{e.type}</Badge></td>
                   <td className="nowrap">{fmtDate(e.startDate)}</td><td>{at?.role || '—'}</td>
                   <td><Badge tone="gray" dot>{at?.status || '—'}</Badge></td>
