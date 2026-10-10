@@ -16,6 +16,7 @@ import Accounts from './pages/Accounts.jsx';
 import AccountDetail from './pages/AccountDetail.jsx';
 import Contacts from './pages/Contacts.jsx';
 import ContactDetail from './pages/ContactDetail.jsx';
+import Duplicates from './pages/Duplicates.jsx';
 import Pipeline from './pages/Pipeline.jsx';
 import Orders from './pages/Orders.jsx';
 import RecurringOrders from './pages/RecurringOrders.jsx';
@@ -51,6 +52,7 @@ const router = createHashRouter([
       { path: 'accounts/:id', element: <AccountDetail /> },
       { path: 'contacts', element: <Contacts /> },
       { path: 'contacts/:id', element: <ContactDetail /> },
+      { path: 'duplicates', element: <Duplicates /> },
       { path: 'pipeline', element: <Pipeline /> },
       { path: 'orders', element: <Orders /> },
       { path: 'recurring-orders', element: <RecurringOrders /> },

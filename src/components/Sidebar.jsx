@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
   LifeBuoy, Receipt, Cpu, Calculator, ShieldCheck, LogOut, Wrench, ShieldAlert,
-  FileSignature, Lightbulb, Mail, Presentation, Repeat,
+  FileSignature, Lightbulb, Mail, Presentation, Repeat, CopyCheck,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
@@ -22,6 +22,7 @@ const GROUPS = [
       { to: '/accounts', icon: Building2, label: 'Firmen' },
       { to: '/contacts', icon: Users, label: 'Ansprechpartner' },
       { to: '/leads', icon: UserPlus, label: 'Interessenten', countKey: 'newLeads' },
+      { to: '/duplicates', icon: CopyCheck, label: 'Dublettenprüfung' },
     ],
   },
   {

@@ -159,6 +159,8 @@ function demo() {
     acc({ id: 'A6', kundennummer: 'K-10006', name: 'Seniorenresidenz Waldblick', type: 'Pflegeeinrichtung', tier: 'Standard', status: 'Aktiv', territoryId: 'T3', ownerId: 'U4', innendienstId: 'U5', street: 'Am Waldrand 3', zip: '04277', city: 'Leipzig', phone: '0341 8800-0', email: 'leitung@waldblick-leipzig.de', revenueYTD: 18000, createdAt: D(2, 25), color: '#10a760', customValues: { F1: 'C (wertig)', F2: 'Kunde', F3: 'Bronze', F4: 'Pflege', F7: 'gut' } }),
     acc({ id: 'A7', kundennummer: 'K-10007', name: 'MediDistribution GmbH', type: 'Großhändler', tier: 'Strategisch', status: 'Aktiv', territoryId: 'T1', ownerId: 'U2', innendienstId: 'U5', street: 'Logistikpark 1', zip: '30521', city: 'Hannover', phone: '0511 9000-0', email: 'order@medidistribution.de', revenueYTD: 210000, createdAt: D(1, 5), color: '#d6459b', customValues: { F1: 'A (Fokuskunde)', F2: 'Vertriebspartner', F3: 'Gold', F4: 'Sonstige' }, priceList: [{ id: 'PA3', productId: 'P1', price: 2100 }] }),
     acc({ id: 'A8', kundennummer: 'K-10008', name: 'Facharztzentrum Rheintal', type: 'Praxis', tier: 'Interessent', status: 'Interessent', territoryId: 'T2', ownerId: 'U3', innendienstId: 'U5', street: 'Rheinuferstraße 5', zip: '50668', city: 'Köln', phone: '0221 7700-0', email: 'kontakt@fz-rheintal.de', revenueYTD: 0, createdAt: D(8, 1), color: '#8b93a7', customValues: { F1: 'D (Standard)', F2: 'Interessent', F3: 'Kein Service', F4: 'Proktologie' } }),
+    // Beabsichtigte Dublette von A1 (zur Demonstration der Dublettenprüfung)
+    acc({ id: 'A9', kundennummer: 'K-10009', name: 'Universitätsklinikum Nord GmbH', type: 'Krankenhaus', tier: 'Interessent', status: 'Interessent', territoryId: 'T1', ownerId: 'U2', innendienstId: 'U5', street: 'Martinistr. 52', zip: '20246', city: 'Hamburg', phone: '040 7410-0', email: 'info@uk-nord.de', revenueYTD: 0, createdAt: D(9, 1), color: '#a81e22', customValues: { F2: 'Interessent' } }),
   ];
 
   const ct = (o) => ({ email: '', phone: '', isPrimary: false, color: '#0f8f86', customValues: {}, ...o });
@@ -175,6 +177,8 @@ function demo() {
     ct({ id: 'C10', accountId: 'A7', name: 'Michael Groß', title: 'Einkaufsleiter', email: 'm.gross@medidistribution.de', phone: '0511 9000-10', isPrimary: true, color: '#d6459b', customValues: { F10: 'Einkauf', F12: true } }),
     ct({ id: 'C11', accountId: 'A7', name: 'Julia Neumann', title: 'Produktmanagement', email: 'j.neumann@medidistribution.de', phone: '0511 9000-24' }),
     ct({ id: 'C12', accountId: 'A8', name: 'Dr. Ralf Zimmermann', title: 'Facharzt Proktologie', email: 'r.zimmermann@fz-rheintal.de', phone: '0221 7700-3', isPrimary: true, color: '#8b93a7' }),
+    // Beabsichtigte Dublette von C1 (gleiche E-Mail) auf der Dubletten-Firma A9
+    ct({ id: 'C13', accountId: 'A9', name: 'Dr. Anja Weber', title: 'Chefärztin', email: 'a.weber@uk-nord.de', phone: '040 7410-201', isPrimary: true, color: '#a81e22' }),
   ];
 
   const deals = [
@@ -200,6 +204,7 @@ function demo() {
   const o10i = [li('P3', 1), li('P5', 1)];
   const o11i = [li('P1', 2)];
   const o12i = [li('P8', 1)];
+  const o13i = [li('P2', 1)];
   const ord = (o) => ({ ownerId: 'U2', dealId: null, ...o, total: sum(o.items) });
   const orders = [
     ord({ id: 'O1', number: 'AUF-24516', kind: 'Auftrag', accountId: 'A1', ownerId: 'U2', dealId: 'D1', status: 'Geliefert', items: o1i, date: D(3, 2) }),
@@ -214,6 +219,7 @@ function demo() {
     ord({ id: 'O10', number: 'ANG-24525', kind: 'Angebot', accountId: 'A2', ownerId: 'U3', dealId: 'D3', status: 'Angebot gesendet', items: o10i, date: D(9, 5) }),
     ord({ id: 'O11', number: 'ANG-24526', kind: 'Angebot', accountId: 'A5', ownerId: 'U3', status: 'Entwurf', items: o11i, date: D(10, 2) }),
     ord({ id: 'O12', number: 'ANG-24527', kind: 'Angebot', accountId: 'A8', ownerId: 'U3', status: 'Angebot gesendet', items: o12i, date: D(8, 2) }),
+    ord({ id: 'O13', number: 'AUF-24590', kind: 'Auftrag', accountId: 'A9', ownerId: 'U2', status: 'Bestätigt', items: o13i, date: D(9, 5) }),
   ];
 
   const inv = (o) => { const total = sum(o.items); const issueDate = o.issueDate; return { ownerId: 'U2', orderId: null, paid: 0, ...o, total, dueDate: addDays(issueDate, 30) }; };
