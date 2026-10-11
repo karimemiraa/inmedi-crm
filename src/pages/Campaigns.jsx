@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Megaphone, Mail, MousePointerClick, Eye } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Card, Modal, Field } from '../components/ui.jsx';
+import { Badge, Card, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtNum, fmtDate } from '../lib/format.js';
 
@@ -93,9 +93,9 @@ function NewCampaign({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Name"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="z. B. Herbst-Aktion Monitoring" autoFocus /></Field></div>
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['E-Mail', 'Newsletter'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Entwurf', 'Geplant', 'Aktiv'].map((s) => <option key={s}>{s}</option>)}</select></Field>
-        <div className="full"><Field label="Segment"><select className="select" value={f.segment} onChange={(e) => set('segment', e.target.value)}>{['Alle Kontakte', 'Krankenhäuser — Schlüsselkunden', 'Praxen', 'Pflegeeinrichtungen', 'Großhändler', 'Interessenten'].map((s) => <option key={s}>{s}</option>)}</select></Field></div>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['E-Mail', 'Newsletter'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Entwurf', 'Geplant', 'Aktiv'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
+        <div className="full"><Field label="Segment"><Select className="select" value={f.segment} onChange={(e) => set('segment', e.target.value)}>{['Alle Kontakte', 'Krankenhäuser — Schlüsselkunden', 'Praxen', 'Pflegeeinrichtungen', 'Großhändler', 'Interessenten'].map((s) => <option key={s}>{s}</option>)}</Select></Field></div>
         <Field label="Datum"><input className="input" type="date" value={f.date} onChange={(e) => set('date', e.target.value)} /></Field>
       </div>
     </Modal>

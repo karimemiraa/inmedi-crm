@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, GripVertical } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, ScoreMeter, Drawer, Field, Empty, AccountLink, ContactLink } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, ContactLink, Drawer, Empty, Field, ScoreMeter, Select } from '../components/ui.jsx';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -143,9 +143,9 @@ function DealDrawer({ deal, onClose }) {
         <div className="muted tiny">Deal-Wert</div>
       </div>
       <Field label="Phase">
-        <select className="select" value={deal.stage} onChange={(e) => setStage(e.target.value)}>
+        <Select className="select" value={deal.stage} onChange={(e) => setStage(e.target.value)}>
           {db.stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
+        </Select>
       </Field>
       <div style={{ height: 14 }} />
       <dl className="kv">

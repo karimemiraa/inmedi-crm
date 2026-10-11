@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
-import { Upload, Search, FileText, FileType2, FileSpreadsheet, File, ScanLine, CheckCircle2, AlertTriangle, Building2 } from 'lucide-react';
+import { Upload, Search, FileText, FileType2, FileSpreadsheet, File, ScanLine, CheckCircle2, AlertTriangle, Building2, Pencil, Trash2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Modal, Drawer, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { extractInvoiceFromFile } from '../lib/pdfExtract.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
@@ -23,6 +23,14 @@ export default function Documents() {
   const [type, setType] = useState('All');
   const [importing, setImporting] = useState(false);
   const [selInv, setSelInv] = useState(null);
+  const [editDoc, setEditDoc] = useState(null);
+
+  const delDoc = (d) => {
+    if (!window.confirm(`Dokument „${d.name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`)) return;
+    store.remove('documents', d.id);
+    store.add('auditLog', { at: new Date().toISOString(), userId: db.meta.currentUserId, action: 'Dokument gelöscht', entity: d.name });
+    toast('Dokument gelöscht');
+  };
 
   const guessType = (name) => {
     const l = name.toLowerCase();
@@ -109,22 +117,26 @@ export default function Documents() {
           <div className="search" style={{ maxWidth: 300 }}>
             <Search size={16} /><input placeholder="Dokumente suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <select className="select" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)}>
+          <Select className="select" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)}>
             {types.map((t) => <option key={t} value={t}>{t === 'All' ? 'Alle Typen' : t}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="card" style={{ overflow: 'hidden' }}>
           <div className="table-wrap"><table className="tbl">
-            <thead><tr><th>Dokument</th><th>Typ</th><th>Verknüpftes Konto</th><th>Besitzer</th><th>Größe</th><th>Datum</th></tr></thead>
+            <thead><tr><th>Dokument</th><th>Typ</th><th>Verknüpftes Konto</th><th>Besitzer</th><th>Größe</th><th>Datum</th><th className="right">Aktionen</th></tr></thead>
             <tbody>
               {rows.map((d) => { const Icon = iconFor(d.name); return (
-                <tr key={d.id} style={{ cursor: 'default' }}>
+                <tr key={d.id} onClick={() => setEditDoc(d)} title="Bearbeiten">
                   <td className="cell-main"><Icon size={16} style={{ verticalAlign: -3, marginRight: 9, color: 'var(--brand)' }} />{d.name}</td>
                   <td><Badge tone={TYPE_TONE[d.type] || 'gray'}>{d.type}</Badge></td>
                   <td>{acct(d.accountId)?.name || <span className="muted">Allgemein</span>}</td>
                   <td>{user(d.ownerId)?.name.split(' ')[0]}</td>
                   <td className="muted">{d.size}</td>
                   <td className="nowrap">{fmtDate(d.date)}</td>
+                  <td className="right nowrap" onClick={(e) => e.stopPropagation()}>
+                    <button className="icon-btn sm" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditDoc(d)}><Pencil size={15} /></button>
+                    <button className="icon-btn sm" title="Löschen" aria-label="Löschen" onClick={() => delDoc(d)} style={{ marginLeft: 4 }}><Trash2 size={15} /></button>
+                  </td>
                 </tr>
               ); })}
             </tbody>
@@ -134,7 +146,58 @@ export default function Documents() {
 
       {importing && <ImportInvoice db={db} onClose={() => setImporting(false)} toast={toast} />}
       {selInv && <InvoiceDrawer db={db} inv={selInv} onClose={() => setSelInv(null)} />}
+      {editDoc && <DocEditModal db={db} doc={editDoc} onClose={() => setEditDoc(null)} onDelete={delDoc} toast={toast} />}
     </div>
+  );
+}
+
+const DOC_TYPES = ['Vertrag', 'Angebot', 'Auftrag', 'Katalog', 'Präsentation', 'Regulatorisch', 'Sonstiges'];
+
+function DocEditModal({ db, doc, onClose, onDelete, toast }) {
+  const [name, setName] = useState(doc.name);
+  const [type, setType] = useState(doc.type);
+  const [accountId, setAccountId] = useState(doc.accountId || '');
+  const matched = db.accounts.find((a) => a.id === accountId) || null;
+
+  const save = () => {
+    if (!name.trim()) { toast('Bitte einen Namen angeben'); return; }
+    store.update('documents', doc.id, {
+      name: name.trim(), type,
+      accountId: matched ? matched.id : null,
+      ownerId: matched ? matched.ownerId : doc.ownerId,
+    });
+    store.add('auditLog', { at: new Date().toISOString(), userId: db.meta.currentUserId, action: 'Dokument bearbeitet', entity: name.trim(), detail: matched ? 'Verknüpft mit ' + matched.name : 'Keine Zuordnung' });
+    toast('Dokument gespeichert');
+    onClose();
+  };
+
+  return (
+    <Modal title="Dokument bearbeiten" onClose={onClose}
+      footer={<>
+        <button className="btn danger" onClick={() => { onDelete(doc); onClose(); }} style={{ marginRight: 'auto' }}><Trash2 size={15} /> Löschen</button>
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn primary" onClick={save}>Speichern</button>
+      </>}>
+      <Field label="Dokumentname"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Typ">
+        <Select value={type} onChange={(e) => setType(e.target.value)}>
+          {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </Select>
+      </Field>
+      <Field label="Verknüpftes Konto">
+        <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <option value="">— Allgemein (keine Zuordnung) —</option>
+          {db.accounts.slice().sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
+            <option key={a.id} value={a.id}>{a.name}{a.kundennummer ? ` (${a.kundennummer})` : ''}</option>
+          ))}
+        </Select>
+      </Field>
+      {matched && (
+        <div className="muted tiny" style={{ marginTop: -4 }}>
+          Betreuer: <b>{db.users.find((u) => u.id === matched.ownerId)?.name || '—'}</b>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -206,10 +269,10 @@ function ImportInvoice({ db, onClose, toast }) {
                   {matched ? <>Zugeordnet: <b>{matched.name}</b> → Betreuer <b>{rep?.name || '—'}</b></> : 'Kein Konto mit dieser Kundennummer gefunden — bitte manuell zuordnen.'}
                 </div>
               </div>
-              <select className="select" style={{ width: 220 }} value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+              <Select className="select" style={{ width: 220 }} value={accountId} onChange={(e) => setAccountId(e.target.value)}>
                 <option value="">— Nicht zuordnen —</option>
                 {db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.kundennummer})</option>)}
-              </select>
+              </Select>
             </div>
           </div>
 

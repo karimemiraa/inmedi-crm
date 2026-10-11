@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, BarChart3, TrendingUp, Filter, Table2, LayoutList } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Card, KpiCard, Field } from '../components/ui.jsx';
+import { Card, Field, KpiCard, Select } from '../components/ui.jsx';
 import { fieldsFor } from '../components/CustomFields.jsx';
 import { contractValues } from './Contracts.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -194,26 +194,26 @@ export default function Reports() {
         action={<button className="btn primary sm" onClick={doExport}><Download size={14} /> CSV exportieren</button>}>
         <div style={{ display: 'grid', gridTemplateColumns: mode === 'pivot' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 14, marginBottom: 18 }}>
           <Field label="Datenquelle">
-            <select className="select" value={source} onChange={(e) => setSrc(e.target.value)}>
+            <Select className="select" value={source} onChange={(e) => setSrc(e.target.value)}>
               {Object.entries(SOURCES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-            </select>
+            </Select>
           </Field>
           <Field label={mode === 'pivot' ? 'Zeilen' : 'Gruppieren nach'}>
-            <select className="select" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+            <Select className="select" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
               {Object.entries(cfg.groups).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            </Select>
           </Field>
           {mode === 'pivot' && (
             <Field label="Spalten">
-              <select className="select" value={colBy} onChange={(e) => setColBy(e.target.value)}>
+              <Select className="select" value={colBy} onChange={(e) => setColBy(e.target.value)}>
                 {Object.entries(cfg.groups).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Select>
             </Field>
           )}
           <Field label="Kennzahl">
-            <select className="select" value={measure} onChange={(e) => setMeasure(e.target.value)}>
+            <Select className="select" value={measure} onChange={(e) => setMeasure(e.target.value)}>
               {Object.entries(cfg.measures).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
+            </Select>
           </Field>
         </div>
 

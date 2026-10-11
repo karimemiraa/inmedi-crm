@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, AlertOctagon, Siren, ClipboardCheck, ShieldAlert, FileWarning } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, Card, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate, relDate } from '../lib/format.js';
@@ -117,9 +117,9 @@ export default function Quality() {
           </div>
           <p style={{ fontSize: 13.5, marginBottom: 16 }}>{sel.description}</p>
           <Field label="Status">
-            <select className="select" value={sel.status} onChange={(e) => { store.update('incidents', sel.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...sel, status: e.target.value }); }}>
+            <Select className="select" value={sel.status} onChange={(e) => { store.update('incidents', sel.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...sel, status: e.target.value }); }}>
               {INC_STATUS.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
@@ -140,9 +140,9 @@ export default function Quality() {
           <Badge tone={capaSel.type === 'Korrektur' ? 'amber' : 'teal'}>{capaSel.type}maßnahme</Badge>
           <p style={{ fontSize: 13.5, margin: '16px 0' }}>{capaSel.description}</p>
           <Field label="Status">
-            <select className="select" value={capaSel.status} onChange={(e) => { store.update('capas', capaSel.id, { status: e.target.value }); toast('Maßnahme aktualisiert'); setCapaSel({ ...capaSel, status: e.target.value }); }}>
+            <Select className="select" value={capaSel.status} onChange={(e) => { store.update('capas', capaSel.id, { status: e.target.value }); toast('Maßnahme aktualisiert'); setCapaSel({ ...capaSel, status: e.target.value }); }}>
               {CAPA_STATUS.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
@@ -180,10 +180,10 @@ function AddIncident({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erfassen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Titel"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="Kurzbeschreibung des Vorkommnisses" autoFocus /></Field></div>
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{INC_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Schweregrad"><select className="select" value={f.severity} onChange={(e) => set('severity', e.target.value)}>{SEV.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-        <Field label="Gerät"><select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{INC_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Schweregrad"><Select className="select" value={f.severity} onChange={(e) => set('severity', e.target.value)}>{SEV.map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Gerät"><Select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></Field>
         <div className="full"><label className="check" style={{ marginTop: 4 }}><input type="checkbox" checked={f.meldepflichtig} onChange={(e) => set('meldepflichtig', e.target.checked)} /> Meldepflichtig (an BfArM &amp; Hersteller)</label></div>
         <div className="full"><Field label="Beschreibung"><textarea className="input" rows={3} onChange={(e) => set('description', e.target.value)} placeholder="Was ist passiert? Auswirkung? Sofortmaßnahmen?" /></Field></div>
       </div>
@@ -208,9 +208,9 @@ function AddCapa({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Anlegen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Titel"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="Was ist zu tun?" autoFocus /></Field></div>
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Korrektur', 'Vorbeugung'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Bezug Vorkommnis"><select className="select" value={f.incidentId} onChange={(e) => set('incidentId', e.target.value)}><option value="">— Ohne —</option>{db.incidents.map((i) => <option key={i.id} value={i.id}>{i.number}</option>)}</select></Field>
-        <Field label="Verantwortlich"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Korrektur', 'Vorbeugung'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Bezug Vorkommnis"><Select className="select" value={f.incidentId} onChange={(e) => set('incidentId', e.target.value)}><option value="">— Ohne —</option>{db.incidents.map((i) => <option key={i.id} value={i.id}>{i.number}</option>)}</Select></Field>
+        <Field label="Verantwortlich"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         <Field label="Fällig am"><input className="input" type="date" value={f.dueDate} onChange={(e) => set('dueDate', e.target.value)} /></Field>
         <div className="full"><Field label="Beschreibung"><textarea className="input" rows={3} onChange={(e) => set('description', e.target.value)} /></Field></div>
       </div>

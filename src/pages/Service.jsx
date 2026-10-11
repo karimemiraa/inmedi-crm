@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, LifeBuoy, Clock, CheckCircle2, AlertTriangle, Phone, Mail, Globe, BookOpen } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Drawer, Card, Field, Modal, AccountLink, ContactLink } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Card, ContactLink, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
@@ -114,9 +114,9 @@ export default function Service() {
             <Badge tone="gray">{sel.category}</Badge>
           </div>
           <Field label="Status ändern">
-            <select className="select" value={sel.status} onChange={(e) => { setStatusOf(sel.id, e.target.value); setSel({ ...sel, status: e.target.value }); }}>
+            <Select className="select" value={sel.status} onChange={(e) => { setStatusOf(sel.id, e.target.value); setSel({ ...sel, status: e.target.value }); }}>
               {['Neu', 'In Bearbeitung', 'Wartet auf Kunde', 'Gelöst'].map((s) => <option key={s}>{s}</option>)}
-            </select>
+            </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
@@ -158,12 +158,12 @@ function NewTicket({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('subject', e.target.value)} placeholder="Kurzbeschreibung des Anliegens" autoFocus /></Field></div>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-        <Field label="Ansprechpartner"><select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-        <Field label="Betroffenes Gerät"><select className="select" value={f.deviceId} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Kein Gerät —</option>{accDevices.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.serial})</option>)}</select></Field>
-        <Field label="Kategorie"><select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{['Technische Anfrage', 'Reklamation', 'Retoure', 'Wartung', 'Rechnungsfrage'].map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="Kanal"><select className="select" value={f.channel} onChange={(e) => set('channel', e.target.value)}>{['Telefon', 'E-Mail', 'Web'].map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="Priorität"><select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((c) => <option key={c}>{c}</option>)}</select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Ansprechpartner"><Select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+        <Field label="Betroffenes Gerät"><Select className="select" value={f.deviceId} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Kein Gerät —</option>{accDevices.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.serial})</option>)}</Select></Field>
+        <Field label="Kategorie"><Select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{['Technische Anfrage', 'Reklamation', 'Retoure', 'Wartung', 'Rechnungsfrage'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Kanal"><Select className="select" value={f.channel} onChange={(e) => set('channel', e.target.value)}>{['Telefon', 'E-Mail', 'Web'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Priorität"><Select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
       </div>
     </Modal>
   );

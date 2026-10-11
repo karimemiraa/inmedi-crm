@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Card, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate } from '../lib/format.js';
@@ -108,14 +108,14 @@ function LeadEdit({ lead, db, onClose, onSaved }) {
         <Field label="Ansprechpartner"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} /></Field>
         <Field label="Unternehmen"><input className="input" value={f.company} onChange={(e) => set('company', e.target.value)} /></Field>
         <Field label="Position"><input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} /></Field>
-        <Field label="Quelle"><select className="select" value={f.source} onChange={(e) => set('source', e.target.value)}>{['Website', 'Messe', 'Empfehlung', 'Kaltakquise', 'E-Mail-Kampagne', 'LinkedIn'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Quelle"><Select className="select" value={f.source} onChange={(e) => set('source', e.target.value)}>{['Website', 'Messe', 'Empfehlung', 'Kaltakquise', 'E-Mail-Kampagne', 'LinkedIn'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <Field label="E-Mail"><input className="input" value={f.email} onChange={(e) => set('email', e.target.value)} /></Field>
         <Field label="Telefon"><input className="input" value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
         <Field label="Stadt"><input className="input" value={f.city || ''} onChange={(e) => set('city', e.target.value)} /></Field>
-        <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Neu', 'In Bearbeitung', 'Qualifiziert', 'Nicht qualifiziert'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Neu', 'In Bearbeitung', 'Qualifiziert', 'Nicht qualifiziert'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <Field label="Score (0–100)"><input className="input" type="number" value={f.score} onChange={(e) => set('score', e.target.value)} /></Field>
         <Field label="Potenzial €"><input className="input" type="number" value={f.potential || 0} onChange={(e) => set('potential', e.target.value)} /></Field>
-        <Field label="Betreuer"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Betreuer"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
       </div>
     </Modal>
   );

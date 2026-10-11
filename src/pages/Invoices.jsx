@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Download, FileText, Euro, AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
+import { AccountLink, Badge, Drawer, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
@@ -79,9 +79,9 @@ export default function Invoices() {
         <div className="search" style={{ background: 'var(--surface)', maxWidth: 300 }}>
           <Search size={16} /><input placeholder="Nach Nummer oder Konto suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className="select" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
+        <Select className="select" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
           {[['All', 'Alle Status'], ['offen', 'Offene Posten'], ['Entwurf', 'Entwurf'], ['Versendet', 'Versendet'], ['Teilbezahlt', 'Teilbezahlt'], ['Bezahlt', 'Bezahlt'], ['Überfällig', 'Überfällig']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
+        </Select>
         <span className="muted tiny" style={{ marginLeft: 'auto' }}>{rows.length} angezeigt</span>
       </div>
 
@@ -179,10 +179,10 @@ function NewInvoice({ db, onClose, toast }) {
     <Modal title="Neue Rechnung" wide onClose={onClose}
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Gesamt: {fmtMoney(total)}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <Field label="Kunde"><select className="select" value={accountId} onChange={(e) => { setAccountId(e.target.value); setOrderId(''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><Select className="select" value={accountId} onChange={(e) => { setAccountId(e.target.value); setOrderId(''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Rechnungsdatum"><input className="input" type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
-        <Field label="Status"><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>{['Entwurf', 'Versendet', 'Bezahlt'].map((s) => <option key={s}>{s}</option>)}</select></Field>
-        <div className="full"><Field label="Aus Auftrag (optional — übernimmt Positionen)"><select className="select" value={orderId} onChange={(e) => pickOrder(e.target.value)}><option value="">— Ohne Auftragsbezug —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number} · {fmtMoney(o.total)}</option>)}</select></Field></div>
+        <Field label="Status"><Select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>{['Entwurf', 'Versendet', 'Bezahlt'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
+        <div className="full"><Field label="Aus Auftrag (optional — übernimmt Positionen)"><Select className="select" value={orderId} onChange={(e) => pickOrder(e.target.value)}><option value="">— Ohne Auftragsbezug —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number} · {fmtMoney(o.total)}</option>)}</Select></Field></div>
       </div>
       <h4 style={{ marginBottom: 10 }}>Positionen</h4>
       <LineItems products={db.products} items={items} setItems={setItems} />

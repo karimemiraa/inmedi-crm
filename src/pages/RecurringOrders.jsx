@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Repeat, CalendarClock, PlayCircle, Pause, Trash2, Zap } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Badge, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useOpenParam } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -166,9 +166,9 @@ function NewRO({ db, onClose, toast }) {
     <Modal title="Neuer Dauerauftrag" wide onClose={onClose}
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Anlegen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-        <Field label="Verantwortlich"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
-        <Field label="Intervall"><select className="select" value={f.interval} onChange={(e) => set('interval', e.target.value)}>{INTERVALS.map((i) => <option key={i}>{i}</option>)}</select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Verantwortlich"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
+        <Field label="Intervall"><Select className="select" value={f.interval} onChange={(e) => set('interval', e.target.value)}>{INTERVALS.map((i) => <option key={i}>{i}</option>)}</Select></Field>
         <Field label="Erste Fälligkeit"><input className="input" type="date" value={f.startDate} onChange={(e) => set('startDate', e.target.value)} /></Field>
       </div>
       <h4 style={{ marginBottom: 10 }}>Positionen</h4>

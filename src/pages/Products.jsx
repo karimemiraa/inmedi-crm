@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Package } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Modal, Field, SortTh } from '../components/ui.jsx';
+import { Badge, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney } from '../lib/format.js';
@@ -47,9 +47,9 @@ export default function Products() {
         <div className="search" style={{ background: 'var(--surface)', maxWidth: 300 }}>
           <Search size={16} /><input placeholder="Produkt oder Artikelnr. suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className="select" style={{ width: 'auto' }} value={cat} onChange={(e) => setCat(e.target.value)}>
+        <Select className="select" style={{ width: 'auto' }} value={cat} onChange={(e) => setCat(e.target.value)}>
           {cats.map((c) => <option key={c} value={c}>{c === 'All' ? 'Alle Kategorien' : c}</option>)}
-        </select>
+        </Select>
         <span className="muted tiny" style={{ marginLeft: 'auto' }}>{rows.length} angezeigt</span>
       </div>
 
@@ -103,9 +103,9 @@ function NewProduct({ db, onClose, toast }) {
       <div className="form-grid">
         <div className="full"><Field label="Produktname"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="z. B. Infusionspumpe X300" autoFocus /></Field></div>
         <Field label="Artikelnummer"><input className="input" onChange={(e) => set('sku', e.target.value)} placeholder="automatisch, wenn leer" /></Field>
-        <Field label="Kategorie"><select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
+        <Field label="Kategorie"><Select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{cats.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Preis (€)"><input className="input" type="number" value={f.price} onChange={(e) => set('price', e.target.value)} /></Field>
-        <Field label="Einheit"><select className="select" value={f.unit} onChange={(e) => set('unit', e.target.value)}>{['Stück', 'Karton', 'Box', 'Pack.', 'Set'].map((u) => <option key={u}>{u}</option>)}</select></Field>
+        <Field label="Einheit"><Select className="select" value={f.unit} onChange={(e) => set('unit', e.target.value)}>{['Stück', 'Karton', 'Box', 'Pack.', 'Set'].map((u) => <option key={u}>{u}</option>)}</Select></Field>
         <Field label="Bestand"><input className="input" type="number" value={f.stock} onChange={(e) => set('stock', e.target.value)} /></Field>
       </div>
     </Modal>

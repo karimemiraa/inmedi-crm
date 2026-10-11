@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Field } from './ui.jsx';
+import { Field, Select } from './ui.jsx';
 import { fmtDate } from '../lib/format.js';
 
 // Zusatzfelder (custom fields) engine — definitions live in db.customFields,
@@ -31,7 +31,7 @@ export function CustomFieldsEditor({ db, entity, values, onChange }) {
           return <div key={f.id} className="full"><label className="check"><input type="checkbox" checked={!!v} onChange={(e) => set(f.id, e.target.checked)} /> {f.label}</label></div>;
         }
         if (f.type === 'Auswahl') {
-          return <Field key={f.id} label={f.label}><select className="select" value={v || ''} onChange={(e) => set(f.id, e.target.value)}><option value="">— Bitte wählen —</option>{f.options.map((o) => <option key={o}>{o}</option>)}</select></Field>;
+          return <Field key={f.id} label={f.label}><Select className="select" value={v || ''} onChange={(e) => set(f.id, e.target.value)}><option value="">— Bitte wählen —</option>{f.options.map((o) => <option key={o}>{o}</option>)}</Select></Field>;
         }
         const inputType = f.type === 'Zahl' ? 'number' : f.type === 'Datum' ? 'date' : 'text';
         return <Field key={f.id} label={f.label}><input className="input" type={inputType} value={v || ''} onChange={(e) => set(f.id, e.target.value)} /></Field>;

@@ -1,6 +1,103 @@
+import { useState, useRef, useEffect, useLayoutEffect, Children, isValidElement } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { initials } from '../lib/format.js';
-import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown, Check } from 'lucide-react';
+
+// Styled dropdown — a drop-in replacement for native <select>. Reads <option>
+// children and keeps the native onChange(e.target.value) signature. Renders the
+// menu in a portal so it is never clipped inside modals/drawers and matches the
+// app theme in light and dark.
+function optionText(node) {
+  if (node == null || node === false || node === true) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(optionText).join('');
+  if (isValidElement(node)) return optionText(node.props.children);
+  return '';
+}
+export function Select({ value, onChange, children, className = '', style, disabled, 'aria-label': ariaLabel, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+
+  const opts = [];
+  Children.forEach(children, (c) => {
+    if (!isValidElement(c) || c.type !== 'option') return;
+    const val = c.props.value !== undefined ? c.props.value : optionText(c.props.children);
+    opts.push({ value: val, label: c.props.children, disabled: !!c.props.disabled });
+  });
+  const selIdx = opts.findIndex((o) => String(o.value) === String(value));
+  const current = selIdx >= 0 ? opts[selIdx] : null;
+
+  const place = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ left: r.left, top: r.bottom + 4, bottom: r.top, width: r.width, vh: window.innerHeight });
+  };
+  const openMenu = () => { if (disabled) return; place(); setHi(selIdx >= 0 ? selIdx : 0); setOpen(true); };
+  const close = () => setOpen(false);
+  const pick = (i) => { const o = opts[i]; if (!o || o.disabled) return; onChange && onChange({ target: { value: o.value } }); close(); btnRef.current?.focus(); };
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) close(); };
+    const onScroll = (e) => { if (!menuRef.current?.contains(e.target)) close(); };
+    document.addEventListener('mousedown', onDoc);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', close);
+    return () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', close); };
+  }, [open]);
+
+  // Clamp into the viewport (shift left if overflowing, flip up if no room below).
+  useLayoutEffect(() => {
+    if (!open || !pos || !menuRef.current) return;
+    const m = menuRef.current.getBoundingClientRect();
+    let left = pos.left, top = pos.top;
+    if (left + m.width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - m.width - 8);
+    if (top + m.height > window.innerHeight - 8) { const up = pos.bottom - 4 - m.height; top = up > 8 ? up : Math.max(8, window.innerHeight - m.height - 8); }
+    if (left !== pos.left || top !== pos.top) { menuRef.current.style.left = left + 'px'; menuRef.current.style.top = top + 'px'; }
+  }, [open, pos]);
+
+  useEffect(() => { // keep highlighted option in view
+    if (open && menuRef.current) { const el = menuRef.current.children[hi]; el?.scrollIntoView({ block: 'nearest' }); }
+  }, [hi, open]);
+
+  const onKey = (e) => {
+    if (disabled) return;
+    if (!open) { if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); openMenu(); } return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, opts.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); pick(hi); }
+    else if (e.key === 'Escape') { e.preventDefault(); close(); }
+    else if (e.key === 'Home') { e.preventDefault(); setHi(0); }
+    else if (e.key === 'End') { e.preventDefault(); setHi(opts.length - 1); }
+    else if (e.key === 'Tab') close();
+  };
+
+  return (
+    <>
+      <button type="button" ref={btnRef} className={'select select-trigger ' + className} style={style} disabled={disabled}
+        aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
+        onClick={() => (open ? close() : openMenu())} onKeyDown={onKey}>
+        <span className="select-value">{current ? current.label : (placeholder || '')}</span>
+        <ChevronDown size={15} className="select-chev" />
+      </button>
+      {open && pos && createPortal(
+        <div ref={menuRef} className="select-menu" role="listbox"
+          style={{ position: 'fixed', left: pos.left, top: pos.top, minWidth: pos.width }}>
+          {opts.map((o, i) => (
+            <div key={i} role="option" aria-selected={i === selIdx}
+              className={'select-opt' + (i === hi ? ' hi' : '') + (i === selIdx ? ' sel' : '') + (o.disabled ? ' disabled' : '')}
+              onMouseEnter={() => setHi(i)} onMouseDown={(e) => { e.preventDefault(); pick(i); }}>
+              <span className="select-opt-label">{o.label}</span>
+              {i === selIdx && <Check size={14} className="select-opt-check" />}
+            </div>
+          ))}
+        </div>, document.body)}
+    </>
+  );
+}
 
 // Sortable table header cell. Pairs with useSort(): <SortTh label sortKey sort onSort />
 export function SortTh({ label, sortKey, sort, onSort, align, style }) {

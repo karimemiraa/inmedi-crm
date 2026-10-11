@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Wrench, CalendarClock, PlayCircle, CheckCircle2, Cpu } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate, relDate } from '../lib/format.js';
@@ -103,9 +103,9 @@ export default function ServiceOrders() {
           </div>
           <p style={{ fontSize: 13.5, marginBottom: 16 }}>{sel.description}</p>
           <Field label="Status">
-            <select className="select" value={sel.status} onChange={(e) => { setStatusOf(sel.id, e.target.value); setSel({ ...sel, status: e.target.value }); }}>
+            <Select className="select" value={sel.status} onChange={(e) => { setStatusOf(sel.id, e.target.value); setSel({ ...sel, status: e.target.value }); }}>
               {STATUSES.map((s) => <option key={s}>{s}</option>)}
-            </select>
+            </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
@@ -143,12 +143,12 @@ function AddOrder({ db, onClose, toast }) {
     <Modal title="Neuer Serviceauftrag" wide onClose={onClose}
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid">
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Priorität"><select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); set('ticketId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-        <Field label="Gerät"><select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devicesOfAccount.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
-        <Field label="Aus Ticket (optional)"><select className="select" value={f.ticketId} onChange={(e) => set('ticketId', e.target.value)}><option value="">— Ohne Ticket —</option>{ticketsOfAccount.map((t) => <option key={t.id} value={t.id}>{t.number} · {t.subject}</option>)}</select></Field>
-        <Field label="Techniker"><select className="select" value={f.technicianId} onChange={(e) => set('technicianId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Priorität"><Select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); set('ticketId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Gerät"><Select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devicesOfAccount.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></Field>
+        <Field label="Aus Ticket (optional)"><Select className="select" value={f.ticketId} onChange={(e) => set('ticketId', e.target.value)}><option value="">— Ohne Ticket —</option>{ticketsOfAccount.map((t) => <option key={t.id} value={t.id}>{t.number} · {t.subject}</option>)}</Select></Field>
+        <Field label="Techniker"><Select className="select" value={f.technicianId} onChange={(e) => set('technicianId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         <Field label="Geplant am"><input className="input" type="date" value={f.scheduledDate} onChange={(e) => set('scheduledDate', e.target.value)} /></Field>
         <Field label="Aufwand (Std.)"><input className="input" type="number" value={f.hours} onChange={(e) => set('hours', e.target.value)} /></Field>
         <Field label="Materialkosten (€)"><input className="input" type="number" value={f.partsCost} onChange={(e) => set('partsCost', e.target.value)} /></Field>

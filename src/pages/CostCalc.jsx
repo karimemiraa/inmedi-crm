@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Euro, Car, Phone, Users, Download, Calculator } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Card, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -86,7 +86,7 @@ export default function CostCalc() {
           <div className="seg">{PRESETS.map((p) => <button key={p[0]} className={preset === p[0] ? 'active' : ''} onClick={() => applyPreset(p)}>{p[1]}</button>)}</div>
           <Field label="Von"><input className="input" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPreset(''); }} /></Field>
           <Field label="Bis"><input className="input" type="date" value={to} onChange={(e) => { setTo(e.target.value); setPreset(''); }} /></Field>
-          <Field label="Mitarbeiter"><select className="select" value={rep} onChange={(e) => setRep(e.target.value)}><option value="All">Alle</option>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+          <Field label="Mitarbeiter"><Select className="select" value={rep} onChange={(e) => setRep(e.target.value)}><option value="All">Alle</option>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         </div>
       </div>
 
@@ -165,10 +165,10 @@ function AddEntry({ db, rates, onClose, toast }) {
     <Modal title="Aktivität erfassen" onClose={onClose}
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Kosten: {fmtMoney(preview)}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Speichern</button></>}>
       <div className="form-grid">
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Datum"><input className="input" type="date" value={f.date} onChange={(e) => set('date', e.target.value)} /></Field>
-        <div className="full"><Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field></div>
-        <Field label="Mitarbeiter"><select className="select" value={f.userId} onChange={(e) => set('userId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <div className="full"><Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field></div>
+        <Field label="Mitarbeiter"><Select className="select" value={f.userId} onChange={(e) => set('userId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Field label="Dauer (Min)"><input className="input" type="number" value={f.durationMin} onChange={(e) => set('durationMin', e.target.value)} /></Field>
           <Field label="Fahrt (km)"><input className="input" type="number" value={f.distanceKm} onChange={(e) => set('distanceKm', e.target.value)} /></Field>
