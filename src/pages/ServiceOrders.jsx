@@ -69,7 +69,7 @@ export default function ServiceOrders() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr><th>Nr.</th><th>Typ</th><th>Gerät</th><th>Kunde</th><th>Techniker</th><th>Geplant</th><th>Priorität</th><th>Status</th></tr></thead>
           <tbody>
             {rows.map((s) => {

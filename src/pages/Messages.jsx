@@ -39,7 +39,7 @@ export default function Messages() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr><th>Betreff</th><th>Firma</th><th>Von</th><th>Datum</th></tr></thead>
           <tbody>
             {rows.map((m) => (

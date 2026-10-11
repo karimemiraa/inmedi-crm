@@ -70,7 +70,7 @@ export default function Leads() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Name" sortKey="name" sort={sort} onSort={toggle} />
             <SortTh label="Unternehmen" sortKey="company" sort={sort} onSort={toggle} />

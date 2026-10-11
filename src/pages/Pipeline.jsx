@@ -100,7 +100,7 @@ export default function Pipeline() {
         </div>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div className="table-wrap"><table className="tbl">
+          <div className="table-wrap list"><table className="tbl">
             <thead><tr><th>Deal</th><th>Konto</th><th>Phase</th><th>Betreuer</th><th>Score</th><th>Abschluss</th><th className="right">Wert</th></tr></thead>
             <tbody>
               {db.deals.map((d) => (

@@ -64,7 +64,7 @@ export default function Service() {
           </div>
 
           <div className="card" style={{ overflow: 'hidden' }}>
-            <div className="table-wrap"><table className="tbl">
+            <div className="table-wrap list"><table className="tbl">
               <thead><tr><th>Ticket</th><th>Konto</th><th>Kanal</th><th>Priorität</th><th>Status</th><th>Erstellt</th></tr></thead>
               <tbody>
                 {rows.map((t) => {

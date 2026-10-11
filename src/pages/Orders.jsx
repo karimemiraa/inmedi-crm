@@ -62,7 +62,7 @@ export default function Orders() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Nummer" sortKey="number" sort={sort} onSort={toggle} />
             <SortTh label="Art" sortKey="kind" sort={sort} onSort={toggle} />

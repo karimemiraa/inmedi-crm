@@ -87,7 +87,7 @@ export default function Devices() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Gerät" sortKey="name" sort={sort} onSort={toggle} />
             <SortTh label="Seriennr." sortKey="serial" sort={sort} onSort={toggle} />

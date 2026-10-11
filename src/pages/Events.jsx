@@ -81,7 +81,7 @@ export default function Events() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Veranstaltung" sortKey="name" sort={sort} onSort={toggle} />
             <SortTh label="Typ" sortKey="type" sort={sort} onSort={toggle} />
