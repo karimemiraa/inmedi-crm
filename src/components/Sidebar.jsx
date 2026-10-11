@@ -22,7 +22,7 @@ const GROUPS = [
       { to: '/accounts', icon: Building2, label: 'Firmen' },
       { to: '/contacts', icon: Users, label: 'Ansprechpartner' },
       { to: '/leads', icon: UserPlus, label: 'Interessenten', countKey: 'newLeads' },
-      { to: '/duplicates', icon: CopyCheck, label: 'Dublettenprüfung' },
+      { to: '/duplicates', icon: CopyCheck, label: 'Dubletten' },
     ],
   },
   {
@@ -57,11 +57,11 @@ const GROUPS = [
     items: [
       { to: '/reports', icon: BarChart3, label: 'Berichte' },
       { to: '/cost-calc', icon: Calculator, label: 'Kostenkalkulation' },
-      { to: '/care-cost', icon: Scale, label: 'Betreuungskosten-Analyse' },
+      { to: '/care-cost', icon: Scale, label: 'Betreuungskosten' },
       { to: '/provision', icon: Percent, label: 'Provision' },
       { to: '/territories', icon: Map, label: 'Gebiete & Team' },
       { to: '/campaigns', icon: Megaphone, label: 'Kampagnen' },
-      { to: '/events', icon: Presentation, label: 'Messen & Events' },
+      { to: '/events', icon: Presentation, label: 'Messen' },
     ],
   },
   {

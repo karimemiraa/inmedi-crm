@@ -225,7 +225,7 @@ export default function Dashboard() {
                         <div className="cell-sub"><AccountLink id={d.accountId} name={acctName(d.accountId)} /></div>
                       </td>
                       <td><Badge tone="blue" dot>{stage?.name}</Badge></td>
-                      <td className="right"><b>{fmtMoneyShort(d.value)}</b></td>
+                      <td className="right nowrap"><b>{fmtMoneyShort(d.value)}</b></td>
                     </tr>
                   );
                 })}

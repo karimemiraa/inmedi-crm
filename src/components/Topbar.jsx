@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, Plus, PanelLeft, ChevronDown, Building2, Users, Target, ShoppingCart, Receipt, Package, UserPlus, Presentation, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Menu, Plus, PanelLeft, ChevronDown, Building2, Users, Target, ShoppingCart, Receipt, Package, UserPlus, Presentation, Sun, Moon, AlignJustify, StretchVertical } from 'lucide-react';
 import { useStore } from '../data/store.js';
 import { Avatar } from './ui.jsx';
 import { openLink } from '../lib/nav.js';
@@ -26,6 +26,13 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
   }, [theme]);
   const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+
+  const [density, setDensity] = useState(() => { try { return localStorage.getItem('inmedi-density') || 'compact'; } catch (e) { return 'compact'; } });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (density === 'comfort') root.setAttribute('data-density', 'comfort'); else root.removeAttribute('data-density');
+    try { localStorage.setItem('inmedi-density', density); } catch (e) {}
+  }, [density]);
 
   useEffect(() => {
     const h = (e) => {
@@ -75,13 +82,16 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
 
   return (
     <header className="topbar">
-      <button className="icon-btn hamburger" onClick={onMenu}><Menu size={18} /></button>
-      <button className="icon-btn" title="Seitenleiste ein- und ausklappen" onClick={onToggleCollapse} style={{ display: 'grid' }}><PanelLeft size={18} /></button>
+      <button className="icon-btn hamburger" aria-label="Menü öffnen" onClick={onMenu}><Menu size={18} /></button>
+      <button className="icon-btn" aria-label="Seitenleiste ein- und ausklappen" title="Seitenleiste ein- und ausklappen" onClick={onToggleCollapse} style={{ display: 'grid' }}><PanelLeft size={18} /></button>
 
       <div className="search" ref={searchRef} style={{ position: 'relative' }}>
         <Search size={16} />
         <input
           ref={inputRef}
+          aria-label="Suche über alles"
+          autoComplete="off"
+          spellCheck={false}
           placeholder="Suche über alles …"
           value={q}
           onChange={(e) => { setQ(e.target.value); setOpenRes(true); setActive(0); }}
@@ -113,12 +123,14 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
         )}
       </div>
 
-      <button className="icon-btn" title={isDark ? 'Helles Design' : 'Dunkles Design'} onClick={() => setTheme(isDark ? 'light' : 'dark')}>{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+      <button className="icon-btn" aria-label={density === 'compact' ? 'Komfort-Ansicht' : 'Kompakt-Ansicht'} title={density === 'compact' ? 'Komfort-Dichte' : 'Kompakt-Dichte'} onClick={() => setDensity((d) => (d === 'compact' ? 'comfort' : 'compact'))}>{density === 'compact' ? <StretchVertical size={18} /> : <AlignJustify size={18} />}</button>
 
-      <button className="icon-btn" title="Schnell erfassen" onClick={onQuickAdd}><Plus size={18} /></button>
+      <button className="icon-btn" aria-label={isDark ? 'Helles Design' : 'Dunkles Design'} title={isDark ? 'Helles Design' : 'Dunkles Design'} onClick={() => setTheme(isDark ? 'light' : 'dark')}>{isDark ? <Sun size={18} /> : <Moon size={18} />}</button>
+
+      <button className="icon-btn" aria-label="Schnell erfassen" title="Schnell erfassen" onClick={onQuickAdd}><Plus size={18} /></button>
 
       <div style={{ position: 'relative' }} ref={notifRef}>
-        <button className="icon-btn" onClick={() => setOpenNotif((v) => !v)}>
+        <button className="icon-btn" aria-label="Benachrichtigungen" onClick={() => setOpenNotif((v) => !v)}>
           <Bell size={18} />
           {notifications.length > 0 && <span className="dot" />}
         </button>
