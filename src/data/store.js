@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { buildSeed, STAGES } from './seed.js';
 
-const KEY = 'inmedi-crm-v11';
+const KEY = 'inmedi-crm-v12';
 
 function load() {
   try {
@@ -52,8 +52,8 @@ export const store = {
     state = { ...state, [coll]: state[coll].filter((r) => r.id !== id) };
     persist(); emit();
   },
-  reset() {
-    state = buildSeed(); persist(); emit();
+  reset(opts) {
+    state = buildSeed(opts); persist(); emit();
   },
 };
 

@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Wrench, CalendarClock, PlayCircle, CheckCircle2, Cpu } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Drawer, Field, Modal } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink } from '../components/ui.jsx';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate, relDate } from '../lib/format.js';
 
@@ -15,11 +17,13 @@ const NOW = new Date();
 export default function ServiceOrders() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Offen (alle)');
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.serviceOrders, setSel);
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const dev = (id) => db.devices.find((d) => d.id === id);
   const tech = (id) => db.users.find((u) => u.id === id);
@@ -75,7 +79,7 @@ export default function ServiceOrders() {
                   <td className="cell-main nowrap">{s.number}</td>
                   <td><Badge tone={TYPE_TONE[s.type]}>{s.type}</Badge></td>
                   <td className="nowrap">{dev(s.deviceId)?.name.replace(/\s*\(.*\)/, '') || '—'}</td>
-                  <td>{acct(s.accountId)?.name}</td>
+                  <td><AccountLink account={acct(s.accountId)} /></td>
                   <td>{tech(s.technicianId) && <div className="avatar-row"><Avatar size="sm" name={tech(s.technicianId).name} color={tech(s.technicianId).color} src={tech(s.technicianId).avatar} /><span className="tiny">{tech(s.technicianId).name.split(' ')[0]}</span></div>}</td>
                   <td className="nowrap"><Badge tone={overdue ? 'red' : 'gray'} dot={overdue}>{relDate(s.scheduledDate)}</Badge></td>
                   <td><Badge tone={PRIO_TONE[s.priority]}>{s.priority}</Badge></td>
@@ -107,12 +111,12 @@ export default function ServiceOrders() {
           <dl className="kv">
             <dt>Gerät</dt><dd>{dev(sel.deviceId)?.name || '—'}</dd>
             <dt>Seriennr.</dt><dd>{dev(sel.deviceId)?.serial || '—'}</dd>
-            <dt>Kunde</dt><dd>{acct(sel.accountId)?.name}</dd>
+            <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Techniker</dt><dd>{tech(sel.technicianId)?.name}</dd>
             <dt>Geplant</dt><dd>{fmtDate(sel.scheduledDate)}</dd>
             <dt>Aufwand</dt><dd>{sel.hours} Std. · Material {fmtMoney(sel.partsCost)}</dd>
             <dt>Kostenschätzung</dt><dd><b>{fmtMoney(sel.hours * hourly + sel.partsCost)}</b></dd>
-            {sel.ticketId && <><dt>Ticket</dt><dd>{db.tickets.find((t) => t.id === sel.ticketId)?.number}</dd></>}
+            {sel.ticketId && <><dt>Ticket</dt><dd><span className="rec-link" onClick={() => nav(openLink('/service', sel.ticketId))}>{db.tickets.find((t) => t.id === sel.ticketId)?.number}</span></dd></>}
           </dl>
         </Drawer>
       )}
@@ -122,15 +126,16 @@ export default function ServiceOrders() {
 }
 
 function AddOrder({ db, onClose, toast }) {
-  const [f, setF] = useState({ type: 'Wartung', accountId: db.accounts[0]?.id, technicianId: db.users.find((u) => u.title?.includes('Service'))?.id || db.users[0].id, priority: 'Mittel', scheduledDate: new Date().toISOString().slice(0,10), hours: 1, partsCost: 0, description: '' });
+  const [f, setF] = useState({ type: 'Wartung', accountId: db.accounts[0]?.id, technicianId: db.users.find((u) => u.title?.includes('Service'))?.id || db.users[0].id, priority: 'Mittel', scheduledDate: new Date().toISOString().slice(0,10), hours: 1, partsCost: 0, description: '', ticketId: '' });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const devicesOfAccount = db.devices.filter((d) => d.accountId === f.accountId);
+  const ticketsOfAccount = db.tickets.filter((t) => t.accountId === f.accountId && t.status !== 'Gelöst');
   const save = () => {
     const n = 'SV-' + (7000 + db.serviceOrders.length + 1);
     store.add('serviceOrders', {
       number: n, type: f.type, deviceId: f.deviceId || devicesOfAccount[0]?.id || null, accountId: f.accountId,
       technicianId: f.technicianId, status: 'Geplant', priority: f.priority, scheduledDate: new Date(f.scheduledDate).toISOString(),
-      createdAt: new Date().toISOString(), hours: Number(f.hours) || 0, partsCost: Number(f.partsCost) || 0, description: f.description, ticketId: null,
+      createdAt: new Date().toISOString(), hours: Number(f.hours) || 0, partsCost: Number(f.partsCost) || 0, description: f.description, ticketId: f.ticketId || null,
     });
     toast('Serviceauftrag erstellt'); onClose();
   };
@@ -140,8 +145,9 @@ function AddOrder({ db, onClose, toast }) {
       <div className="form-grid">
         <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="Priorität"><select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); set('ticketId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
         <Field label="Gerät"><select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devicesOfAccount.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
+        <Field label="Aus Ticket (optional)"><select className="select" value={f.ticketId} onChange={(e) => set('ticketId', e.target.value)}><option value="">— Ohne Ticket —</option>{ticketsOfAccount.map((t) => <option key={t.id} value={t.id}>{t.number} · {t.subject}</option>)}</select></Field>
         <Field label="Techniker"><select className="select" value={f.technicianId} onChange={(e) => set('technicianId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
         <Field label="Geplant am"><input className="input" type="date" value={f.scheduledDate} onChange={(e) => set('scheduledDate', e.target.value)} /></Field>
         <Field label="Aufwand (Std.)"><input className="input" type="number" value={f.hours} onChange={(e) => set('hours', e.target.value)} /></Field>

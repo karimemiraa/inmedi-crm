@@ -17,7 +17,10 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
   const [type, setType] = useState(initial);
   const [f, setF] = useState({ accountId: accountId || db.accounts[0]?.id, actType: actType || 'task' });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const setAccount = (v) => setF((p) => ({ ...p, accountId: v, contactId: '', dealId: '' }));
   const lockedAccount = lockAccount ? db.accounts.find((a) => a.id === accountId) : null;
+  const accContacts = db.contacts.filter((c) => c.accountId === f.accountId);
+  const accDeals = db.deals.filter((d) => d.accountId === f.accountId);
 
   const save = () => {
     const me = db.meta.currentUserId;
@@ -44,7 +47,7 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
     } else if (type === 'deal') {
       if (!f.name) return;
       store.add('deals', {
-        name: f.name, accountId: f.accountId || db.accounts[0].id, ownerId: f.ownerId || me,
+        name: f.name, accountId: f.accountId || db.accounts[0].id, contactId: f.contactId || null, ownerId: f.ownerId || me,
         stage: 'lead', value: Number(f.value) || 0, score: 50, products: [],
         expectedClose: f.expectedClose || new Date().toISOString(), createdAt: new Date().toISOString(),
       });
@@ -53,6 +56,7 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
       if (!f.subject) return;
       store.add('activities', {
         type: f.actType || 'task', subject: f.subject, accountId: f.accountId || db.accounts[0].id,
+        contactId: f.contactId || null, dealId: f.dealId || null,
         ownerId: me, dueDate: f.dueDate || new Date().toISOString(), done: false,
         priority: f.priority || 'Mittel', notes: f.notes || '',
       });
@@ -100,7 +104,8 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
 
         {type === 'deal' && (<>
           <div className="full"><Field label="Deal-Name"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="z. B. Erneuerung Intensivausstattung" /></Field></div>
-          <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+          <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+          <Field label="Ansprechpartner"><select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
           <Field label="Wert (€)"><input className="input" type="number" onChange={(e) => set('value', e.target.value)} /></Field>
           <Field label="Betreuer"><select className="select" onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
           <Field label="Erwarteter Abschluss"><input className="input" type="date" onChange={(e) => set('expectedClose', new Date(e.target.value).toISOString())} /></Field>
@@ -110,7 +115,9 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
           <Field label="Typ"><select className="select" value={f.actType} onChange={(e) => set('actType', e.target.value)}><option value="task">Aufgabe</option><option value="call">Anruf</option><option value="meeting">Termin</option><option value="email">E-Mail</option><option value="followup">Nachfassen</option></select></Field>
           <Field label="Priorität"><select className="select" onChange={(e) => set('priority', e.target.value)}><option>Mittel</option><option>Hoch</option><option>Niedrig</option></select></Field>
           <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('subject', e.target.value)} placeholder="z. B. Nachfass-Anruf" /></Field></div>
-          {!lockAccount && <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
+          {!lockAccount && <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
+          <Field label="Ansprechpartner"><select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+          <Field label="Zugehöriger Deal"><select className="select" value={f.dealId || ''} onChange={(e) => set('dealId', e.target.value)}><option value="">— Keiner —</option>{accDeals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
           <Field label="Fällig am"><input className="input" type="date" onChange={(e) => set('dueDate', new Date(e.target.value).toISOString())} /></Field>
         </>)}
       </div>

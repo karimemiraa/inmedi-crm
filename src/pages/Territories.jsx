@@ -3,20 +3,27 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Map, Users } from 'lucide-react';
 import { useStore } from '../data/store.js';
 import { Avatar, Badge, Card, KpiCard } from '../components/ui.jsx';
+import { computeCommission } from '../lib/commission.js';
 import { fmtMoney, fmtMoneyShort } from '../lib/format.js';
 
-const ROLE_TONE = { Administrator: 'purple', Manager: 'blue', Vertrieb: 'gray' };
+const ROLE_TONE = { Administrator: 'purple', Manager: 'blue', Vertrieb: 'gray', 'Außendienst': 'teal', Innendienst: 'gray' };
+const YTD_FROM = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+const YTD_TO = new Date().toISOString().slice(0, 10);
 
 export default function Territories() {
   const db = useStore();
 
-  const reps = useMemo(() => db.users.map((u) => {
-    const accounts = db.accounts.filter((a) => a.ownerId === u.id);
-    const won = db.deals.filter((d) => d.ownerId === u.id && d.stage === 'won').reduce((s, d) => s + d.value, 0);
-    const pipeline = db.deals.filter((d) => d.ownerId === u.id && d.stage !== 'won' && d.stage !== 'lost').reduce((s, d) => s + d.value, 0);
-    const attain = u.quota ? Math.round((won / u.quota) * 100) : 0;
-    return { ...u, accounts: accounts.length, won, pipeline, attain };
-  }), [db]);
+  const reps = useMemo(() => {
+    const comm = computeCommission(db, YTD_FROM, YTD_TO, { includeAllReps: true });
+    const commBy = Object.fromEntries(comm.rows.map((r) => [r.userId, r.commission]));
+    return db.users.map((u) => {
+      const accounts = db.accounts.filter((a) => a.ownerId === u.id);
+      const won = db.deals.filter((d) => d.ownerId === u.id && d.stage === 'won').reduce((s, d) => s + d.value, 0);
+      const pipeline = db.deals.filter((d) => d.ownerId === u.id && d.stage !== 'won' && d.stage !== 'lost').reduce((s, d) => s + d.value, 0);
+      const attain = u.quota ? Math.round((won / u.quota) * 100) : 0;
+      return { ...u, accounts: accounts.length, won, pipeline, attain, commission: commBy[u.id] || 0 };
+    });
+  }, [db]);
 
   const terrData = useMemo(() => db.territories.map((t) => ({
     name: t.name, color: t.color,
@@ -47,7 +54,7 @@ export default function Territories() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis width={64} tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={{ border: '1px solid var(--border)', borderRadius: 10, fontSize: 12.5 }} cursor={{ fill: 'var(--brand-050)' }} />
+              <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={{ border: '1px solid var(--border)', borderRadius: 10, fontSize: 12.5, background: 'var(--surface)', color: 'var(--text)' }} cursor={{ fill: 'var(--brand-050)' }} />
               <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={40}>
                 {terrData.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>
@@ -73,7 +80,7 @@ export default function Territories() {
 
       <Card title="Teamleistung" sub="Zielerreichung dieses Jahr" pad={false}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Mitarbeiter</th><th>Rolle</th><th>Gebiet</th><th className="right">Konten</th><th className="right">Pipeline</th><th className="right">Gewonnen</th><th style={{ width: 200 }}>Zielerreichung</th></tr></thead>
+          <thead><tr><th>Mitarbeiter</th><th>Rolle</th><th>Gebiet</th><th className="right">Konten</th><th className="right">Pipeline</th><th className="right">Gewonnen</th><th className="right">Provision (lfd. J.)</th><th style={{ width: 180 }}>Zielerreichung</th></tr></thead>
           <tbody>
             {reps.map((r) => (
               <tr key={r.id} style={{ cursor: 'default' }}>
@@ -83,6 +90,7 @@ export default function Territories() {
                 <td className="right">{r.accounts}</td>
                 <td className="right">{fmtMoneyShort(r.pipeline)}</td>
                 <td className="right"><b>{fmtMoneyShort(r.won)}</b></td>
+                <td className="right">{r.commission > 0 ? fmtMoney(r.commission) : '—'}</td>
                 <td>
                   <div className="stat-line">
                     <div className="progress" style={{ flex: 1 }}><i style={{ width: Math.min(r.attain, 100) + '%', background: r.attain >= 100 ? 'var(--green)' : r.attain >= 60 ? 'var(--brand)' : 'var(--amber)' }} /></div>

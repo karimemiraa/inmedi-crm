@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, UserPlus, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, ScoreMeter, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, KpiCard, ScoreMeter, Modal, Field, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 
@@ -17,24 +18,31 @@ export default function Leads() {
   const [status, setStatus] = useState('All');
   const [adding, setAdding] = useState(false);
 
-  const rows = useMemo(() => db.leads.filter((l) =>
-    (status === 'All' || l.status === status) &&
-    (!q || l.name.toLowerCase().includes(q.toLowerCase()) || l.company.toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => b.score - a.score), [db.leads, q, status]);
-
+  const { sort, toggle, apply } = useSort('score', 'desc');
   const owner = (id) => db.users.find((u) => u.id === id);
+  const rows = useMemo(() => {
+    const filtered = db.leads.filter((l) =>
+      (status === 'All' || l.status === status) &&
+      (!q || l.name.toLowerCase().includes(q.toLowerCase()) || l.company.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      name: (l) => l.name, company: (l) => l.company, source: (l) => l.source, score: (l) => l.score,
+      status: (l) => l.status, owner: (l) => owner(l.ownerId)?.name, created: (l) => new Date(l.createdAt).getTime(),
+    });
+  }, [db.leads, q, status, sort]);
   const hot = db.leads.filter((l) => l.score >= 70).length;
 
   const convert = (lead) => {
-    store.add('accounts', {
+    if (lead.accountId) { toast('Interessent wurde bereits umgewandelt'); return; }
+    const acc = store.add('accounts', {
       kundennummer: 'K-' + (10001 + db.accounts.length), name: lead.company, type: 'Praxis',
       tier: 'Interessent', status: 'Interessent', territoryId: db.territories[0].id,
       ownerId: lead.ownerId, innendienstId: (db.users[1] || db.users[0]).id, city: lead.city || '', zip: '', street: '',
       country: 'Deutschland', phone: lead.phone, email: lead.email, website: '', vatId: '',
       paymentTerms: '30 Tage netto', discount: 0, revenueYTD: 0, beds: 0,
       createdAt: new Date().toISOString(), color: lead.color, notes: lead.notes || [],
+      customValues: {}, priceList: [], leadId: lead.id,
     });
-    store.update('leads', lead.id, { status: 'Qualifiziert' });
+    store.update('leads', lead.id, { status: 'Qualifiziert', accountId: acc.id });
     toast(`${lead.company} in Konto umgewandelt`);
   };
 
@@ -63,7 +71,16 @@ export default function Leads() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Name</th><th>Unternehmen</th><th>Quelle</th><th>Score</th><th>Status</th><th>Betreuer</th><th>Erstellt</th><th></th></tr></thead>
+          <thead><tr>
+            <SortTh label="Name" sortKey="name" sort={sort} onSort={toggle} />
+            <SortTh label="Unternehmen" sortKey="company" sort={sort} onSort={toggle} />
+            <SortTh label="Quelle" sortKey="source" sort={sort} onSort={toggle} />
+            <SortTh label="Score" sortKey="score" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Betreuer" sortKey="owner" sort={sort} onSort={toggle} />
+            <SortTh label="Erstellt" sortKey="created" sort={sort} onSort={toggle} />
+            <th></th>
+          </tr></thead>
           <tbody>
             {rows.map((l) => (
               <tr key={l.id} onClick={() => nav('/leads/' + l.id)}>
@@ -78,7 +95,7 @@ export default function Leads() {
               </tr>
             ))}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Keine passenden Interessenten" />}</div>
+        </table>{rows.length === 0 && <Empty label="Keine passenden Interessenten" action={{ label: 'Neuer Interessent', onClick: () => setAdding(true) }} />}</div>
       </div>
       {adding && <NewLead db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>

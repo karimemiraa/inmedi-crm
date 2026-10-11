@@ -9,7 +9,7 @@ import {
   Phone, CalendarCheck, Mail, Users, CheckCircle2,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { KpiCard, Card, Avatar, Badge } from '../components/ui.jsx';
+import { KpiCard, Card, Avatar, Badge, AccountLink } from '../components/ui.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate, relDate, initials } from '../lib/format.js';
 
 const MONTHS_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
@@ -90,10 +90,10 @@ export default function Dashboard() {
 
       {/* KPIs */}
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
-        <KpiCard icon={Euro} tone="brand" label="Umsatz (gewonnen)" value={fmtMoneyShort(m.revenue)} />
-        <KpiCard icon={TrendingUp} tone="teal" label="Offene Pipeline" value={fmtMoneyShort(m.pipeline)} />
-        <KpiCard icon={Trophy} tone="green" label="Abschlussquote" value={m.winRate + ' %'} />
-        <KpiCard icon={Building2} tone="purple" label="Aktive Firmen" value={m.activeAccounts} />
+        <KpiCard icon={Euro} tone="brand" label="Umsatz (gewonnen)" value={fmtMoneyShort(m.revenue)} to="/reports" />
+        <KpiCard icon={TrendingUp} tone="teal" label="Offene Pipeline" value={fmtMoneyShort(m.pipeline)} to="/pipeline" />
+        <KpiCard icon={Trophy} tone="green" label="Abschlussquote" value={m.winRate + ' %'} to="/reports" />
+        <KpiCard icon={Building2} tone="purple" label="Aktive Firmen" value={m.activeAccounts} to="/accounts" />
       </div>
 
       {/* Charts row 1 */}
@@ -146,7 +146,7 @@ export default function Dashboard() {
               <XAxis type="number" tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" width={92} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={tooltipStyle} cursor={{ fill: 'var(--brand-050)' }} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
+              <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18} cursor="pointer" onClick={() => nav('/pipeline')}>
                 {m.byStage.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>
             </BarChart>
@@ -160,7 +160,7 @@ export default function Dashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <YAxis width={64} tickFormatter={fmtMoneyShort} tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => fmtMoney(v)} contentStyle={tooltipStyle} cursor={{ fill: 'var(--brand-050)' }} />
-              <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={34}>
+              <Bar dataKey="revenue" radius={[6, 6, 0, 0]} barSize={34} cursor="pointer" onClick={() => nav('/territories')}>
                 {m.byTerritory.map((e, i) => <Cell key={i} fill={e.color} />)}
               </Bar>
             </BarChart>
@@ -203,7 +203,7 @@ export default function Dashboard() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{t.subject}</div>
-                    <div className="muted tiny">{acctName(t.accountId)}</div>
+                    <div className="muted tiny"><AccountLink id={t.accountId} name={acctName(t.accountId)} /></div>
                   </div>
                   <Badge tone={overdue ? 'red' : t.priority === 'Hoch' ? 'amber' : 'gray'}>{relDate(t.dueDate)}</Badge>
                 </div>
@@ -222,7 +222,7 @@ export default function Dashboard() {
                     <tr key={d.id} onClick={() => nav('/pipeline')}>
                       <td>
                         <div className="cell-main">{d.name}</div>
-                        <div className="cell-sub">{acctName(d.accountId)}</div>
+                        <div className="cell-sub"><AccountLink id={d.accountId} name={acctName(d.accountId)} /></div>
                       </td>
                       <td><Badge tone="blue" dot>{stage?.name}</Badge></td>
                       <td className="right"><b>{fmtMoneyShort(d.value)}</b></td>
@@ -240,5 +240,5 @@ export default function Dashboard() {
 
 const tooltipStyle = {
   border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-lg)',
-  fontSize: 12.5, padding: '8px 12px',
+  fontSize: 12.5, padding: '8px 12px', background: 'var(--surface)', color: 'var(--text)',
 };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field, AccountLink } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate } from '../lib/format.js';
@@ -20,17 +20,21 @@ export default function LeadDetail() {
   if (!l) return <div className="page"><Empty label="Lead nicht gefunden" /></div>;
   const owner = db.users.find((u) => u.id === l.ownerId);
 
+  const account = db.accounts.find((a) => a.id === l.accountId);
   const convert = () => {
-    store.add('accounts', {
+    if (l.accountId) { toast('Interessent wurde bereits umgewandelt'); return; }
+    const acc = store.add('accounts', {
       kundennummer: 'K-' + (10001 + db.accounts.length), name: l.company, type: 'Praxis',
       tier: 'Interessent', status: 'Interessent', territoryId: db.territories[0].id,
       ownerId: l.ownerId, innendienstId: (db.users[1] || db.users[0]).id, city: l.city || '', zip: '', street: '',
       country: 'Deutschland', phone: l.phone, email: l.email, website: '', vatId: '',
       paymentTerms: '30 Tage netto', discount: 0, revenueYTD: 0, beds: 0,
       createdAt: new Date().toISOString(), color: l.color, notes: l.notes || [],
+      customValues: {}, priceList: [], leadId: l.id,
     });
-    store.update('leads', l.id, { status: 'Qualifiziert' });
+    store.update('leads', l.id, { status: 'Qualifiziert', accountId: acc.id });
     toast(`${l.company} in Konto umgewandelt`);
+    nav('/accounts/' + acc.id);
   };
 
   return (
@@ -70,6 +74,7 @@ export default function LeadDetail() {
             <dt>Score</dt><dd><ScoreMeter value={l.score} /></dd>
             <dt>Potenzial</dt><dd><b>{fmtMoney(l.potential || 0)}</b></dd>
             <dt>Betreuer</dt><dd>{owner?.name}</dd>
+            {account && <><dt>Umgewandelt in</dt><dd><AccountLink account={account} /></dd></>}
             <dt>Erstellt</dt><dd>{fmtDate(l.createdAt)}</dd>
           </dl>
         </Card>

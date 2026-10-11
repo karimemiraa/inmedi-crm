@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
   LifeBuoy, Receipt, Cpu, Calculator, ShieldCheck, LogOut, Wrench, ShieldAlert,
-  FileSignature, Lightbulb, Mail,
+  FileSignature, Lightbulb, Mail, Presentation, Repeat, CopyCheck, Percent, Scale,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
@@ -22,6 +22,7 @@ const GROUPS = [
       { to: '/accounts', icon: Building2, label: 'Firmen' },
       { to: '/contacts', icon: Users, label: 'Ansprechpartner' },
       { to: '/leads', icon: UserPlus, label: 'Interessenten', countKey: 'newLeads' },
+      { to: '/duplicates', icon: CopyCheck, label: 'Dublettenprüfung' },
     ],
   },
   {
@@ -37,6 +38,7 @@ const GROUPS = [
     items: [
       { to: '/pipeline', icon: Target, label: 'Pipeline', countKey: 'openDeals' },
       { to: '/orders', icon: ShoppingCart, label: 'Angebote & Aufträge' },
+      { to: '/recurring-orders', icon: Repeat, label: 'Daueraufträge', countKey: 'dueRecurring' },
       { to: '/contracts', icon: FileSignature, label: 'Verträge' },
       { to: '/invoices', icon: Receipt, label: 'Rechnungen' },
       { to: '/products', icon: Package, label: 'Produkte' },
@@ -55,8 +57,11 @@ const GROUPS = [
     items: [
       { to: '/reports', icon: BarChart3, label: 'Berichte' },
       { to: '/cost-calc', icon: Calculator, label: 'Kostenkalkulation' },
+      { to: '/care-cost', icon: Scale, label: 'Betreuungskosten-Analyse' },
+      { to: '/provision', icon: Percent, label: 'Provision' },
       { to: '/territories', icon: Map, label: 'Gebiete & Team' },
       { to: '/campaigns', icon: Megaphone, label: 'Kampagnen' },
+      { to: '/events', icon: Presentation, label: 'Messen & Events' },
     ],
   },
   {
@@ -81,6 +86,7 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
     dueDevices: db.devices.filter((d) => [d.nextMtk, d.nextStk].some((x) => x && new Date(x) - new Date() < 30 * 86400000)).length,
     openOrders: db.serviceOrders.filter((s) => s.status !== 'Erledigt').length,
     openIncidents: db.incidents.filter((i) => i.meldepflichtig && i.status !== 'Abgeschlossen').length,
+    dueRecurring: db.recurringOrders.filter((r) => r.active && new Date(r.nextDue) <= new Date()).length,
   };
   const nav = useNavigate();
 

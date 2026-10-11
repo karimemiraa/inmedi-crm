@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Phone, Users, CheckCircle2, Mail, CalendarCheck, List, Calendar as CalIcon } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, AccountLink, ContactLink } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -67,7 +67,7 @@ export default function Activities() {
                 <span className="ico" style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: `var(--${TONE[a.type] === 'brand' ? 'brand-050' : TONE[a.type] + '-bg'})`, color: `var(--${TONE[a.type] === 'brand' ? 'brand' : TONE[a.type]})` }}><Icon size={16} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, textDecoration: a.done ? 'line-through' : 'none', color: a.done ? 'var(--text-3)' : 'var(--text)' }}>{a.subject}</div>
-                  <div className="muted tiny">{acct(a.accountId)?.name} · {db.users.find((u) => u.id === a.ownerId)?.name.split(' ')[0]}</div>
+                  <div className="muted tiny stat-line" style={{ gap: 6, flexWrap: 'wrap' }}><AccountLink account={acct(a.accountId)} />{a.contactId && <> · <ContactLink contact={db.contacts.find((c) => c.id === a.contactId)} /></>} · {db.users.find((u) => u.id === a.ownerId)?.name.split(' ')[0]}</div>
                 </div>
                 <Badge tone={a.priority === 'Hoch' ? 'red' : a.priority === 'Niedrig' ? 'gray' : 'amber'}>{a.priority}</Badge>
                 <Badge tone={a.done ? 'green' : isOverdue ? 'red' : 'blue'}>{a.done ? 'Erledigt' : relDate(a.dueDate)}</Badge>

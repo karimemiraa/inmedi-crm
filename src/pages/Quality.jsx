@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Plus, AlertOctagon, Siren, ClipboardCheck, ShieldAlert, FileWarning } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, Card } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, Card, AccountLink } from '../components/ui.jsx';
+import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate, relDate } from '../lib/format.js';
 
@@ -20,6 +21,7 @@ export default function Quality() {
   const [sel, setSel] = useState(null);
   const [capaSel, setCapaSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'incident' | 'capa'
+  useOpenParam(db.incidents, (rec) => { setTab('incidents'); setSel(rec); });
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const dev = (id) => db.devices.find((d) => d.id === id);
@@ -123,10 +125,10 @@ export default function Quality() {
           <dl className="kv">
             <dt>Gerät</dt><dd>{dev(sel.deviceId)?.name || '—'}</dd>
             <dt>Seriennr.</dt><dd>{dev(sel.deviceId)?.serial || '—'}</dd>
-            <dt>Kunde</dt><dd>{acct(sel.accountId)?.name}</dd>
+            <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Erfasst von</dt><dd>{user(sel.reportedBy)?.name}</dd>
             <dt>Erfasst am</dt><dd>{fmtDate(sel.reportedAt)}</dd>
-            <dt>CAPA</dt><dd>{db.capas.find((c) => c.id === sel.capaId)?.number || '—'}</dd>
+            <dt>CAPA</dt><dd>{db.capas.filter((c) => c.incidentId === sel.id || c.id === sel.capaId).map((c) => c.number).join(', ') || '—'}</dd>
           </dl>
         </Drawer>
       )}

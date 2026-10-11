@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, Building2, MapPin, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Avatar, Badge, Empty } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, SortTh } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { useSort } from '../lib/useSort.js';
 import { fieldsFor } from '../components/CustomFields.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
@@ -24,9 +25,11 @@ export default function Accounts() {
 
   const customFields = fieldsFor(db, 'Firma');
   const cfField = customFields.find((f) => f.id === cfId);
+  const { sort, toggle, apply } = useSort('name', 'asc');
+  const owner = (id) => db.users.find((u) => u.id === id);
 
   const rows = useMemo(() => {
-    return db.accounts.filter((a) => {
+    const filtered = db.accounts.filter((a) => {
       if (type !== 'All' && a.type !== type) return false;
       if (terr !== 'All' && a.territoryId !== terr) return false;
       if (cfId && cfVal) {
@@ -37,10 +40,13 @@ export default function Accounts() {
       if (q && !a.name.toLowerCase().includes(q.toLowerCase()) && !a.city.toLowerCase().includes(q.toLowerCase())) return false;
       return true;
     });
-  }, [db.accounts, q, type, terr, cfId, cfVal, cfField]);
+    return apply(filtered, {
+      kundennummer: (a) => a.kundennummer, name: (a) => a.name, type: (a) => a.type, tier: (a) => a.tier,
+      owner: (a) => owner(a.ownerId)?.name, status: (a) => a.status, revenueYTD: (a) => a.revenueYTD,
+    });
+  }, [db.accounts, q, type, terr, cfId, cfVal, cfField, sort]);
 
   const toast = useToast();
-  const owner = (id) => db.users.find((u) => u.id === id);
   const terrName = (id) => db.territories.find((t) => t.id === id)?.name || '—';
 
   const doExport = () => {
@@ -101,8 +107,13 @@ export default function Accounts() {
           <table className="tbl">
             <thead>
               <tr>
-                <th>Kundennr.</th><th>Firma</th><th>Typ</th><th>Kategorie</th><th>Außendienst</th>
-                <th>Status</th><th className="right">Umsatz lfd. Jahr</th>
+                <SortTh label="Kundennr." sortKey="kundennummer" sort={sort} onSort={toggle} />
+                <SortTh label="Firma" sortKey="name" sort={sort} onSort={toggle} />
+                <SortTh label="Typ" sortKey="type" sort={sort} onSort={toggle} />
+                <SortTh label="Kategorie" sortKey="tier" sort={sort} onSort={toggle} />
+                <SortTh label="Außendienst" sortKey="owner" sort={sort} onSort={toggle} />
+                <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+                <SortTh label="Umsatz lfd. Jahr" sortKey="revenueYTD" sort={sort} onSort={toggle} align="right" />
               </tr>
             </thead>
             <tbody>
@@ -127,7 +138,7 @@ export default function Accounts() {
               ))}
             </tbody>
           </table>
-          {rows.length === 0 && <Empty label="Keine Firmen für diese Filter" />}
+          {rows.length === 0 && <Empty label="Keine Firmen für diese Filter" action={{ label: 'Neue Firma anlegen', onClick: () => setAdding(true) }} />}
         </div>
       </div>
 

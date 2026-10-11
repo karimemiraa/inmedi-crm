@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileSignature, Repeat, CalendarClock, XCircle } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink, SortTh } from '../components/ui.jsx';
+import { useSort } from '../lib/useSort.js';
+import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems, { BILLING_FACTOR } from '../components/LineItems.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -31,11 +34,18 @@ export default function Contracts() {
   const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
+  useOpenParam(db.contracts, setSel);
+  const { sort, toggle, apply } = useSort('start', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
-  const rows = useMemo(() => db.contracts.filter((c) =>
-    (status === 'Alle' || c.status === status) &&
-    (!q || c.number.toLowerCase().includes(q.toLowerCase()) || c.title.toLowerCase().includes(q.toLowerCase()) || acct(c.accountId)?.name.toLowerCase().includes(q.toLowerCase()))
-  ).sort((a, b) => new Date(b.startDate) - new Date(a.startDate)), [db.contracts, q, status]);
+  const rows = useMemo(() => {
+    const filtered = db.contracts.filter((c) =>
+      (status === 'Alle' || c.status === status) &&
+      (!q || c.number.toLowerCase().includes(q.toLowerCase()) || c.title.toLowerCase().includes(q.toLowerCase()) || acct(c.accountId)?.name.toLowerCase().includes(q.toLowerCase())));
+    return apply(filtered, {
+      number: (c) => c.number, title: (c) => c.title, account: (c) => acct(c.accountId)?.name, status: (c) => c.status,
+      start: (c) => new Date(c.startDate).getTime(), term: (c) => c.termMonths, annual: (c) => contractValues(c.items).annual,
+    });
+  }, [db.contracts, q, status, sort]);
 
   const active = db.contracts.filter((c) => c.status === 'Aktiv');
   const mrr = active.reduce((s, c) => s + contractValues(c.items).annual, 0) / 12;
@@ -68,7 +78,15 @@ export default function Contracts() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap"><table className="tbl">
-          <thead><tr><th>Nr.</th><th>Betreff</th><th>Kunde</th><th>Status</th><th>Start</th><th>Laufzeit</th><th className="right">Jahreswert</th></tr></thead>
+          <thead><tr>
+            <SortTh label="Nr." sortKey="number" sort={sort} onSort={toggle} />
+            <SortTh label="Betreff" sortKey="title" sort={sort} onSort={toggle} />
+            <SortTh label="Kunde" sortKey="account" sort={sort} onSort={toggle} />
+            <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
+            <SortTh label="Start" sortKey="start" sort={sort} onSort={toggle} />
+            <SortTh label="Laufzeit" sortKey="term" sort={sort} onSort={toggle} />
+            <SortTh label="Jahreswert" sortKey="annual" sort={sort} onSort={toggle} align="right" />
+          </tr></thead>
           <tbody>
             {rows.map((c) => {
               const v = contractValues(c.items);
@@ -76,7 +94,7 @@ export default function Contracts() {
                 <tr key={c.id} onClick={() => setSel(c)}>
                   <td className="cell-main nowrap">{c.number}</td>
                   <td>{c.title}</td>
-                  <td>{acct(c.accountId)?.name}</td>
+                  <td><AccountLink account={acct(c.accountId)} /></td>
                   <td><Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge></td>
                   <td className="nowrap">{fmtDate(c.startDate)}</td>
                   <td className="nowrap">{c.termMonths} Mon.</td>
@@ -85,7 +103,7 @@ export default function Contracts() {
               );
             })}
           </tbody>
-        </table>{rows.length === 0 && <Empty label="Noch keine Verträge" hint="Über die Schaltfläche oben den ersten Laufzeitvertrag anlegen." />}</div>
+        </table>{rows.length === 0 && <Empty label="Noch keine Verträge" hint="Laufzeitverträge mit wiederkehrender Abrechnung." action={{ label: 'Neuer Vertrag', onClick: () => setAdding(true) }} />}</div>
       </div>
 
       {sel && <ContractDrawer db={db} contract={sel} onClose={() => setSel(null)} toast={toast} setSel={setSel} />}
@@ -95,7 +113,10 @@ export default function Contracts() {
 }
 
 function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
+  const nav = useNavigate();
   const acct = (id) => db.accounts.find((a) => a.id === id);
+  const contact = db.contacts.find((x) => x.id === c.contactId);
+  const fromOrder = db.orders.find((o) => o.id === c.fromOrderId);
   const v = contractValues(c.items);
   const cancel = () => {
     const reason = prompt('Kündigungsgrund:');
@@ -120,7 +141,9 @@ function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
       </Field>
       <div style={{ height: 14 }} />
       <dl className="kv">
-        <dt>Kunde</dt><dd>{acct(c.accountId)?.name}</dd>
+        <dt>Kunde</dt><dd><AccountLink account={acct(c.accountId)} /></dd>
+        <dt>Ansprechpartner</dt><dd>{contact ? <ContactLink contact={contact} /> : '—'}</dd>
+        {fromOrder && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', fromOrder.id))}>{fromOrder.number}</span></dd></>}
         <dt>Verantwortlich</dt><dd>{db.users.find((u) => u.id === c.ownerId)?.name}</dd>
         <dt>Start / Ende</dt><dd>{fmtDate(c.startDate)} – {fmtDate(endDate(c.startDate, c.termMonths))}</dd>
         <dt>Laufzeit</dt><dd>{c.termMonths} Monate</dd>
@@ -147,19 +170,21 @@ function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
 }
 
 function NewContract({ db, onClose, toast }) {
-  const [f, setF] = useState({ accountId: db.accounts[0]?.id, ownerId: db.meta.currentUserId, startDate: todayISO(), termMonths: 12, status: 'Aktiv', description: '' });
+  const [f, setF] = useState({ accountId: db.accounts[0]?.id, contactId: '', fromOrderId: '', ownerId: db.meta.currentUserId, startDate: todayISO(), termMonths: 12, status: 'Aktiv', description: '' });
   const [items, setItems] = useState([]);
   const [cv, setCv] = useState({});
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const accContacts = db.contacts.filter((c) => c.accountId === f.accountId);
+  const accOrders = db.orders.filter((o) => o.accountId === f.accountId);
   const v = contractValues(items);
   const save = () => {
     if (!f.title) { toast('Bitte einen Betreff angeben'); return; }
     if (!f.accountId) { toast('Bitte zuerst ein Konto anlegen'); return; }
     const n = 'V-' + (1001 + db.contracts.length);
     store.add('contracts', {
-      number: n, title: f.title, accountId: f.accountId, contactId: null, ownerId: f.ownerId,
+      number: n, title: f.title, accountId: f.accountId, contactId: f.contactId || null, ownerId: f.ownerId,
       status: f.status, startDate: new Date(f.startDate).toISOString(), termMonths: Number(f.termMonths) || 12,
-      items, cancellationReason: '', fromOrderId: null, description: f.description,
+      items, cancellationReason: '', fromOrderId: f.fromOrderId || null, description: f.description,
       createdAt: new Date().toISOString(), customValues: cv,
     });
     toast('Vertrag erstellt'); onClose();
@@ -169,8 +194,10 @@ function NewContract({ db, onClose, toast }) {
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Jahreswert: {fmtMoney(v.annual)}{v.once > 0 ? ` (+ ${fmtMoney(v.once)} einm.)` : ''}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
         <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Wartungsvertrag Endoskopie 2026" autoFocus /></Field></div>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.length === 0 && <option value="">— kein Konto —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('contactId', ''); set('fromOrderId', ''); }}>{db.accounts.length === 0 && <option value="">— kein Konto —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Ansprechpartner"><select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
         <Field label="Verantwortlich"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Aus Auftrag (optional)"><select className="select" value={f.fromOrderId} onChange={(e) => set('fromOrderId', e.target.value)}><option value="">— Ohne —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number}</option>)}</select></Field>
         <Field label="Startdatum"><input className="input" type="date" value={f.startDate} onChange={(e) => set('startDate', e.target.value)} /></Field>
         <Field label="Laufzeit (Monate)"><input className="input" type="number" value={f.termMonths} onChange={(e) => set('termMonths', e.target.value)} /></Field>
         <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Entwurf'].map((s) => <option key={s}>{s}</option>)}</select></Field>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Phone, Mail } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Avatar, Badge, Empty } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, AccountLink } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { relDate } from '../lib/format.js';
 
@@ -42,7 +42,7 @@ export default function Contacts() {
               {rows.map((c) => {
                 const a = acct(c.accountId);
                 return (
-                  <tr key={c.id} onClick={() => a && nav('/accounts/' + a.id)}>
+                  <tr key={c.id} onClick={() => nav('/contacts/' + c.id)}>
                     <td>
                       <div className="avatar-row">
                         <Avatar size="sm" name={c.name} color={c.color} />
@@ -50,7 +50,7 @@ export default function Contacts() {
                       </div>
                     </td>
                     <td>{c.title}</td>
-                    <td>{a?.name}</td>
+                    <td><AccountLink account={a} /></td>
                     <td className="muted"><Mail size={12} style={{ verticalAlign: -1, marginRight: 5 }} />{c.email}</td>
                     <td className="muted"><Phone size={12} style={{ verticalAlign: -1, marginRight: 5 }} />{c.phone}</td>
                     <td>{relDate(c.lastContact)}</td>

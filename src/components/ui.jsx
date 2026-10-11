@@ -1,5 +1,39 @@
+import { Link } from 'react-router-dom';
 import { initials } from '../lib/format.js';
-import { X, Inbox, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+
+// Sortable table header cell. Pairs with useSort(): <SortTh label sortKey sort onSort />
+export function SortTh({ label, sortKey, sort, onSort, align, style }) {
+  const dir = sort.key === sortKey ? sort.dir : null;
+  const Icon = dir === 'asc' ? ChevronUp : dir === 'desc' ? ChevronDown : ChevronsUpDown;
+  return (
+    <th className={align === 'right' ? 'right' : ''} style={{ cursor: 'pointer', userSelect: 'none', ...style }} onClick={() => onSort(sortKey)} title="Sortieren">
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: dir ? 'var(--brand)' : 'inherit', flexDirection: align === 'right' ? 'row-reverse' : 'row' }}>
+        {label}<Icon size={12} style={{ opacity: dir ? 1 : 0.35 }} />
+      </span>
+    </th>
+  );
+}
+
+// Clickable deep-link to a record detail page. Stops row-click propagation so it
+// works inside clickable table rows/drawers. Falls back to plain text when unresolved.
+export function RecordLink({ to, label, muted, onClick }) {
+  if (!label) return <span className="muted">—</span>;
+  if (!to) return <span className={muted ? 'muted' : undefined}>{label}</span>;
+  return (
+    <Link className="rec-link" to={to} onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}>{label}</Link>
+  );
+}
+export function AccountLink({ account, id, name }) {
+  const aid = account?.id || id;
+  const label = account?.name ?? name;
+  return <RecordLink to={aid ? '/accounts/' + aid : null} label={label} />;
+}
+export function ContactLink({ contact, id, name }) {
+  const cid = contact?.id || id;
+  const label = contact?.name ?? name;
+  return <RecordLink to={cid ? '/contacts/' + cid : null} label={label} />;
+}
 
 export function Avatar({ name, color = '#a81e22', size, src }) {
   if (src) {
@@ -21,7 +55,7 @@ export function Badge({ children, tone = 'gray', dot = false }) {
   );
 }
 
-export function KpiCard({ icon: Icon, label, value, delta, deltaLabel, tone = 'brand' }) {
+export function KpiCard({ icon: Icon, label, value, delta, deltaLabel, tone = 'brand', to }) {
   const tones = {
     brand: ['var(--brand)', 'var(--brand-050)'],
     teal: ['var(--brand-2)', 'var(--brand-2-050)'],
@@ -32,25 +66,26 @@ export function KpiCard({ icon: Icon, label, value, delta, deltaLabel, tone = 'b
   };
   const [fg, bg] = tones[tone] || tones.brand;
   const up = delta == null ? null : delta >= 0;
-  return (
-    <div className="card kpi">
-      <div className="top">
-        <div className="ico" style={{ background: bg, color: fg }}>
-          {Icon && <Icon size={19} />}
-        </div>
-        <div className="label">{label}</div>
+  const inner = (<>
+    <div className="top">
+      <div className="ico" style={{ background: bg, color: fg }}>
+        {Icon && <Icon size={19} />}
       </div>
-      <div className="value">{value}</div>
-      {delta != null && (
-        <div className="foot">
-          <span className={'delta-pill ' + (up ? 'up' : 'down')}>
-            {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} {Math.abs(delta).toLocaleString('de-DE')} %
-          </span>
-          <span className="muted">{deltaLabel || 'ggü. Vormonat'}</span>
-        </div>
-      )}
+      <div className="label">{label}</div>
+      {to && <ArrowUpRight size={15} className="kpi-go" />}
     </div>
-  );
+    <div className="value">{value}</div>
+    {delta != null && (
+      <div className="foot">
+        <span className={'delta-pill ' + (up ? 'up' : 'down')}>
+          {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} {Math.abs(delta).toLocaleString('de-DE')} %
+        </span>
+        <span className="muted">{deltaLabel || 'ggü. Vormonat'}</span>
+      </div>
+    )}
+  </>);
+  if (to) return <Link to={to} className="card kpi kpi-link">{inner}</Link>;
+  return <div className="card kpi">{inner}</div>;
 }
 
 export function Card({ title, action, children, pad = true, sub }) {
@@ -110,12 +145,13 @@ export function Drawer({ title, onClose, children, footer }) {
   );
 }
 
-export function Empty({ label = 'Noch keine Einträge', hint }) {
+export function Empty({ label = 'Noch keine Einträge', hint, action }) {
   return (
     <div className="empty">
       <Inbox size={38} />
       <div style={{ fontWeight: 600 }}>{label}</div>
       {hint && <div className="tiny" style={{ marginTop: 4 }}>{hint}</div>}
+      {action && <button className="btn primary sm" style={{ marginTop: 12 }} onClick={action.onClick}>{action.label}</button>}
     </div>
   );
 }
