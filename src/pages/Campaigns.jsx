@@ -54,7 +54,7 @@ export default function Campaigns() {
       </div>
 
       <Card title="Alle Kampagnen" pad={false}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr><th>Kampagne</th><th>Typ</th><th>Segment</th><th>Status</th><th className="right">Gesendet</th><th className="right">Öffnung %</th><th className="right">Klick %</th><th>Datum</th></tr></thead>
           <tbody>
             {db.campaigns.map((c) => (

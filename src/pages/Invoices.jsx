@@ -86,7 +86,7 @@ export default function Invoices() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Nummer" sortKey="number" sort={sort} onSort={toggle} />
             <SortTh label="Konto" sortKey="account" sort={sort} onSort={toggle} />

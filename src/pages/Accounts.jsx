@@ -103,7 +103,7 @@ export default function Accounts() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap">
+        <div className="table-wrap list">
           <table className="tbl">
             <thead>
               <tr>

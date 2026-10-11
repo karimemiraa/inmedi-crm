@@ -313,6 +313,10 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 
 /* ============================ Tables ============================ */
 .table-wrap { overflow-x: auto; }
+/* Data-grid lists: body scrolls inside the card, header stays pinned. Only engages
+   when rows exceed the height, so short lists look unchanged. */
+.table-wrap.list { overflow: auto; max-height: calc(100vh - 250px); }
+.table-wrap.list table.tbl thead th { position: sticky; top: 0; z-index: 2; box-shadow: 0 1px 0 var(--border); }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 table.tbl th {
   text-align: left; padding: 12px 18px; color: var(--text-3);

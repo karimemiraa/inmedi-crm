@@ -77,7 +77,7 @@ export default function Contracts() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Nr." sortKey="number" sort={sort} onSort={toggle} />
             <SortTh label="Betreff" sortKey="title" sort={sort} onSort={toggle} />

@@ -62,7 +62,7 @@ export default function Quality() {
       </div>
 
       {tab === 'incidents' && (
-        <Card pad={false}><div className="table-wrap"><table className="tbl">
+        <Card pad={false}><div className="table-wrap list"><table className="tbl">
           <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Gerät / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Gemeldet</th></tr></thead>
           <tbody>
             {db.incidents.map((i) => (
@@ -82,7 +82,7 @@ export default function Quality() {
       )}
 
       {tab === 'capa' && (
-        <Card pad={false}><div className="table-wrap"><table className="tbl">
+        <Card pad={false}><div className="table-wrap list"><table className="tbl">
           <thead><tr><th>Nr.</th><th>Maßnahme</th><th>Typ</th><th>Vorkommnis</th><th>Verantwortlich</th><th>Fällig</th><th>Status</th></tr></thead>
           <tbody>
             {db.capas.map((c) => {

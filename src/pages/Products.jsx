@@ -54,7 +54,7 @@ export default function Products() {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <div className="table-wrap"><table className="tbl">
+        <div className="table-wrap list"><table className="tbl">
           <thead><tr>
             <SortTh label="Artikelnr." sortKey="sku" sort={sort} onSort={toggle} />
             <SortTh label="Produkt" sortKey="name" sort={sort} onSort={toggle} />
