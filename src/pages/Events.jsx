@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Presentation, CalendarClock, Users, Euro, Trash2, MapPin } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink, SortTh } from '../components/ui.jsx';
+import { AccountLink, Badge, ContactLink, Drawer, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
@@ -153,7 +153,7 @@ function EventDrawer({ db, event: e, onClose, toast }) {
         <Badge tone={STATUS_TONE[e.status]} dot>{e.status}</Badge>
       </div>
       <Field label="Status">
-        <select className="select" value={e.status} onChange={(ev) => setStatus(ev.target.value)}>{EVENT_STATUS.map((s) => <option key={s}>{s}</option>)}</select>
+        <Select className="select" value={e.status} onChange={(ev) => setStatus(ev.target.value)}>{EVENT_STATUS.map((s) => <option key={s}>{s}</option>)}</Select>
       </Field>
       <div style={{ height: 14 }} />
       <dl className="kv">
@@ -175,9 +175,9 @@ function EventDrawer({ db, event: e, onClose, toast }) {
               <td><Badge tone="gray">{REF_LABEL[at.refType]}</Badge></td>
               <td className="muted">{at.role || '—'}</td>
               <td>
-                <select className="select" style={{ height: 30, padding: '2px 8px' }} value={at.status} onChange={(ev) => setAttendeeStatus(i, ev.target.value)}>
+                <Select className="select" style={{ height: 30, padding: '2px 8px' }} value={at.status} onChange={(ev) => setAttendeeStatus(i, ev.target.value)}>
                   {ATTENDEE_STATUS.map((s) => <option key={s}>{s}</option>)}
-                </select>
+                </Select>
               </td>
               <td className="right"><button className="btn ghost sm" onClick={() => removeAttendee(i)}><Trash2 size={13} /></button></td>
             </tr>
@@ -188,10 +188,10 @@ function EventDrawer({ db, event: e, onClose, toast }) {
       <div className="card card-pad">
         <div className="muted tiny" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10 }}>Teilnehmer hinzufügen</div>
         <div className="form-grid">
-          <Field label="Art"><select className="select" value={refType} onChange={(ev) => { setRefType(ev.target.value); setRefId(''); }}>{Object.entries(REF_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
-          <Field label={REF_LABEL[refType]}><select className="select" value={refId} onChange={(ev) => setRefId(ev.target.value)}><option value="">{options[0] ? '— Bitte wählen —' : '— Keine verfügbar —'}</option>{options.map((p) => <option key={p.id} value={p.id}>{nameOf(p)}</option>)}</select></Field>
+          <Field label="Art"><Select className="select" value={refType} onChange={(ev) => { setRefType(ev.target.value); setRefId(''); }}>{Object.entries(REF_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Select></Field>
+          <Field label={REF_LABEL[refType]}><Select className="select" value={refId} onChange={(ev) => setRefId(ev.target.value)}><option value="">{options[0] ? '— Bitte wählen —' : '— Keine verfügbar —'}</option>{options.map((p) => <option key={p.id} value={p.id}>{nameOf(p)}</option>)}</Select></Field>
           <Field label="Rolle"><input className="input" value={role} onChange={(ev) => setRole(ev.target.value)} placeholder="z. B. Entscheider, Einkauf" /></Field>
-          <Field label="Status"><select className="select" value={atStatus} onChange={(ev) => setAtStatus(ev.target.value)}>{ATTENDEE_STATUS.map((s) => <option key={s}>{s}</option>)}</select></Field>
+          <Field label="Status"><Select className="select" value={atStatus} onChange={(ev) => setAtStatus(ev.target.value)}>{ATTENDEE_STATUS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
         </div>
         <div style={{ marginTop: 10 }}><button className="btn primary sm" onClick={addAttendee}><Plus size={14} /> Hinzufügen</button></div>
       </div>
@@ -217,12 +217,12 @@ function NewEvent({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Anlegen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Name"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="z. B. MEDICA 2026" autoFocus /></Field></div>
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{EVENT_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Ort"><input className="input" value={f.location} onChange={(e) => set('location', e.target.value)} placeholder="z. B. Düsseldorf" /></Field>
         <Field label="Start"><input className="input" type="date" value={f.startDate} onChange={(e) => set('startDate', e.target.value)} /></Field>
         <Field label="Ende"><input className="input" type="date" value={f.endDate} onChange={(e) => set('endDate', e.target.value)} /></Field>
-        <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{EVENT_STATUS.map((s) => <option key={s}>{s}</option>)}</select></Field>
-        <Field label="Verantwortlich"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{EVENT_STATUS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
+        <Field label="Verantwortlich"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         <Field label="Budget (€)"><input className="input" type="number" value={f.budget} onChange={(e) => set('budget', e.target.value)} /></Field>
         <Field label="Kosten (€)"><input className="input" type="number" value={f.cost} onChange={(e) => set('cost', e.target.value)} /></Field>
         <div className="full"><Field label="Notizen"><textarea className="input" rows={2} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field></div>

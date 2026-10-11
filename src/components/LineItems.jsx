@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Select } from './ui.jsx';
 import { Plus, Trash2 } from 'lucide-react';
 import { fmtMoney } from '../lib/format.js';
 
@@ -32,14 +33,14 @@ export default function LineItems({ products, items, setItems, withBilling = fal
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 10, flexWrap: 'wrap' }}>
         <div className="field" style={{ flex: 2, minWidth: 160 }}>
           <label>Produkt</label>
-          <select className="select" value={pid} onChange={(e) => setPid(e.target.value)}>
+          <Select className="select" value={pid} onChange={(e) => setPid(e.target.value)}>
             {products.map((p) => <option key={p.id} value={p.id}>{p.name} ({fmtMoney(p.price)})</option>)}
-          </select>
+          </Select>
         </div>
         <div className="field" style={{ width: 80 }}><label>Menge</label><input className="input" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} /></div>
         {withBilling && (
           <div className="field" style={{ width: 150 }}><label>Zahlungsweise</label>
-            <select className="select" value={billing} onChange={(e) => setBilling(e.target.value)}>{BILLING.map((b) => <option key={b}>{b}</option>)}</select>
+            <Select className="select" value={billing} onChange={(e) => setBilling(e.target.value)}>{BILLING.map((b) => <option key={b}>{b}</option>)}</Select>
           </div>
         )}
         <button className="btn" type="button" onClick={add}><Plus size={15} /> Position</button>

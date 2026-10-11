@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileSignature, Repeat, CalendarClock, XCircle } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, Drawer, Field, Modal, AccountLink, ContactLink, SortTh } from '../components/ui.jsx';
+import { AccountLink, Badge, ContactLink, Drawer, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems, { BILLING_FACTOR } from '../components/LineItems.jsx';
@@ -135,9 +135,9 @@ function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
         <Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge>
       </div>
       <Field label="Status">
-        <select className="select" value={c.status} onChange={(e) => { store.update('contracts', c.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...c, status: e.target.value }); }}>
+        <Select className="select" value={c.status} onChange={(e) => { store.update('contracts', c.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...c, status: e.target.value }); }}>
           {STATUS.map((s) => <option key={s}>{s}</option>)}
-        </select>
+        </Select>
       </Field>
       <div style={{ height: 14 }} />
       <dl className="kv">
@@ -194,13 +194,13 @@ function NewContract({ db, onClose, toast }) {
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Jahreswert: {fmtMoney(v.annual)}{v.once > 0 ? ` (+ ${fmtMoney(v.once)} einm.)` : ''}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
         <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Wartungsvertrag Endoskopie 2026" autoFocus /></Field></div>
-        <Field label="Kunde"><select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('contactId', ''); set('fromOrderId', ''); }}>{db.accounts.length === 0 && <option value="">— kein Konto —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-        <Field label="Ansprechpartner"><select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-        <Field label="Verantwortlich"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
-        <Field label="Aus Auftrag (optional)"><select className="select" value={f.fromOrderId} onChange={(e) => set('fromOrderId', e.target.value)}><option value="">— Ohne —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number}</option>)}</select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('contactId', ''); set('fromOrderId', ''); }}>{db.accounts.length === 0 && <option value="">— kein Konto —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Ansprechpartner"><Select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+        <Field label="Verantwortlich"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
+        <Field label="Aus Auftrag (optional)"><Select className="select" value={f.fromOrderId} onChange={(e) => set('fromOrderId', e.target.value)}><option value="">— Ohne —</option>{accOrders.map((o) => <option key={o.id} value={o.id}>{o.number}</option>)}</Select></Field>
         <Field label="Startdatum"><input className="input" type="date" value={f.startDate} onChange={(e) => set('startDate', e.target.value)} /></Field>
         <Field label="Laufzeit (Monate)"><input className="input" type="number" value={f.termMonths} onChange={(e) => set('termMonths', e.target.value)} /></Field>
-        <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Entwurf'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Entwurf'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <div className="full"><Field label="Beschreibung"><input className="input" onChange={(e) => set('description', e.target.value)} /></Field></div>
         <CustomFieldsEditor db={db} entity="Vertrag" values={cv} onChange={setCv} />
       </div>

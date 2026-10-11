@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, FileText, ShoppingCart } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Drawer, KpiCard, Modal, Field, AccountLink, SortTh } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
@@ -150,10 +150,10 @@ function NewOrder({ db, kind, onClose, toast }) {
     <Modal title={'Neue(r) ' + kind} wide onClose={onClose}
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Gesamt: {fmtMoney(total)}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <Field label="Kunde"><select className="select" value={accountId} onChange={(e) => { setAccountId(e.target.value); setDealId(''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Kunde"><Select className="select" value={accountId} onChange={(e) => { setAccountId(e.target.value); setDealId(''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Datum"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-        <Field label="Status"><select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>{statusOpts.map((s) => <option key={s}>{s}</option>)}</select></Field>
-        <div className="full"><Field label="Zugehöriger Deal (optional)"><select className="select" value={dealId} onChange={(e) => setDealId(e.target.value)}><option value="">— Kein Deal —</option>{accDeals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field></div>
+        <Field label="Status"><Select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>{statusOpts.map((s) => <option key={s}>{s}</option>)}</Select></Field>
+        <div className="full"><Field label="Zugehöriger Deal (optional)"><Select className="select" value={dealId} onChange={(e) => setDealId(e.target.value)}><option value="">— Kein Deal —</option>{accDeals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></Field></div>
       </div>
       <h4 style={{ marginBottom: 10 }}>Positionen</h4>
       <LineItems products={db.products} items={items} setItems={setItems} />

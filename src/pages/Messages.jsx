@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Mail, Search, Info, Send } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Modal, Field, AccountLink } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Empty, Field, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 
@@ -76,7 +76,7 @@ function Compose({ db, onClose, toast }) {
     <Modal title="Neue Nachricht" wide onClose={onClose}
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}><Send size={15} /> Protokollieren</button></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.length === 0 && <option value="">— keine Firma —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+        <Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.length === 0 && <option value="">— keine Firma —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Betreff"><input className="input" value={f.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Betreff der Nachricht" autoFocus /></Field>
         <Field label="Nachricht"><textarea className="input" rows={5} value={f.body} onChange={(e) => set('body', e.target.value)} /></Field>
       </div>

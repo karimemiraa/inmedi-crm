@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Building2, Users, Target, CalendarCheck } from 'lucide-react';
-import { Modal, Field } from './ui.jsx';
+import { Field, Modal, Select } from './ui.jsx';
 import { store, useStore } from '../data/store.js';
 import { useToast } from './Toast.jsx';
 
@@ -87,9 +87,9 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
       <div className="form-grid">
         {type === 'account' && (<>
           <Field label="Firmenname"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="z. B. Klinik am Fluss" /></Field>
-          <Field label="Typ"><select className="select" onChange={(e) => set('subtype', e.target.value)}><option>Praxis</option><option>Krankenhaus</option><option>Pflegeeinrichtung</option><option>Apotheke</option><option>Großhändler</option></select></Field>
+          <Field label="Typ"><Select className="select" onChange={(e) => set('subtype', e.target.value)}><option>Praxis</option><option>Krankenhaus</option><option>Pflegeeinrichtung</option><option>Apotheke</option><option>Großhändler</option></Select></Field>
           <Field label="Stadt"><input className="input" onChange={(e) => set('city', e.target.value)} /></Field>
-          <Field label="Betreuer"><select className="select" onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+          <Field label="Betreuer"><Select className="select" onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
           <Field label="Telefon"><input className="input" onChange={(e) => set('phone', e.target.value)} /></Field>
           <Field label="E-Mail"><input className="input" onChange={(e) => set('email', e.target.value)} /></Field>
         </>)}
@@ -97,27 +97,27 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
         {type === 'contact' && (<>
           <Field label="Voller Name"><input className="input" onChange={(e) => set('name', e.target.value)} /></Field>
           <Field label="Position"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Einkaufsleiter/in" /></Field>
-          <div className="full"><Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field></div>
+          <div className="full"><Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field></div>
           <Field label="E-Mail"><input className="input" onChange={(e) => set('email', e.target.value)} /></Field>
           <Field label="Telefon"><input className="input" onChange={(e) => set('phone', e.target.value)} /></Field>
         </>)}
 
         {type === 'deal' && (<>
           <div className="full"><Field label="Deal-Name"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="z. B. Erneuerung Intensivausstattung" /></Field></div>
-          <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
-          <Field label="Ansprechpartner"><select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+          <Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+          <Field label="Ansprechpartner"><Select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
           <Field label="Wert (€)"><input className="input" type="number" onChange={(e) => set('value', e.target.value)} /></Field>
-          <Field label="Betreuer"><select className="select" onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+          <Field label="Betreuer"><Select className="select" onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
           <Field label="Erwarteter Abschluss"><input className="input" type="date" onChange={(e) => set('expectedClose', new Date(e.target.value).toISOString())} /></Field>
         </>)}
 
         {type === 'activity' && (<>
-          <Field label="Typ"><select className="select" value={f.actType} onChange={(e) => set('actType', e.target.value)}><option value="task">Aufgabe</option><option value="call">Anruf</option><option value="meeting">Termin</option><option value="email">E-Mail</option><option value="followup">Nachfassen</option></select></Field>
-          <Field label="Priorität"><select className="select" onChange={(e) => set('priority', e.target.value)}><option>Mittel</option><option>Hoch</option><option>Niedrig</option></select></Field>
+          <Field label="Typ"><Select className="select" value={f.actType} onChange={(e) => set('actType', e.target.value)}><option value="task">Aufgabe</option><option value="call">Anruf</option><option value="meeting">Termin</option><option value="email">E-Mail</option><option value="followup">Nachfassen</option></Select></Field>
+          <Field label="Priorität"><Select className="select" onChange={(e) => set('priority', e.target.value)}><option>Mittel</option><option>Hoch</option><option>Niedrig</option></Select></Field>
           <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('subject', e.target.value)} placeholder="z. B. Nachfass-Anruf" /></Field></div>
-          {!lockAccount && <Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
-          <Field label="Ansprechpartner"><select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-          <Field label="Zugehöriger Deal"><select className="select" value={f.dealId || ''} onChange={(e) => set('dealId', e.target.value)}><option value="">— Keiner —</option>{accDeals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
+          {!lockAccount && <Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>}
+          <Field label="Ansprechpartner"><Select className="select" value={f.contactId || ''} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+          <Field label="Zugehöriger Deal"><Select className="select" value={f.dealId || ''} onChange={(e) => set('dealId', e.target.value)}><option value="">— Keiner —</option>{accDeals.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></Field>
           <Field label="Fällig am"><input className="input" type="date" onChange={(e) => set('dueDate', new Date(e.target.value).toISOString())} /></Field>
         </>)}
       </div>

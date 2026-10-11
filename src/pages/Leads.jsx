@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, UserPlus, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, ScoreMeter, Modal, Field, SortTh } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Field, KpiCard, Modal, ScoreMeter, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
@@ -122,12 +122,12 @@ function NewLead({ db, onClose, toast }) {
         <Field label="Ansprechpartner"><input className="input" onChange={(e) => set('name', e.target.value)} autoFocus /></Field>
         <Field label="Unternehmen"><input className="input" onChange={(e) => set('company', e.target.value)} /></Field>
         <Field label="Position"><input className="input" onChange={(e) => set('title', e.target.value)} /></Field>
-        <Field label="Quelle"><select className="select" value={f.source} onChange={(e) => set('source', e.target.value)}>{['Website', 'Messe', 'Empfehlung', 'Kaltakquise', 'E-Mail-Kampagne', 'LinkedIn'].map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Quelle"><Select className="select" value={f.source} onChange={(e) => set('source', e.target.value)}>{['Website', 'Messe', 'Empfehlung', 'Kaltakquise', 'E-Mail-Kampagne', 'LinkedIn'].map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <Field label="E-Mail"><input className="input" onChange={(e) => set('email', e.target.value)} /></Field>
         <Field label="Telefon"><input className="input" onChange={(e) => set('phone', e.target.value)} /></Field>
         <Field label="Score (0–100)"><input className="input" type="number" value={f.score} onChange={(e) => set('score', e.target.value)} /></Field>
         <Field label="Potenzial (€)"><input className="input" type="number" value={f.potential} onChange={(e) => set('potential', e.target.value)} /></Field>
-        <Field label="Betreuer"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Betreuer"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
       </div>
     </Modal>
   );

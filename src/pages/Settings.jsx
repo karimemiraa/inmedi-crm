@@ -3,7 +3,7 @@ import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, 
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
-import { Avatar, Badge, Card, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Card, Field, Modal, Select } from '../components/ui.jsx';
 import { LogoMark } from '../components/Logo.jsx';
 import { useToast } from '../components/Toast.jsx';
 
@@ -166,8 +166,8 @@ function FieldModal({ onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Speichern</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Bezeichnung"><input className="input" onChange={(e) => set('label', e.target.value)} placeholder="z. B. Einkaufsverbund" autoFocus /></Field></div>
-        <Field label="Objekt"><select className="select" value={f.entity} onChange={(e) => set('entity', e.target.value)}>{['Firma', 'Ansprechpartner', 'Deal', 'Interessent', 'Gerät', 'Vorgang', 'Vertrag'].map((x) => <option key={x}>{x}</option>)}</select></Field>
-        <Field label="Feldtyp"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Text', 'Zahl', 'Datum', 'Auswahl', 'Kontrollkästchen'].map((x) => <option key={x}>{x}</option>)}</select></Field>
+        <Field label="Objekt"><Select className="select" value={f.entity} onChange={(e) => set('entity', e.target.value)}>{['Firma', 'Ansprechpartner', 'Deal', 'Interessent', 'Gerät', 'Vorgang', 'Vertrag'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
+        <Field label="Feldtyp"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Text', 'Zahl', 'Datum', 'Auswahl', 'Kontrollkästchen'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
         {f.type === 'Auswahl' && <div className="full"><Field label="Auswahlwerte (durch Komma getrennt)"><input className="input" onChange={(e) => set('options', e.target.value)} placeholder="z. B. Bronze, Silber, Gold" /></Field></div>}
       </div>
     </Modal>
@@ -203,8 +203,8 @@ function RuleBuilder({ db, rule, onClose, toast }) {
   };
 
   const ValueInput = ({ fdef, value, onChange }) => {
-    if (fdef?.type === 'enum') return <select className="select" value={value || ''} onChange={(e) => onChange(e.target.value)}><option value="">— Wert —</option>{fdef.options.map((o) => <option key={o} value={o}>{fdef.optionLabels?.[o] || o}</option>)}</select>;
-    if (fdef?.type === 'bool') return <select className="select" value={value || ''} onChange={(e) => onChange(e.target.value)}><option value="">— Wert —</option><option value="true">Ja</option><option value="false">Nein</option></select>;
+    if (fdef?.type === 'enum') return <Select className="select" value={value || ''} onChange={(e) => onChange(e.target.value)}><option value="">— Wert —</option>{fdef.options.map((o) => <option key={o} value={o}>{fdef.optionLabels?.[o] || o}</option>)}</Select>;
+    if (fdef?.type === 'bool') return <Select className="select" value={value || ''} onChange={(e) => onChange(e.target.value)}><option value="">— Wert —</option><option value="true">Ja</option><option value="false">Nein</option></Select>;
     return <input className="input" type={fdef?.type === 'number' ? 'number' : 'text'} value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="Wert" />;
   };
 
@@ -217,17 +217,17 @@ function RuleBuilder({ db, rule, onClose, toast }) {
         <div className="stat-line" style={{ marginBottom: 8 }}><span className="badge blue">WENN</span> <span className="muted tiny">Auslöser & Bedingungen</span></div>
         <div className="card card-pad" style={{ background: 'var(--surface-2)' }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <Field label="Objekt"><select className="select" value={object} onChange={(e) => { setObject(e.target.value); setConds([{ field: '', op: 'eq', value: '' }]); }}>{Object.keys(OBJECTS).map((o) => <option key={o}>{o}</option>)}</select></Field>
-            <Field label="Ereignis"><select className="select" value={event} onChange={(e) => setEvent(e.target.value)}>{EVENTS.map((ev) => <option key={ev[0]} value={ev[0]}>{ev[1]}</option>)}</select></Field>
-            <Field label="Verknüpfung"><select className="select" value={match} onChange={(e) => setMatch(e.target.value)}><option value="all">ALLE Bedingungen (UND)</option><option value="any">EINE Bedingung (ODER)</option></select></Field>
+            <Field label="Objekt"><Select className="select" value={object} onChange={(e) => { setObject(e.target.value); setConds([{ field: '', op: 'eq', value: '' }]); }}>{Object.keys(OBJECTS).map((o) => <option key={o}>{o}</option>)}</Select></Field>
+            <Field label="Ereignis"><Select className="select" value={event} onChange={(e) => setEvent(e.target.value)}>{EVENTS.map((ev) => <option key={ev[0]} value={ev[0]}>{ev[1]}</option>)}</Select></Field>
+            <Field label="Verknüpfung"><Select className="select" value={match} onChange={(e) => setMatch(e.target.value)}><option value="all">ALLE Bedingungen (UND)</option><option value="any">EINE Bedingung (ODER)</option></Select></Field>
           </div>
           <hr className="hr" />
           {conds.map((c, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select className="select" style={{ flex: 2, minWidth: 150 }} value={c.field} onChange={(e) => setCond(i, { field: e.target.value, value: '' })}>
+              <Select className="select" style={{ flex: 2, minWidth: 150 }} value={c.field} onChange={(e) => setCond(i, { field: e.target.value, value: '' })}>
                 <option value="">— Feld wählen —</option>{fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-              </select>
-              <select className="select" style={{ width: 150 }} value={c.op} onChange={(e) => setCond(i, { op: e.target.value })}>{OPERATORS.map((o) => <option key={o[0]} value={o[0]}>{o[1]}</option>)}</select>
+              </Select>
+              <Select className="select" style={{ width: 150 }} value={c.op} onChange={(e) => setCond(i, { op: e.target.value })}>{OPERATORS.map((o) => <option key={o[0]} value={o[0]}>{o[1]}</option>)}</Select>
               <div style={{ flex: 1, minWidth: 120 }}><ValueInput fdef={fieldDef(c.field)} value={c.value} onChange={(v) => setCond(i, { value: v })} /></div>
               <button className="btn ghost sm" onClick={() => setConds(conds.filter((_, k) => k !== i))}><Trash2 size={13} /></button>
             </div>
@@ -241,12 +241,12 @@ function RuleBuilder({ db, rule, onClose, toast }) {
         <div className="card card-pad" style={{ background: 'var(--surface-2)' }}>
           {acts.map((a, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-              <select className="select" style={{ width: 190 }} value={a.type} onChange={(e) => setAct(i, { type: e.target.value, params: {} })}>{Object.entries(ACTIONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
+              <Select className="select" style={{ width: 190 }} value={a.type} onChange={(e) => setAct(i, { type: e.target.value, params: {} })}>{Object.entries(ACTIONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</Select>
               <div style={{ flex: 1, minWidth: 180, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {ACTIONS[a.type]?.params.map((p) => (
                   <div key={p.key} style={{ flex: 1, minWidth: 130 }}>
-                    {p.type === 'enum' ? <select className="select" value={a.params?.[p.key] || ''} onChange={(e) => setActParam(i, p.key, e.target.value)}><option value="">{p.label}</option>{p.options.map((o) => <option key={o}>{o}</option>)}</select>
-                      : p.type === 'objectField' ? <select className="select" value={a.params?.[p.key] || ''} onChange={(e) => setActParam(i, p.key, e.target.value)}><option value="">{p.label}</option>{fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}</select>
+                    {p.type === 'enum' ? <Select className="select" value={a.params?.[p.key] || ''} onChange={(e) => setActParam(i, p.key, e.target.value)}><option value="">{p.label}</option>{p.options.map((o) => <option key={o}>{o}</option>)}</Select>
+                      : p.type === 'objectField' ? <Select className="select" value={a.params?.[p.key] || ''} onChange={(e) => setActParam(i, p.key, e.target.value)}><option value="">{p.label}</option>{fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}</Select>
                       : <input className="input" value={a.params?.[p.key] || ''} onChange={(e) => setActParam(i, p.key, e.target.value)} placeholder={p.placeholder || p.label} />}
                   </div>
                 ))}
@@ -279,8 +279,8 @@ function UserModal({ db, onClose, toast }) {
       <div className="form-grid">
         <Field label="Name"><input className="input" onChange={(e) => set('name', e.target.value)} placeholder="Vor- und Nachname" autoFocus /></Field>
         <Field label="Position"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Account Manager" /></Field>
-        <Field label="Rolle"><select className="select" onChange={(e) => set('role', e.target.value)}>{['Vertrieb', 'Manager', 'Administrator'].map((x) => <option key={x}>{x}</option>)}</select></Field>
-        <Field label="Gebiet"><select className="select" onChange={(e) => set('territoryId', e.target.value)}><option value="">— Keins —</option>{db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
+        <Field label="Rolle"><Select className="select" onChange={(e) => set('role', e.target.value)}>{['Vertrieb', 'Manager', 'Administrator'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
+        <Field label="Gebiet"><Select className="select" onChange={(e) => set('territoryId', e.target.value)}><option value="">— Keins —</option>{db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
         <div className="full"><Field label="E-Mail"><input className="input" onChange={(e) => set('email', e.target.value)} placeholder="name@inmedi.de" /></Field></div>
       </div>
     </Modal>

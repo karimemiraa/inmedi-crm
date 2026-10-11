@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Mail, Phone, Building2, Star, Target, LifeBuoy, CalendarCheck, FileSignature, Presentation } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, Empty, Modal, Field, AccountLink, ScoreMeter } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Card, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
@@ -223,7 +223,7 @@ function ContactEdit({ contact, db, onClose, onSaved }) {
       <div className="form-grid">
         <Field label="Name"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} /></Field>
         <Field label="Position"><input className="input" value={f.title || ''} onChange={(e) => set('title', e.target.value)} /></Field>
-        <div className="full"><Field label="Firma"><select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field></div>
+        <div className="full"><Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field></div>
         <Field label="E-Mail"><input className="input" value={f.email || ''} onChange={(e) => set('email', e.target.value)} /></Field>
         <Field label="Telefon"><input className="input" value={f.phone || ''} onChange={(e) => set('phone', e.target.value)} /></Field>
         <div className="full"><label className="check"><input type="checkbox" checked={!!f.isPrimary} onChange={(e) => set('isPrimary', e.target.checked)} /> Hauptkontakt dieser Firma</label></div>

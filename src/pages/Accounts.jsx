@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, Building2, MapPin, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Avatar, Badge, Empty, SortTh } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Select, SortTh } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useSort } from '../lib/useSort.js';
@@ -81,21 +81,21 @@ export default function Accounts() {
           <Search size={16} />
           <input placeholder="Firmen suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className="select" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)}>
+        <Select className="select" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)}>
           {[['All', 'Alle Typen'], ['Krankenhaus', 'Krankenhaus'], ['Praxis', 'Praxis'], ['Pflegeeinrichtung', 'Pflegeeinrichtung'], ['Apotheke', 'Apotheke'], ['Großhändler', 'Großhändler']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <select className="select" style={{ width: 'auto' }} value={terr} onChange={(e) => setTerr(e.target.value)}>
+        </Select>
+        <Select className="select" style={{ width: 'auto' }} value={terr} onChange={(e) => setTerr(e.target.value)}>
           <option value="All">Alle Gebiete</option>
           {db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
+        </Select>
         {customFields.length > 0 && (
           <>
-            <select className="select" style={{ width: 'auto' }} value={cfId} onChange={(e) => { setCfId(e.target.value); setCfVal(''); }}>
+            <Select className="select" style={{ width: 'auto' }} value={cfId} onChange={(e) => { setCfId(e.target.value); setCfVal(''); }}>
               <option value="">Zusatzfeld-Filter…</option>
               {customFields.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
+            </Select>
             {cfId && (cfField?.type === 'Auswahl'
-              ? <select className="select" style={{ width: 'auto' }} value={cfVal} onChange={(e) => setCfVal(e.target.value)}><option value="">Alle Werte</option>{cfField.options.map((o) => <option key={o}>{o}</option>)}</select>
+              ? <Select className="select" style={{ width: 'auto' }} value={cfVal} onChange={(e) => setCfVal(e.target.value)}><option value="">Alle Werte</option>{cfField.options.map((o) => <option key={o}>{o}</option>)}</Select>
               : <input className="input" style={{ width: 160 }} placeholder="Wert enthält…" value={cfVal} onChange={(e) => setCfVal(e.target.value)} />)}
           </>
         )}

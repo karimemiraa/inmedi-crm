@@ -6,7 +6,7 @@ import {
   Cpu, LifeBuoy, Presentation, ShieldAlert, Wrench,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, ScoreMeter, Empty, Modal, Field, ContactLink } from '../components/ui.jsx';
+import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
@@ -141,17 +141,17 @@ export default function AccountDetail() {
             <Card title="Zuständigkeit & Betreuung" sub="Kundenbetreuer direkt zuweisen">
               <div className="kv">
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Außendienst</span>
-                <select className="select" value={a.ownerId} onChange={(e) => { store.update('accounts', a.id, { ownerId: e.target.value }); toast('Außendienst zugewiesen'); }}>
+                <Select className="select" value={a.ownerId} onChange={(e) => { store.update('accounts', a.id, { ownerId: e.target.value }); toast('Außendienst zugewiesen'); }}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                </Select>
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Innendienst</span>
-                <select className="select" value={a.innendienstId} onChange={(e) => { store.update('accounts', a.id, { innendienstId: e.target.value }); toast('Innendienst zugewiesen'); }}>
+                <Select className="select" value={a.innendienstId} onChange={(e) => { store.update('accounts', a.id, { innendienstId: e.target.value }); toast('Innendienst zugewiesen'); }}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                </Select>
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Gebiet</span>
-                <select className="select" value={a.territoryId} onChange={(e) => { store.update('accounts', a.id, { territoryId: e.target.value }); toast('Gebiet zugewiesen'); }}>
+                <Select className="select" value={a.territoryId} onChange={(e) => { store.update('accounts', a.id, { territoryId: e.target.value }); toast('Gebiet zugewiesen'); }}>
                   {db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                </Select>
               </div>
             </Card>
             <Card title="Letzte Aktivitäten" pad={false}>
@@ -456,9 +456,9 @@ function Conditions({ account, db, toast }) {
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div className="field" style={{ flex: 2, minWidth: 180 }}>
               <label>Produkt</label>
-              <select className="select" value={pid} onChange={(e) => setPid(e.target.value)}>
+              <Select className="select" value={pid} onChange={(e) => setPid(e.target.value)}>
                 {db.products.map((p) => <option key={p.id} value={p.id}>{p.name} ({fmtMoney(p.price)})</option>)}
-              </select>
+              </Select>
             </div>
             <div className="field" style={{ flex: 1, minWidth: 110 }}>
               <label>Verkaufspreis €</label>
@@ -512,12 +512,12 @@ function AccountEdit({ account, db, onClose, onSaved }) {
       <div className="form-grid">
         <Field label="Firmenname"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} /></Field>
         <Field label="Kundennummer"><input className="input" value={f.kundennummer} onChange={(e) => set('kundennummer', e.target.value)} /></Field>
-        <Field label="Typ"><select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Krankenhaus', 'Praxis', 'Pflegeeinrichtung', 'Apotheke', 'Großhändler'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Kategorie"><select className="select" value={f.tier} onChange={(e) => set('tier', e.target.value)}>{['Schlüsselkunde', 'Strategisch', 'Standard', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Status"><select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Gefährdet', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="Gebiet"><select className="select" value={f.territoryId} onChange={(e) => set('territoryId', e.target.value)}>{db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>
-        <Field label="Außendienst"><select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
-        <Field label="Innendienst"><select className="select" value={f.innendienstId} onChange={(e) => set('innendienstId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></Field>
+        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Krankenhaus', 'Praxis', 'Pflegeeinrichtung', 'Apotheke', 'Großhändler'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Kategorie"><Select className="select" value={f.tier} onChange={(e) => set('tier', e.target.value)}>{['Schlüsselkunde', 'Strategisch', 'Standard', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Gefährdet', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
+        <Field label="Gebiet"><Select className="select" value={f.territoryId} onChange={(e) => set('territoryId', e.target.value)}>{db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
+        <Field label="Außendienst"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
+        <Field label="Innendienst"><Select className="select" value={f.innendienstId} onChange={(e) => set('innendienstId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         <Field label="Straße"><input className="input" value={f.street} onChange={(e) => set('street', e.target.value)} /></Field>
         <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 10 }}>
           <Field label="PLZ"><input className="input" value={f.zip} onChange={(e) => set('zip', e.target.value)} /></Field>
@@ -527,7 +527,7 @@ function AccountEdit({ account, db, onClose, onSaved }) {
         <Field label="E-Mail"><input className="input" value={f.email} onChange={(e) => set('email', e.target.value)} /></Field>
         <Field label="Website"><input className="input" value={f.website} onChange={(e) => set('website', e.target.value)} /></Field>
         <Field label="USt-IdNr."><input className="input" value={f.vatId} onChange={(e) => set('vatId', e.target.value)} /></Field>
-        <Field label="Zahlungsziel"><select className="select" value={f.paymentTerms} onChange={(e) => set('paymentTerms', e.target.value)}>{['14 Tage netto', '30 Tage netto', '30 Tage 2% Skonto', 'Vorkasse'].map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="Zahlungsziel"><Select className="select" value={f.paymentTerms} onChange={(e) => set('paymentTerms', e.target.value)}>{['14 Tage netto', '30 Tage netto', '30 Tage 2% Skonto', 'Vorkasse'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Standardrabatt %"><input className="input" type="number" value={f.discount} onChange={(e) => set('discount', e.target.value)} /></Field>
         <Field label="Umsatz lfd. Jahr €"><input className="input" type="number" value={f.revenueYTD} onChange={(e) => set('revenueYTD', e.target.value)} /></Field>
         <CustomFieldsEditor db={db} entity="Firma" values={f.customValues || {}} onChange={(cv) => set('customValues', cv)} />

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Lightbulb, Search, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, KpiCard, Modal, Field } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 
@@ -56,9 +56,9 @@ export default function Ideas() {
                 <td><div className="cell-main">{i.title}</div>{i.description && <div className="cell-sub" style={{ maxWidth: 420, whiteSpace: 'normal' }}>{i.description}</div>}</td>
                 <td><Badge tone={PRIO_TONE[i.priority]}>{i.priority}</Badge></td>
                 <td>
-                  <select className="select" style={{ width: 'auto', padding: '4px 8px', fontSize: 12.5 }} value={i.status} onChange={(e) => { store.update('ideas', i.id, { status: e.target.value }); toast('Status aktualisiert'); }}>
+                  <Select className="select" style={{ width: 'auto', padding: '4px 8px', fontSize: 12.5 }} value={i.status} onChange={(e) => { store.update('ideas', i.id, { status: e.target.value }); toast('Status aktualisiert'); }}>
                     {STATUS.map((s) => <option key={s}>{s}</option>)}
-                  </select>
+                  </Select>
                 </td>
                 <td>{user(i.ownerId) && <div className="avatar-row"><Avatar size="sm" name={user(i.ownerId).name} color={user(i.ownerId).color} src={user(i.ownerId).avatar} /><span className="tiny">{user(i.ownerId).name.split(' ')[0]}</span></div>}</td>
                 <td className="muted tiny nowrap">{relDate(i.createdAt)}</td>
@@ -87,7 +87,7 @@ function NewIdea({ db, onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Einreichen</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Titel"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="Kurztitel der Idee" autoFocus /></Field></div>
-        <Field label="Priorität"><select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Hoch', 'Mittel', 'Niedrig'].map((p) => <option key={p}>{p}</option>)}</select></Field>
+        <Field label="Priorität"><Select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Hoch', 'Mittel', 'Niedrig'].map((p) => <option key={p}>{p}</option>)}</Select></Field>
         <div className="full"><Field label="Beschreibung"><textarea className="input" rows={3} onChange={(e) => set('description', e.target.value)} placeholder="Worum geht es? Welchen Nutzen bringt die Idee?" /></Field></div>
       </div>
     </Modal>
