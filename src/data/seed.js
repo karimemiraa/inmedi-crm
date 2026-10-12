@@ -146,7 +146,7 @@ const li = (pid, qty, billing) => { const p = PMAP[pid]; const it = { productId:
 const sum = (items) => items.reduce((s, i) => s + i.qty * i.price, 0);
 
 function demo() {
-  const acc = (o) => ({ country: 'Deutschland', website: '', vatId: '', paymentTerms: '30 Tage netto', discount: 0, beds: 0, notes: [], priceList: [], leadId: null, ...o });
+  const acc = (o) => ({ country: 'Deutschland', website: '', vatId: '', paymentTerms: '30 Tage netto', discount: 0, beds: 0, comments: [], priceList: [], leadId: null, ...o });
   const accounts = [
     acc({ id: 'A1', kundennummer: 'K-10001', name: 'Universitätsklinikum Nord', type: 'Krankenhaus', tier: 'Schlüsselkunde', status: 'Aktiv', territoryId: 'T1', ownerId: 'U2', innendienstId: 'U5', street: 'Martinistraße 52', zip: '20246', city: 'Hamburg', phone: '040 7410-0', email: 'einkauf@uk-nord.de', website: 'www.uk-nord.de', vatId: 'DE118502851', paymentTerms: '30 Tage 2% Skonto', discount: 8, revenueYTD: 185000, beds: 1100, createdAt: D(1, 8), color: '#a81e22', customValues: { F1: 'A (Fokuskunde)', F2: 'Kunde', F3: 'Gold', F4: 'Gastroenterologie', F6: 'sehr interessiert', F8: 4200 }, priceList: [{ id: 'PA1', productId: 'P6', price: 9 }, { id: 'PA2', productId: 'P9', price: 3.2 }] }),
     acc({ id: 'A2', kundennummer: 'K-10002', name: 'St. Marien Krankenhaus', type: 'Krankenhaus', tier: 'Strategisch', status: 'Aktiv', territoryId: 'T2', ownerId: 'U3', innendienstId: 'U5', street: 'Mariahilfplatz 9', zip: '81541', city: 'München', phone: '089 4140-0', email: 'beschaffung@marien-kh.de', revenueYTD: 98000, beds: 620, createdAt: D(1, 20), color: '#0f8f86', customValues: { F1: 'B (hochwertig)', F2: 'Kunde', F3: 'Silber', F4: 'Onkologie', F6: 'interessiert' } }),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Trash2, MessageSquare, Link2, History, FileText, ListPlus, AlertOctagon, ClipboardCheck,
   Copy, Package, Users, ShoppingCart, Receipt, FileSignature, CheckCircle2, Send, XCircle, Zap, RotateCcw, Building2,
@@ -12,7 +12,7 @@ import { ACT_LABEL } from '../lib/labels.js';
 import { FIELDS, PRIO_TONE, SEV_TONE } from '../lib/vorgangFields.js';
 import {
   VORGANG, kindBySlug, kindLabel, vorgangLink, vorgangName, statusOptions, statusInfo, statusValue, setVorgangStatus,
-  updateVorgang, relationsOf, createLinked, trashVorgang, duplicateVorgang, restoreVorgang, setItems, sumItems, nextNumber,
+  updateVorgang, relationsOf, createLinked, requestDelete, duplicateVorgang, restoreVorgang, setItems, sumItems, nextNumber,
 } from '../lib/vorgang.js';
 import {
   DetailView, EditForm, toDraft, diffDraft, ItemsView, ItemsEditor, LinkRow, Comments, HistoryList,
@@ -40,6 +40,7 @@ export default function VorgangPage() {
 
   if (!kind) return <div className="page"><Empty label="Unbekannte Objektart" /></div>;
   const meta = VORGANG[kind];
+  if (meta.detail) return <Navigate to={meta.detail(id)} replace />;
   const r = db[kind]?.find((x) => x.id === id);
   const back = () => (location.key !== 'default' ? nav(-1) : nav(meta.list));
 
@@ -75,10 +76,8 @@ export default function VorgangPage() {
     setEditing(false);
   };
   const remove = () => {
-    if (!window.confirm(`${label} „${meta.title(r)}" in den Papierkorb verschieben? Wiederherstellen ist unter Einstellungen → Daten & Papierkorb möglich.`)) return;
-    trashVorgang(kind, id);
-    toast(label + ' in den Papierkorb verschoben');
-    nav(meta.list);
+    const res = requestDelete(kind, id);
+    if (res === 'trashed') { toast(label + ' in den Papierkorb verschoben'); nav(meta.list); }
   };
   const duplicate = () => {
     const copy = duplicateVorgang(kind, id);

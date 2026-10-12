@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { AccountLink, Avatar, Badge, Card, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
-import Notes from '../components/Notes.jsx';
+import { Comments } from '../components/Vorgang.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtMoney, fmtDate } from '../lib/format.js';
 
@@ -29,7 +29,7 @@ export default function LeadDetail() {
       ownerId: l.ownerId, innendienstId: (db.users[1] || db.users[0]).id, city: l.city || '', zip: '', street: '',
       country: 'Deutschland', phone: l.phone, email: l.email, website: '', vatId: '',
       paymentTerms: '30 Tage netto', discount: 0, revenueYTD: 0, beds: 0,
-      createdAt: new Date().toISOString(), color: l.color, notes: l.notes || [],
+      createdAt: new Date().toISOString(), color: l.color, comments: l.comments || [],
       customValues: {}, priceList: [], leadId: l.id,
     });
     store.update('leads', l.id, { status: 'Qualifiziert', accountId: acc.id });
@@ -79,8 +79,8 @@ export default function LeadDetail() {
           </dl>
         </Card>
 
-        <Card title="Notizen & Kommentare" sub="Gesprächsverlauf und Absprachen">
-          <Notes coll="leads" record={l} />
+        <Card title={`Kommentare (${l.comments?.length || 0})`} sub="Gesprächsverlauf und Absprachen">
+          <Comments db={db} kind="leads" r={l} toast={toast} />
         </Card>
       </div>
 

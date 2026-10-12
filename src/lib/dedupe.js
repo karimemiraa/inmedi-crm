@@ -112,7 +112,7 @@ export function mergeAccounts(survivorId, dupId) {
     ...survivor,
     revenueYTD: (survivor.revenueYTD || 0) + (dup.revenueYTD || 0),
     beds: Math.max(survivor.beds || 0, dup.beds || 0),
-    notes: [...(survivor.notes || []), ...(dup.notes || [])],
+    comments: [...(survivor.comments || []), ...(dup.comments || [])],
     priceList: mergePriceList(survivor.priceList, dup.priceList),
     customValues: { ...(dup.customValues || {}), ...(survivor.customValues || {}) },
     phone: survivor.phone || dup.phone, email: survivor.email || dup.email, website: survivor.website || dup.website,
@@ -147,7 +147,7 @@ export function mergeContacts(survivorId, dupId) {
   const merged = {
     ...survivor,
     email: survivor.email || dup.email, phone: survivor.phone || dup.phone, title: survivor.title || dup.title,
-    isPrimary: survivor.isPrimary || dup.isPrimary, notes: [...(survivor.notes || []), ...(dup.notes || [])],
+    isPrimary: survivor.isPrimary || dup.isPrimary, comments: [...(survivor.comments || []), ...(dup.comments || [])],
     customValues: { ...(dup.customValues || {}), ...(survivor.customValues || {}) },
   };
   next.contacts = next.contacts.filter((c) => c.id !== dupId).map((c) => (c.id === survivorId ? merged : c));

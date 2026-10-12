@@ -13,6 +13,7 @@ const CONTRACT_STATUS = tones({ Entwurf: 'gray', Aktiv: 'green', Gekündigt: 're
 const EVENT_STATUS = tones({ Geplant: 'blue', Läuft: 'amber', Abgeschlossen: 'green', Abgesagt: 'gray' })(['Geplant', 'Läuft', 'Abgeschlossen', 'Abgesagt']);
 const CAMPAIGN_STATUS = tones({ Entwurf: 'gray', Geplant: 'blue', Aktiv: 'green', Abgeschlossen: 'purple' })(['Entwurf', 'Geplant', 'Aktiv', 'Abgeschlossen']);
 const PRODUCT_STATUS = tones({ Aktiv: 'green', Auslaufend: 'amber', Inaktiv: 'gray' })(['Aktiv', 'Auslaufend', 'Inaktiv']);
+const ACCOUNT_STATUS = tones({ Aktiv: 'green', Gefährdet: 'red', Interessent: 'blue', Inaktiv: 'gray' })(['Aktiv', 'Gefährdet', 'Interessent', 'Inaktiv']);
 const STAGE_TONE = { lead: 'gray', proposal: 'blue', negotiation: 'amber', won: 'green', lost: 'red' };
 
 export const VORGANG = {
@@ -29,12 +30,15 @@ export const VORGANG = {
   events: { label: 'Messe', labelOf: (r) => r.type || 'Messe', slug: 'messe', list: '/events', listLabel: 'Messen', title: (r) => r.name, number: () => '', statuses: EVENT_STATUS },
   campaigns: { label: 'Kampagne', slug: 'kampagne', list: '/campaigns', listLabel: 'Kampagnen', title: (r) => r.name, number: () => '', statuses: CAMPAIGN_STATUS },
   products: { label: 'Produkt', slug: 'produkt', list: '/products', listLabel: 'Produkte', title: (r) => r.name, number: (r) => r.sku, statuses: PRODUCT_STATUS },
+  // Stammdaten mit eigener Detailseite (detail = eigener Pfad statt /vorgang/…)
+  accounts: { label: 'Firma', slug: 'firma', list: '/accounts', listLabel: 'Firmen', title: (r) => r.name, number: (r) => r.kundennummer, statuses: ACCOUNT_STATUS, customEntity: 'Firma', detail: (id) => '/accounts/' + id },
+  contacts: { label: 'Ansprechpartner', slug: 'ansprechpartner', list: '/contacts', listLabel: 'Ansprechpartner', title: (r) => r.name, number: () => '', customEntity: 'Ansprechpartner', detail: (id) => '/contacts/' + id },
 };
 export const VORGANG_KINDS = Object.keys(VORGANG);
 export const kindBySlug = (slug) => VORGANG_KINDS.find((k) => VORGANG[k].slug === slug);
 export const kindLabel = (kind, r) => (r && VORGANG[kind].labelOf ? VORGANG[kind].labelOf(r) : VORGANG[kind].label);
 
-export const vorgangLink = (kind, id) => `/vorgang/${VORGANG[kind].slug}/${encodeURIComponent(id)}`;
+export const vorgangLink = (kind, id) => (VORGANG[kind].detail ? VORGANG[kind].detail(id) : `/vorgang/${VORGANG[kind].slug}/${encodeURIComponent(id)}`);
 export const vorgangName = (kind, r) => [VORGANG[kind].number(r), VORGANG[kind].title(r)].filter(Boolean).join(' · ');
 
 // ---- Status (konfigurierbar, Deal-Phasen, aktiv/pausiert oder feste Liste) ----
@@ -185,6 +189,8 @@ export function duplicateVorgang(kind, id) {
   const copy = { ...rest, comments: [], history: [historyEntry('Dupliziert aus ' + vorgangName(kind, r))] };
   if (r.number) copy.number = nextNumber(db[kind], r.number);
   if (kind === 'products') copy.sku = nextNumber(db.products, r.sku, 'sku');
+  if (kind === 'accounts' && r.kundennummer) copy.kundennummer = nextNumber(db.accounts, r.kundennummer, 'kundennummer');
+  if (kind === 'contacts') copy.isPrimary = false;
   ['name', 'title', 'subject'].forEach((f) => { if (r[f]) copy[f] = r[f] + ' (Kopie)'; });
   if (kind === 'orders' || kind === 'invoices') { copy.date = now(); if (kind === 'invoices') { copy.issueDate = now(); copy.paid = 0; copy.status = 'Entwurf'; } else copy.status = 'Entwurf'; }
   if (kind === 'recurringOrders') copy.generatedOrderIds = [];
@@ -193,47 +199,93 @@ export function duplicateVorgang(kind, id) {
 }
 
 // ---- Papierkorb ----
-export function trashVorgang(kind, id) {
+export function trashVorgang(kind, id, cascade = []) {
   const r = find(kind, id);
   if (!r) return;
-  store.set((s) => ({
-    ...s,
-    [kind]: s[kind].filter((x) => x.id !== id),
-    trash: [{ id: uid('T'), kind, record: r, deletedAt: now(), deletedBy: me() }, ...(s.trash || [])],
-    auditLog: [{ id: uid('L'), at: now(), userId: me(), action: 'In Papierkorb verschoben', entity: kindLabel(kind, r) + ' ' + vorgangName(kind, r) }, ...(s.auditLog || [])],
-  }));
+  store.set((s) => {
+    const next = { ...s, [kind]: s[kind].filter((x) => x.id !== id) };
+    cascade.forEach((c) => { next[c.kind] = next[c.kind].filter((x) => x.id !== c.record.id); });
+    const extra = cascade.length ? ` (+ ${cascade.length} verknüpfte Datensätze)` : '';
+    next.trash = [{ id: uid('T'), kind, record: r, cascade, deletedAt: now(), deletedBy: me() }, ...(s.trash || [])];
+    next.auditLog = [{ id: uid('L'), at: now(), userId: me(), action: 'In Papierkorb verschoben', entity: kindLabel(kind, r) + ' ' + vorgangName(kind, r) + extra }, ...(s.auditLog || [])];
+    return next;
+  });
+}
+
+// GoBD: Firmen mit kaufmännischen Belegen dürfen nicht gelöscht werden.
+export function deleteBlockers(db, kind, id) {
+  if (kind !== 'accounts') return [];
+  return [
+    ['Angebote/Aufträge', db.orders.filter((o) => o.accountId === id).length],
+    ['Rechnungen', db.invoices.filter((i) => i.accountId === id).length],
+    ['Verträge', db.contracts.filter((c) => c.accountId === id).length],
+    ['Daueraufträge', db.recurringOrders.filter((r) => r.accountId === id).length],
+  ].filter(([, n]) => n > 0);
+}
+
+// Einheitlicher Löschdialog für alle Objekte. Ergebnis: 'trashed' | 'inactive' | 'blocked' | 'cancelled'
+export function requestDelete(kind, id) {
+  const db = store.get();
+  const r = db[kind]?.find((x) => x.id === id);
+  if (!r) return 'cancelled';
+  const label = kindLabel(kind, r);
+  const blockers = deleteBlockers(db, kind, id);
+  if (blockers.length) {
+    const what = blockers.map(([l, n]) => `${n} ${l}`).join(', ');
+    if (r.status === 'Inaktiv') { window.alert(`„${r.name}“ kann nicht gelöscht werden: ${what} sind verknüpft (Aufbewahrungspflicht nach GoBD). Die Firma ist bereits inaktiv.`); return 'blocked'; }
+    if (window.confirm(`„${r.name}“ kann nicht gelöscht werden: ${what} sind verknüpft (Aufbewahrungspflicht nach GoBD).
+
+Stattdessen als „Inaktiv“ markieren? Die Firma wird in Listen ausgeblendet, alle Daten bleiben erhalten.`)) {
+      setVorgangStatus('accounts', id, 'Inaktiv');
+      return 'inactive';
+    }
+    return 'blocked';
+  }
+  const cascade = kind === 'accounts' ? db.contacts.filter((c) => c.accountId === id).map((record) => ({ kind: 'contacts', record })) : [];
+  const more = cascade.length ? `
+Die ${cascade.length} Ansprechpartner dieser Firma werden mit verschoben.` : '';
+  if (!window.confirm(`${label} „${VORGANG[kind].title(r)}“ in den Papierkorb verschieben?${more}
+Wiederherstellen ist unter Einstellungen → Daten & Papierkorb möglich.`)) return 'cancelled';
+  trashVorgang(kind, id, cascade);
+  return 'trashed';
 }
 export function restoreVorgang(trashId) {
   const t = (store.get().trash || []).find((x) => x.id === trashId);
   if (!t) return null;
-  store.set((s) => ({
-    ...s,
-    [t.kind]: [t.record, ...s[t.kind].filter((x) => x.id !== t.record.id)],
-    trash: s.trash.filter((x) => x.id !== trashId),
-    auditLog: [{ id: uid('L'), at: now(), userId: me(), action: 'Wiederhergestellt', entity: kindLabel(t.kind, t.record) + ' ' + vorgangName(t.kind, t.record) }, ...(s.auditLog || [])],
-  }));
+  store.set((s) => {
+    const next = { ...s, [t.kind]: [t.record, ...s[t.kind].filter((x) => x.id !== t.record.id)], trash: s.trash.filter((x) => x.id !== trashId) };
+    (t.cascade || []).forEach((c) => { next[c.kind] = [c.record, ...next[c.kind].filter((x) => x.id !== c.record.id)]; });
+    next.auditLog = [{ id: uid('L'), at: now(), userId: me(), action: 'Wiederhergestellt', entity: kindLabel(t.kind, t.record) + ' ' + vorgangName(t.kind, t.record) }, ...(s.auditLog || [])];
+    return next;
+  });
   return t;
 }
 
 // Verweisfelder, die beim endgültigen Löschen geleert werden
-const REF_FIELDS = { deals: ['dealId'], orders: ['orderId', 'fromOrderId'], incidents: ['incidentId'], products: ['productId'], recurringOrders: ['recurringId'] };
-const REF_COLLS = [...VORGANG_KINDS, 'accounts', 'contacts', 'leads'];
+const REF_FIELDS = { accounts: ['accountId'], contacts: ['contactId'], deals: ['dealId'], orders: ['orderId', 'fromOrderId'], incidents: ['incidentId'], products: ['productId'], recurringOrders: ['recurringId'] };
+const REF_COLLS = [...VORGANG_KINDS, 'leads', 'documents', 'costEntries', 'incomingInvoices'];
 
 export function purgeVorgang(trashId) {
   const t = (store.get().trash || []).find((x) => x.id === trashId);
   if (!t) return;
-  const gid = t.record.id;
-  const fields = REF_FIELDS[t.kind] || [];
+  const gone = [{ kind: t.kind, id: t.record.id }, ...(t.cascade || []).map((c) => ({ kind: c.kind, id: c.record.id }))];
   store.set((s) => {
     const next = { ...s, trash: s.trash.filter((x) => x.id !== trashId) };
     REF_COLLS.forEach((k) => {
       if (!Array.isArray(s[k])) return;
       next[k] = s[k].map((r) => {
         let x = r;
-        if (r.parent && r.parent.kind === t.kind && r.parent.id === gid) x = { ...x, parent: null };
-        fields.forEach((f) => { if (x[f] === gid) x = { ...x, [f]: null }; });
-        if (t.kind === 'orders' && Array.isArray(x.generatedOrderIds) && x.generatedOrderIds.includes(gid)) x = { ...x, generatedOrderIds: x.generatedOrderIds.filter((o) => o !== gid) };
-        if (t.kind === 'products' && Array.isArray(x.products) && x.products.includes(gid)) x = { ...x, products: x.products.filter((o) => o !== gid) };
+        gone.forEach(({ kind, id: gid }) => {
+          if (x.parent && x.parent.kind === kind && x.parent.id === gid) x = { ...x, parent: null };
+          (REF_FIELDS[kind] || []).forEach((f) => { if (x[f] === gid) x = { ...x, [f]: null }; });
+          if (kind === 'orders' && Array.isArray(x.generatedOrderIds) && x.generatedOrderIds.includes(gid)) x = { ...x, generatedOrderIds: x.generatedOrderIds.filter((o) => o !== gid) };
+          if (kind === 'products' && Array.isArray(x.products) && x.products.includes(gid)) x = { ...x, products: x.products.filter((o) => o !== gid) };
+          if ((kind === 'accounts' || kind === 'contacts') && Array.isArray(x.memberIds) && x.memberIds.includes(gid)) x = { ...x, memberIds: x.memberIds.filter((o) => o !== gid) };
+          if ((kind === 'accounts' || kind === 'contacts') && Array.isArray(x.attendees)) {
+            const ref = kind === 'accounts' ? 'account' : 'contact';
+            if (x.attendees.some((a) => a.refType === ref && a.refId === gid)) x = { ...x, attendees: x.attendees.filter((a) => !(a.refType === ref && a.refId === gid)) };
+          }
+        });
         return x;
       });
     });

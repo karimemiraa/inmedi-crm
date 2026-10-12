@@ -9,7 +9,7 @@ import { fmtDate, fmtMoney, relDate } from '../lib/format.js';
 import { BILLING } from './LineItems.jsx';
 import {
   VORGANG, kindLabel, vorgangLink, vorgangName, statusInfo, addComment, editComment, deleteComment,
-  canEditComment, canDeleteComment, trashVorgang, sumItems,
+  canEditComment, canDeleteComment, requestDelete, sumItems,
 } from '../lib/vorgang.js';
 
 export { PRIO_TONE, SEV_TONE, TICKET_CATEGORIES, INC_TYPES, SEVERITIES } from '../lib/vorgangFields.js';
@@ -25,9 +25,9 @@ export function CommentCount({ rec }) {
 export function RowActions({ kind, rec, toast }) {
   const nav = useNavigate();
   const del = () => {
-    if (!window.confirm(`${kindLabel(kind, rec)} „${VORGANG[kind].title(rec)}" in den Papierkorb verschieben?`)) return;
-    trashVorgang(kind, rec.id);
-    toast?.(kindLabel(kind, rec) + ' in den Papierkorb verschoben');
+    const res = requestDelete(kind, rec.id);
+    if (res === 'trashed') toast?.(kindLabel(kind, rec) + ' in den Papierkorb verschoben');
+    if (res === 'inactive') toast?.('Firma als inaktiv markiert');
   };
   return (
     <span className="row-actions" onClick={(e) => e.stopPropagation()}>
@@ -56,6 +56,7 @@ export function displayValue(db, f, v) {
     case 'account': return <AccountLink account={db.accounts.find((a) => a.id === v)} />;
     case 'contact': return <ContactLink contact={db.contacts.find((c) => c.id === v)} />;
     case 'user': return <UserLink user={db.users.find((u) => u.id === v)} />;
+    case 'territory': return db.territories.find((t) => t.id === v)?.name || '—';
     case 'deal': return refLink(db, 'deals', v);
     case 'order': return refLink(db, 'orders', v);
     case 'product': return refLink(db, 'products', v);
@@ -103,7 +104,8 @@ export function diffDraft(kind, r, fields, draft) {
     if (f.required && !String(v ?? '').trim()) return { error: f.label + ' darf nicht leer sein' };
     if (f.type === 'date') v = v ? new Date(v).toISOString() : null;
     if (f.type === 'number' || f.type === 'money') v = v === '' || v === null ? 0 : Number(v);
-    if (['account', 'contact', 'deal', 'order', 'product', 'user', 'incident'].includes(f.type)) v = v || null;
+    if (['account', 'contact', 'deal', 'order', 'product', 'user', 'incident', 'territory'].includes(f.type)) v = v || null;
+    if (f.required && f.type === 'account' && !v) return { error: f.label + ' darf nicht leer sein' };
     if (f.type === 'text' && typeof v === 'string') v = v.trim();
     const old = r[f.key] ?? (f.type === 'bool' ? false : ['text', 'textarea'].includes(f.type) ? '' : ['number', 'money'].includes(f.type) ? 0 : null);
     const same = f.type === 'date' ? String(old || '').slice(0, 10) === String(v || '').slice(0, 10) : old === v;
@@ -144,6 +146,7 @@ export function EditForm({ db, kind, fields, draft, setDraft, selfId }) {
       case 'bool': return <label className="check"><input type="checkbox" checked={!!v} onChange={(e) => set(f.key, e.target.checked)} /> {v ? 'Ja' : 'Nein'}</label>;
       case 'enum': return sel(f.options.map((o) => <option key={o} value={o}>{f.labels?.[o] || o}</option>));
       case 'user': return sel(db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>), '— Niemand —');
+      case 'territory': return sel(db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>), '— Kein Gebiet —');
       case 'account': return sel(db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>), f.required ? null : '— Keine Firma —');
       case 'contact': return sel(byAcct(db.contacts).map((c) => <option key={c.id} value={c.id}>{c.name}</option>), '— Keiner —');
       case 'deal': return sel(byAcct(db.deals).map((d) => <option key={d.id} value={d.id}>{d.name}</option>), '— Kein Deal —');
@@ -261,10 +264,10 @@ export function Comments({ db, kind, r, toast }) {
         const u = db.users.find((x) => x.id === c.userId);
         return (
           <div key={c.id} className="vg-comment">
-            <Avatar name={u?.name || '?'} color={u?.color} src={u?.avatar} size="sm" />
+            <Avatar name={u?.name || c.author || '?'} color={u?.color || '#6d4bd8'} src={u?.avatar} size="sm" />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="vg-comment-head">
-                <b><UserLink user={u} name="Unbekannt" /></b>
+                <b>{u ? <UserLink user={u} /> : (c.author || 'Unbekannt')}</b>
                 <span className="muted tiny">{relDate(c.at)}{c.editedAt ? ' · bearbeitet' : ''}</span>
                 <span style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
                   {canEditComment(db, c) && editId !== c.id && <button className="btn ghost sm" onClick={() => { setEditId(c.id); setEditText(c.text); }}>Bearbeiten</button>}

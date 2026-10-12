@@ -590,3 +590,6 @@ table.tbl td.right, table.tbl th.right { font-variant-numeric: tabular-nums; }
 .items-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
 .items-add .select-trigger { width: auto; min-width: 260px; }
 @media (max-width: 720px) { .vp-hero-side { align-items: stretch; width: 100%; } .vp-status { width: 100%; } .vp-buttons { justify-content: flex-start; } }
+
+.inactive-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 14px; border-radius: 10px; background: var(--surface-2); border: 1px dashed var(--border-strong); color: var(--text-2); font-size: 13px; font-weight: 600; }
+.inactive-banner .btn { margin-left: auto; }

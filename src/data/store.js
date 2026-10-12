@@ -20,6 +20,17 @@ function migrate(s) {
   out.activities = (out.activities || []).map((a) => (a.status ? a : { ...a, status: a.done ? 'Erledigt' : 'Offen' }));
   out.kbArticles = (out.kbArticles || []).filter((k) => !/MTK|STK/.test(k.title));
   if (Array.isArray(out.customFields)) out.customFields = out.customFields.filter((f) => f.label !== 'Service Level' && f.entity !== 'Gerät');
+  // Notizen (Firmen, Ansprechpartner, Interessenten) → einheitliche Kommentare
+  const byName = Object.fromEntries((out.users || []).map((u) => [u.name, u.id]));
+  const toComments = (list) => (list || []).map((r) => {
+    if (!Array.isArray(r.notes)) return r;
+    const { notes, ...rest } = r;
+    const migrated = [...notes].reverse().map((n) => ({ id: n.id, userId: byName[n.author] || null, author: n.author, at: n.at, text: n.text, editedAt: null }));
+    return { ...rest, comments: [...(r.comments || []), ...migrated] };
+  });
+  out.accounts = toComments(out.accounts);
+  out.contacts = toComments(out.contacts);
+  out.leads = toComments(out.leads);
   if (Array.isArray(out.automations)) out.automations = out.automations.filter((r) => r.trigger?.object !== 'Gerät');
   return out;
 }
