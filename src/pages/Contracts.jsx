@@ -8,6 +8,8 @@ import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems, { BILLING_FACTOR } from '../components/LineItems.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
 const STATUS = ['Entwurf', 'Aktiv', 'Gekündigt', 'Ausgelaufen'];
@@ -28,13 +30,13 @@ const endDate = (start, months) => { const d = new Date(start); d.setMonth(d.get
 
 export default function Contracts() {
   const db = useStore();
+  const nav = useNavigate();
   const toast = useToast();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Alle');
-  const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
-  useOpenParam(db.contracts, setSel);
+  useOpenParam(db.contracts, (r) => nav(vorgangLink('contracts', r.id), { replace: true }));
   const { sort, toggle, apply } = useSort('start', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const rows = useMemo(() => {
@@ -86,19 +88,20 @@ export default function Contracts() {
             <SortTh label="Start" sortKey="start" sort={sort} onSort={toggle} />
             <SortTh label="Laufzeit" sortKey="term" sort={sort} onSort={toggle} />
             <SortTh label="Jahreswert" sortKey="annual" sort={sort} onSort={toggle} align="right" />
-          </tr></thead>
+          <th className="right">Aktionen</th></tr></thead>
           <tbody>
             {rows.map((c) => {
               const v = contractValues(c.items);
               return (
-                <tr key={c.id} onClick={() => setSel(c)}>
+                <tr key={c.id} onClick={() => nav(vorgangLink('contracts', c.id))}>
                   <td className="cell-main nowrap">{c.number}</td>
                   <td>{c.title}</td>
                   <td><AccountLink account={acct(c.accountId)} /></td>
-                  <td><Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge></td>
+                  <td><StatusBadge db={db} kind="contracts" rec={c} /></td>
                   <td className="nowrap">{fmtDate(c.startDate)}</td>
                   <td className="nowrap">{c.termMonths} Mon.</td>
                   <td className="right"><b>{fmtMoney(v.annual)}</b>{v.once > 0 && <div className="cell-sub">+ {fmtMoney(v.once)} einm.</div>}</td>
+                  <td className="right nowrap"><RowActions kind="contracts" rec={c} toast={toast} /></td>
                 </tr>
               );
             })}
@@ -106,68 +109,11 @@ export default function Contracts() {
         </table>{rows.length === 0 && <Empty label="Noch keine Verträge" hint="Laufzeitverträge mit wiederkehrender Abrechnung." action={{ label: 'Neuer Vertrag', onClick: () => setAdding(true) }} />}</div>
       </div>
 
-      {sel && <ContractDrawer db={db} contract={sel} onClose={() => setSel(null)} toast={toast} setSel={setSel} />}
       {adding && <NewContract db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );
 }
 
-function ContractDrawer({ db, contract: c, onClose, toast, setSel }) {
-  const nav = useNavigate();
-  const acct = (id) => db.accounts.find((a) => a.id === id);
-  const contact = db.contacts.find((x) => x.id === c.contactId);
-  const fromOrder = db.orders.find((o) => o.id === c.fromOrderId);
-  const v = contractValues(c.items);
-  const cancel = () => {
-    const reason = prompt('Kündigungsgrund:');
-    if (reason == null) return;
-    store.update('contracts', c.id, { status: 'Gekündigt', cancellationReason: reason });
-    toast('Vertrag gekündigt'); onClose();
-  };
-  return (
-    <Drawer title={c.number} onClose={onClose}
-      footer={<>
-        {c.status !== 'Gekündigt' && <button className="btn danger" onClick={cancel}><XCircle size={14} /> Kündigen</button>}
-        <button className="btn primary" onClick={onClose}>Schließen</button>
-      </>}>
-      <h3 style={{ fontSize: 16, marginBottom: 10 }}>{c.title}</h3>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge>
-      </div>
-      <Field label="Status">
-        <Select className="select" value={c.status} onChange={(e) => { store.update('contracts', c.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...c, status: e.target.value }); }}>
-          {STATUS.map((s) => <option key={s}>{s}</option>)}
-        </Select>
-      </Field>
-      <div style={{ height: 14 }} />
-      <dl className="kv">
-        <dt>Kunde</dt><dd><AccountLink account={acct(c.accountId)} /></dd>
-        <dt>Ansprechpartner</dt><dd>{contact ? <ContactLink contact={contact} /> : '—'}</dd>
-        {fromOrder && <><dt>Aus Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', fromOrder.id))}>{fromOrder.number}</span></dd></>}
-        <dt>Verantwortlich</dt><dd>{db.users.find((u) => u.id === c.ownerId)?.name}</dd>
-        <dt>Start / Ende</dt><dd>{fmtDate(c.startDate)} – {fmtDate(endDate(c.startDate, c.termMonths))}</dd>
-        <dt>Laufzeit</dt><dd>{c.termMonths} Monate</dd>
-        <dt>Jahreswert</dt><dd><b>{fmtMoney(v.annual)}</b></dd>
-        {v.once > 0 && <><dt>Einmalig</dt><dd>{fmtMoney(v.once)}</dd></>}
-        {c.cancellationReason && <><dt>Kündigungsgrund</dt><dd>{c.cancellationReason}</dd></>}
-      </dl>
-      {c.description && <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{c.description}</p>}
-      <h3 style={{ fontSize: 14, margin: '20px 0 10px' }}>Vertragspositionen</h3>
-      <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
-        <thead><tr><th>Produkt</th><th>Zahlungsweise</th><th className="right">Menge</th><th className="right">Preis</th></tr></thead>
-        <tbody>
-          {c.items.map((it, i) => (
-            <tr key={i} style={{ cursor: 'default' }}>
-              <td className="cell-main">{it.name}</td><td><Badge tone="gray">{it.billing || 'einmalig'}</Badge></td>
-              <td className="right">{it.qty}</td><td className="right">{fmtMoney(it.price)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table></div>
-      <div style={{ marginTop: 18 }}><CustomFieldsDisplay db={db} entity="Vertrag" record={c} /></div>
-    </Drawer>
-  );
-}
 
 function NewContract({ db, onClose, toast }) {
   const [f, setF] = useState({ accountId: db.accounts[0]?.id, contactId: '', fromOrderId: '', ownerId: db.meta.currentUserId, startDate: todayISO(), termMonths: 12, status: 'Aktiv', description: '' });

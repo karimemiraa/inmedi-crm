@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { Upload, Search, FileText, FileType2, FileSpreadsheet, File, ScanLine, CheckCircle2, AlertTriangle, Building2, Pencil, Trash2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select, UserChip, UserLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { extractInvoiceFromFile } from '../lib/pdfExtract.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
@@ -101,7 +101,7 @@ export default function Documents() {
                     <td>{i.lieferant || '—'}</td>
                     <td className="nowrap"><b>{i.kundennummer || '—'}</b></td>
                     <td>{i.kundeName || '—'}</td>
-                    <td>{a ? <div className="avatar-row"><Avatar size="sm" name={rep?.name || '?'} color={rep?.color} src={rep?.avatar} /><span className="tiny">{rep?.name.split(' ')[0] || '—'}</span></div> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</td>
+                    <td>{a ? <UserChip user={rep} short /> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</td>
                     <td className="nowrap">{i.datum || '—'}</td>
                     <td className="right"><b>{i.gesamt != null ? fmtMoney(i.gesamt) : '—'}</b></td>
                   </tr>
@@ -130,7 +130,7 @@ export default function Documents() {
                   <td className="cell-main"><Icon size={16} style={{ verticalAlign: -3, marginRight: 9, color: 'var(--brand)' }} />{d.name}</td>
                   <td><Badge tone={TYPE_TONE[d.type] || 'gray'}>{d.type}</Badge></td>
                   <td>{acct(d.accountId)?.name || <span className="muted">Allgemein</span>}</td>
-                  <td>{user(d.ownerId)?.name.split(' ')[0]}</td>
+                  <td><UserChip user={user(d.ownerId)} short /></td>
                   <td className="muted">{d.size}</td>
                   <td className="nowrap">{fmtDate(d.date)}</td>
                   <td className="right nowrap" onClick={(e) => e.stopPropagation()}>
@@ -325,7 +325,7 @@ function InvoiceDrawer({ db, inv, onClose }) {
         <dt>Datum</dt><dd>{inv.datum || '—'}</dd>
         <dt>Kundennummer</dt><dd><b>{inv.kundennummer || '—'}</b></dd>
         <dt>Kunde</dt><dd>{inv.kundeName || '—'}</dd>
-        <dt>Zugeordnet</dt><dd>{a ? <>{a.name} → {rep?.name}</> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</dd>
+        <dt>Zugeordnet</dt><dd>{a ? <><AccountLink account={a} /> → <UserLink user={rep} /></> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</dd>
         <dt>Referenz</dt><dd>{inv.referenz || '—'}</dd>
         <dt>Zahlbar bis</dt><dd>{inv.zahlbarBis || '—'}</dd>
         <dt>Datei</dt><dd>{inv.fileName || '—'}</dd>

@@ -2,21 +2,23 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, LayoutGrid, List, GripVertical } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Avatar, Badge, ContactLink, Drawer, Empty, Field, ScoreMeter, Select } from '../components/ui.jsx';
+import { AccountLink, Avatar, Badge, ContactLink, Drawer, Empty, Field, ScoreMeter, Select, UserChip } from '../components/ui.jsx';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
 export default function Pipeline() {
   const db = useStore();
+  const nav = useNavigate();
   const toast = useToast();
   const [view, setView] = useState('board');
   const [adding, setAdding] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [overCol, setOverCol] = useState(null);
-  const [sel, setSel] = useState(null);
-  useOpenParam(db.deals, setSel);
+  useOpenParam(db.deals, (r) => nav(vorgangLink('deals', r.id), { replace: true }));
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const owner = (id) => db.users.find((u) => u.id === id);
@@ -80,7 +82,7 @@ export default function Pipeline() {
                         draggable
                         onDragStart={() => setDragId(d.id)}
                         onDragEnd={() => setDragId(null)}
-                        onClick={() => setSel(d)}
+                        onClick={() => nav(vorgangLink('deals', d.id))}
                       >
                         <div className="dc-name">{d.name}</div>
                         <div className="dc-acct">{a?.name}</div>
@@ -101,17 +103,18 @@ export default function Pipeline() {
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           <div className="table-wrap list"><table className="tbl">
-            <thead><tr><th>Deal</th><th>Konto</th><th>Phase</th><th>Betreuer</th><th>Score</th><th>Abschluss</th><th className="right">Wert</th></tr></thead>
+            <thead><tr><th>Deal</th><th>Konto</th><th>Phase</th><th>Betreuer</th><th>Score</th><th>Abschluss</th><th className="right">Wert</th><th className="right">Aktionen</th></tr></thead>
             <tbody>
               {db.deals.map((d) => (
-                <tr key={d.id} onClick={() => setSel(d)}>
+                <tr key={d.id} onClick={() => nav(vorgangLink('deals', d.id))}>
                   <td className="cell-main">{d.name}</td>
                   <td><AccountLink account={acct(d.accountId)} /></td>
                   <td><Badge tone="blue" dot>{db.stages.find((s) => s.id === d.stage)?.name}</Badge></td>
-                  <td>{owner(d.ownerId)?.name.split(' ')[0]}</td>
+                  <td><UserChip user={owner(d.ownerId)} short /></td>
                   <td><ScoreMeter value={d.score} /></td>
                   <td>{fmtDate(d.expectedClose)}</td>
                   <td className="right"><b>{fmtMoney(d.value)}</b></td>
+                  <td className="right nowrap"><RowActions kind="deals" rec={d} toast={toast} /></td>
                 </tr>
               ))}
             </tbody>
@@ -119,45 +122,8 @@ export default function Pipeline() {
         </div>
       )}
 
-      {sel && <DealDrawer deal={sel} onClose={() => setSel(null)} />}
       {adding && <QuickAdd initial="deal" onClose={() => setAdding(false)} />}
     </div>
   );
 }
 
-function DealDrawer({ deal, onClose }) {
-  const db = useStore();
-  const toast = useToast();
-  const nav = useNavigate();
-  const a = db.accounts.find((x) => x.id === deal.accountId);
-  const o = db.users.find((u) => u.id === deal.ownerId);
-  const contact = db.contacts.find((c) => c.id === deal.contactId);
-  const relOrders = db.orders.filter((x) => x.dealId === deal.id);
-  const setStage = (stage) => { store.update('deals', deal.id, { stage }); toast('Phase aktualisiert'); };
-
-  return (
-    <Drawer title={deal.name} onClose={onClose}
-      footer={<><button className="btn danger" onClick={() => { store.remove('deals', deal.id); toast('Deal gelöscht'); onClose(); }}>Löschen</button><button className="btn primary" onClick={onClose}>Fertig</button></>}>
-      <div className="card card-pad" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 26, fontWeight: 800 }}>{fmtMoney(deal.value)}</div>
-        <div className="muted tiny">Deal-Wert</div>
-      </div>
-      <Field label="Phase">
-        <Select className="select" value={deal.stage} onChange={(e) => setStage(e.target.value)}>
-          {db.stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </Select>
-      </Field>
-      <div style={{ height: 14 }} />
-      <dl className="kv">
-        <dt>Konto</dt><dd><AccountLink account={a} /></dd>
-        <dt>Ansprechpartner</dt><dd>{contact ? <ContactLink contact={contact} /> : '—'}</dd>
-        <dt>Betreuer</dt><dd>{o?.name}</dd>
-        <dt>Score</dt><dd><ScoreMeter value={deal.score} /></dd>
-        <dt>Erw. Abschluss</dt><dd>{fmtDate(deal.expectedClose)}</dd>
-        <dt>Erstellt</dt><dd>{fmtDate(deal.createdAt)}</dd>
-        <dt>Produkte</dt><dd>{deal.products.map((pid) => db.products.find((p) => p.id === pid)?.name).filter(Boolean).join(', ') || '—'}</dd>
-        {relOrders.length > 0 && <><dt>Aufträge/Angebote</dt><dd>{relOrders.map((x) => <span key={x.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav(openLink('/orders', x.id))}>{x.number}</span>)}</dd></>}
-      </dl>
-    </Drawer>
-  );
-}

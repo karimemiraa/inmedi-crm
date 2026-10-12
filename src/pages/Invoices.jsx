@@ -7,6 +7,8 @@ import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
@@ -20,10 +22,9 @@ export default function Invoices() {
   const [params] = useSearchParams();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState(params.get('status') || 'All');
-  const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
 
-  useOpenParam(db.invoices, setSel);
+  useOpenParam(db.invoices, (r) => nav(vorgangLink('invoices', r.id), { replace: true }));
   const { sort, toggle, apply } = useSort('issue', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
@@ -95,57 +96,24 @@ export default function Invoices() {
             <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
             <SortTh label="Gesamt" sortKey="total" sort={sort} onSort={toggle} align="right" />
             <SortTh label="Offen" sortKey="open" sort={sort} onSort={toggle} align="right" />
-          </tr></thead>
+          <th className="right">Aktionen</th></tr></thead>
           <tbody>
             {rows.map((i) => (
-              <tr key={i.id} onClick={() => setSel(i)}>
+              <tr key={i.id} onClick={() => nav(vorgangLink('invoices', i.id))}>
                 <td className="cell-main nowrap">{i.number}</td>
                 <td><AccountLink account={acct(i.accountId)} /></td>
                 <td className="nowrap">{fmtDate(i.issueDate)}</td>
                 <td className="nowrap">{fmtDate(i.dueDate)}</td>
-                <td><Badge tone={STATUS_TONE[i.status]} dot>{i.status}</Badge></td>
+                <td><StatusBadge db={db} kind="invoices" rec={i} /></td>
                 <td className="right"><b>{fmtMoney(i.total)}</b></td>
                 <td className="right" style={{ color: i.total - i.paid > 0 ? 'var(--red)' : 'var(--text-3)' }}>{fmtMoney(i.total - i.paid)}</td>
+                <td className="right nowrap"><RowActions kind="invoices" rec={i} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Keine passenden Rechnungen" />}</div>
       </div>
 
-      {sel && (
-        <Drawer title={sel.number} onClose={() => setSel(null)}
-          footer={<>
-            <button className="btn" onClick={() => toast('Rechnung als PDF versendet')}><Send size={14} /> Per E-Mail senden</button>
-            <button className="btn primary" disabled={sel.status === 'Bezahlt'} onClick={() => { markPaid(sel.id); setSel(null); }}>Als bezahlt markieren</button>
-          </>}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <Badge tone={STATUS_TONE[sel.status]} dot>{sel.status}</Badge>
-          </div>
-          <dl className="kv" style={{ marginBottom: 18 }}>
-            <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
-            {sel.orderId && <><dt>Auftrag</dt><dd><span className="rec-link" onClick={() => nav(openLink('/orders', sel.orderId))}>{db.orders.find((o) => o.id === sel.orderId)?.number || '—'}</span></dd></>}
-            <dt>Rechnungsdatum</dt><dd>{fmtDate(sel.issueDate)}</dd>
-            <dt>Fällig am</dt><dd>{fmtDate(sel.dueDate)}</dd>
-            <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
-          </dl>
-          <h3 style={{ fontSize: 14, marginBottom: 10 }}>Positionen</h3>
-          <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
-            <thead><tr><th>Produkt</th><th className="right">Menge</th><th className="right">Preis</th><th className="right">Gesamt</th></tr></thead>
-            <tbody>
-              {sel.items.map((it, k) => (
-                <tr key={k} style={{ cursor: 'default' }}>
-                  <td className="cell-main">{it.name}</td><td className="right">{it.qty}</td>
-                  <td className="right">{fmtMoney(it.price)}</td><td className="right"><b>{fmtMoney(it.qty * it.price)}</b></td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-          <div style={{ marginTop: 16, padding: '0 4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span className="muted">Bezahlt</span><span>{fmtMoney(sel.paid)}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, marginTop: 6 }}><span>Offener Betrag</span><span style={{ color: sel.total - sel.paid > 0 ? 'var(--red)' : 'var(--green)' }}>{fmtMoney(sel.total - sel.paid)}</span></div>
-          </div>
-        </Drawer>
-      )}
       {adding && <NewInvoice db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );

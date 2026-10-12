@@ -6,7 +6,7 @@ import {
   LifeBuoy, Presentation, ShieldAlert,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
+import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select, UserLink } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { statusTone } from '../lib/status.js';
 import { vorgangLink } from '../lib/vorgang.js';
@@ -137,11 +137,11 @@ export default function AccountDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Card title="Zuständigkeit & Betreuung" sub="Kundenbetreuer direkt zuweisen">
               <div className="kv">
-                <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Außendienst</span>
+                <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Außendienst{aussen && <> · <UserLink user={aussen} /></>}</span>
                 <Select className="select" value={a.ownerId} onChange={(e) => { store.update('accounts', a.id, { ownerId: e.target.value }); toast('Außendienst zugewiesen'); }}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Select>
-                <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Innendienst</span>
+                <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Innendienst{innen && <> · <UserLink user={innen} /></>}</span>
                 <Select className="select" value={a.innendienstId} onChange={(e) => { store.update('accounts', a.id, { innendienstId: e.target.value }); toast('Innendienst zugewiesen'); }}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Select>
@@ -198,7 +198,7 @@ export default function AccountDetail() {
           <thead><tr><th>Deal</th><th>Phase</th><th>Score</th><th>Erw. Abschluss</th><th className="right">Wert</th></tr></thead>
           <tbody>
             {deals.map((d) => (
-              <tr key={d.id} onClick={() => nav(openLink('/pipeline', d.id))}>
+              <tr key={d.id} onClick={() => nav(vorgangLink('deals', d.id))}>
                 <td className="cell-main">{d.name}</td>
                 <td><Badge tone="blue" dot>{stage(d.stage)?.name}</Badge></td>
                 <td><ScoreMeter value={d.score} /></td>
@@ -218,7 +218,7 @@ export default function AccountDetail() {
             <thead><tr><th>Intervall</th><th>Positionen</th><th>Nächste Fälligkeit</th><th>Status</th><th className="right">Betrag/Lauf</th></tr></thead>
             <tbody>
               {recurring.map((r) => (
-                <tr key={r.id} onClick={() => nav(openLink('/recurring-orders', r.id))}>
+                <tr key={r.id} onClick={() => nav(vorgangLink('recurringOrders', r.id))}>
                   <td className="cell-main">{r.interval}</td>
                   <td className="muted">{r.items.length} Position(en)</td>
                   <td className="nowrap">{fmtDate(r.nextDue)}</td>
@@ -239,7 +239,7 @@ export default function AccountDetail() {
               <span className="badge gray" style={{ width: 8, height: 8, padding: 0, borderRadius: '50%' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{act.subject}</div>
-                <div className="muted tiny">{ACT_LABEL[act.type]} · {uname(act.ownerId).split(' ')[0]}</div>
+                <div className="muted tiny">{ACT_LABEL[act.type]} · <UserLink user={db.users.find((u) => u.id === act.ownerId)} /></div>
               </div>
               <Badge tone={act.done ? statusTone(db, 'activities', act.status) : 'amber'}>{act.done ? act.status : relDate(act.dueDate)}</Badge>
             </div>
@@ -255,7 +255,7 @@ export default function AccountDetail() {
               {invoices.map((i) => {
                 const ord = orders.find((o) => o.id === i.orderId);
                 return (
-                  <tr key={i.id} onClick={() => nav(openLink('/invoices', i.id))}>
+                  <tr key={i.id} onClick={() => nav(vorgangLink('invoices', i.id))}>
                     <td className="cell-main nowrap">{i.number}</td>
                     <td className="muted">{ord?.number || '—'}</td>
                     <td className="nowrap">{fmtDate(i.issueDate)}</td>
@@ -277,7 +277,7 @@ export default function AccountDetail() {
               <thead><tr><th>Ticket</th><th>Produkt</th><th>Priorität</th><th>Status</th></tr></thead>
               <tbody>
                 {tickets.map((t) => (
-                  <tr key={t.id} onClick={() => nav(openLink('/service', t.id))}>
+                  <tr key={t.id} onClick={() => nav(vorgangLink('tickets', t.id))}>
                     <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number}</div></td>
                     <td className="muted">{db.products.find((p) => p.id === t.productId)?.name || '—'}</td>
                     <td><Badge tone={t.priority === 'Hoch' ? 'red' : t.priority === 'Niedrig' ? 'gray' : 'amber'}>{t.priority}</Badge></td>
@@ -292,7 +292,7 @@ export default function AccountDetail() {
               <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Schweregrad</th><th>Status</th></tr></thead>
               <tbody>
                 {incidents.map((i) => (
-                  <tr key={i.id} onClick={() => nav(openLink('/quality', i.id))}>
+                  <tr key={i.id} onClick={() => nav(vorgangLink('incidents', i.id))}>
                     <td className="cell-main nowrap">{i.number}</td><td>{i.title}</td>
                     <td><Badge tone={i.severity === 'Schwerwiegend' ? 'red' : i.severity === 'Hoch' ? 'amber' : 'gray'} dot>{i.severity}</Badge></td>
                     <td><Badge tone={statusTone(db, 'incidents', i.status)} dot>{i.status}</Badge></td>
@@ -312,7 +312,7 @@ export default function AccountDetail() {
               {events.map((e) => {
                 const at = e.attendees.find((x) => x.refType === 'account' && x.refId === id);
                 return (
-                  <tr key={e.id} onClick={() => nav(openLink('/events', e.id))}>
+                  <tr key={e.id} onClick={() => nav(vorgangLink('events', e.id))}>
                     <td className="cell-main"><Presentation size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{e.name}</td>
                     <td><Badge tone="teal">{e.type}</Badge></td>
                     <td className="nowrap">{fmtDate(e.startDate)}</td>
@@ -344,10 +344,10 @@ export default function AccountDetail() {
 
 function ProcessHistory({ deals, orders, invoices, contracts = [], stage, nav }) {
   const events = [
-    ...deals.map((d) => ({ kind: 'Deal', date: d.createdAt, title: d.name, sub: stage(d.stage)?.name, amount: d.value, tone: 'purple', to: '/pipeline', id: d.id })),
-    ...orders.map((o) => ({ kind: o.kind, date: o.date, title: o.number, sub: o.status, amount: o.total, tone: o.kind === 'Angebot' ? 'amber' : 'teal', to: '/orders', id: o.id })),
-    ...contracts.map((c) => ({ kind: 'Vertrag', date: c.startDate, title: c.number + ' · ' + c.title, sub: c.status, amount: c.items.reduce((s, it) => s + it.qty * it.price, 0), tone: 'green', to: '/contracts', id: c.id })),
-    ...invoices.map((i) => ({ kind: 'Rechnung', date: i.issueDate, title: i.number, sub: i.status, amount: i.total, open: i.total - i.paid, tone: 'blue', to: '/invoices', id: i.id })),
+    ...deals.map((d) => ({ kind: 'Deal', date: d.createdAt, title: d.name, sub: stage(d.stage)?.name, amount: d.value, tone: 'purple', k: 'deals', id: d.id })),
+    ...orders.map((o) => ({ kind: o.kind, date: o.date, title: o.number, sub: o.status, amount: o.total, tone: o.kind === 'Angebot' ? 'amber' : 'teal', k: 'orders', id: o.id })),
+    ...contracts.map((c) => ({ kind: 'Vertrag', date: c.startDate, title: c.number + ' · ' + c.title, sub: c.status, amount: c.items.reduce((s, it) => s + it.qty * it.price, 0), tone: 'green', k: 'contracts', id: c.id })),
+    ...invoices.map((i) => ({ kind: 'Rechnung', date: i.issueDate, title: i.number, sub: i.status, amount: i.total, open: i.total - i.paid, tone: 'blue', k: 'invoices', id: i.id })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const totalOrders = orders.filter((o) => o.kind === 'Auftrag').reduce((s, o) => s + o.total, 0);
@@ -359,7 +359,7 @@ function ProcessHistory({ deals, orders, invoices, contracts = [], stage, nav })
         <thead><tr><th>Vorgang</th><th>Referenz</th><th>Status</th><th>Datum</th><th className="right">Betrag</th></tr></thead>
         <tbody>
           {events.map((e, k) => (
-            <tr key={k} onClick={() => nav(openLink(e.to, e.id))}>
+            <tr key={k} onClick={() => nav(vorgangLink(e.k, e.id))}>
               <td><Badge tone={e.tone}>{e.kind}</Badge></td>
               <td className="cell-main">{e.title}</td>
               <td className="muted">{e.sub}{e.open > 0 ? ` · offen ${fmtMoney(e.open)}` : ''}</td>

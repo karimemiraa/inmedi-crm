@@ -6,6 +6,8 @@ import { AccountLink, Badge, ContactLink, Drawer, Empty, Field, KpiCard, Modal, 
 import { useSort } from '../lib/useSort.js';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
@@ -21,11 +23,11 @@ const NOW = new Date();
 export default function Events() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Alle');
-  const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
-  useOpenParam(db.events, setSel);
+  useOpenParam(db.events, (r) => nav(vorgangLink('events', r.id), { replace: true }));
   const { sort, toggle, apply } = useSort('start', 'desc');
 
   const rows = useMemo(() => {
@@ -90,24 +92,24 @@ export default function Events() {
             <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
             <SortTh label="Teilnehmer" sortKey="attendees" sort={sort} onSort={toggle} align="right" />
             <SortTh label="Kosten" sortKey="cost" sort={sort} onSort={toggle} align="right" />
-          </tr></thead>
+          <th className="right">Aktionen</th></tr></thead>
           <tbody>
             {rows.map((e) => (
-              <tr key={e.id} onClick={() => setSel(e)}>
+              <tr key={e.id} onClick={() => nav(vorgangLink('events', e.id))}>
                 <td className="cell-main">{e.name}</td>
                 <td><Badge tone={TYPE_TONE[e.type]}>{e.type}</Badge></td>
                 <td className="muted">{e.location}</td>
                 <td className="nowrap">{fmtDate(e.startDate)}{e.endDate && e.endDate !== e.startDate ? ' – ' + fmtDate(e.endDate) : ''}</td>
-                <td><Badge tone={STATUS_TONE[e.status]} dot>{e.status}</Badge></td>
+                <td><StatusBadge db={db} kind="events" rec={e} /></td>
                 <td className="right">{e.attendees?.length || 0}</td>
                 <td className="right"><b>{fmtMoney(e.cost || 0)}</b></td>
+                <td className="right nowrap"><RowActions kind="events" rec={e} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Keine Veranstaltungen" hint="Messen, Kongresse, Hausmessen & Webinare." action={{ label: 'Neue Veranstaltung', onClick: () => setAdding(true) }} />}</div>
       </div>
 
-      {sel && <EventDrawer db={db} event={db.events.find((e) => e.id === sel.id) || sel} onClose={() => setSel(null)} toast={toast} />}
       {adding && <NewEvent db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );
@@ -120,9 +122,8 @@ function AttendeeName({ db, at }) {
   return l ? <span className="rec-link" onClick={() => (window.location.hash = '#/leads/' + l.id)}>{l.name}</span> : <span className="muted">—</span>;
 }
 
-function EventDrawer({ db, event: e, onClose, toast }) {
-  const nav = useNavigate();
-  const owner = db.users.find((u) => u.id === e.ownerId);
+// Teilnehmerverwaltung einer Messe (wird auf der Messe-Seite verwendet).
+export function EventAttendees({ db, event: e, toast }) {
   const attendees = e.attendees || [];
   const [refType, setRefType] = useState('account');
   const [refId, setRefId] = useState('');
@@ -142,29 +143,11 @@ function EventDrawer({ db, event: e, onClose, toast }) {
   };
   const removeAttendee = (idx) => store.update('events', e.id, { attendees: attendees.filter((_, i) => i !== idx) });
   const setAttendeeStatus = (idx, s) => store.update('events', e.id, { attendees: attendees.map((a, i) => (i === idx ? { ...a, status: s } : a)) });
-  const setStatus = (s) => { store.update('events', e.id, { status: s }); toast('Status aktualisiert'); };
 
   const nameOf = (p) => p.name + (refType === 'contact' ? ` (${db.accounts.find((a) => a.id === p.accountId)?.name || ''})` : refType === 'lead' ? ` (${p.company})` : '');
 
   return (
-    <Drawer title={e.name} onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Schließen</button>}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Badge tone={TYPE_TONE[e.type]}>{e.type}</Badge>
-        <Badge tone={STATUS_TONE[e.status]} dot>{e.status}</Badge>
-      </div>
-      <Field label="Status">
-        <Select className="select" value={e.status} onChange={(ev) => setStatus(ev.target.value)}>{EVENT_STATUS.map((s) => <option key={s}>{s}</option>)}</Select>
-      </Field>
-      <div style={{ height: 14 }} />
-      <dl className="kv">
-        <dt>Ort</dt><dd>{e.location || '—'}</dd>
-        <dt>Zeitraum</dt><dd>{fmtDate(e.startDate)}{e.endDate && e.endDate !== e.startDate ? ' – ' + fmtDate(e.endDate) : ''}</dd>
-        <dt>Verantwortlich</dt><dd>{owner?.name || '—'}</dd>
-        <dt>Budget</dt><dd>{fmtMoney(e.budget || 0)}</dd>
-        <dt>Kosten</dt><dd><b>{fmtMoney(e.cost || 0)}</b>{e.budget ? <span className="muted tiny"> ({e.cost <= e.budget ? 'im Budget' : 'über Budget'})</span> : null}</dd>
-      </dl>
-      {e.notes && <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{e.notes}</p>}
-
+    <div>
       <h3 style={{ fontSize: 14, margin: '20px 0 10px' }}>Teilnehmer ({attendees.length})</h3>
       <div className="card" style={{ overflow: 'hidden', marginBottom: 14 }}><table className="tbl">
         <thead><tr><th>Teilnehmer</th><th>Typ</th><th>Rolle</th><th>Status</th><th></th></tr></thead>
@@ -195,7 +178,7 @@ function EventDrawer({ db, event: e, onClose, toast }) {
         </div>
         <div style={{ marginTop: 10 }}><button className="btn primary sm" onClick={addAttendee}><Plus size={14} /> Hinzufügen</button></div>
       </div>
-    </Drawer>
+    </div>
   );
 }
 

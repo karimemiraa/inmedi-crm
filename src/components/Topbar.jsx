@@ -1,3 +1,4 @@
+import { vorgangLink } from '../lib/vorgang.js';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, Plus, PanelLeft, ChevronDown, Building2, Users, Target, ShoppingCart, Receipt, Package, UserPlus, Presentation, Sun, Moon, AlignJustify, StretchVertical } from 'lucide-react';
@@ -57,15 +58,15 @@ export default function Topbar({ onMenu, onToggleCollapse, onQuickAdd }) {
     db.leads.filter((l) => has(l.name) || has(l.company)).slice(0, 2)
       .forEach((l) => out.push({ icon: UserPlus, label: l.name, sub: 'Interessent · ' + l.company, to: `/leads/${l.id}` }));
     db.deals.filter((d) => has(d.name)).slice(0, 3)
-      .forEach((d) => out.push({ icon: Target, label: d.name, sub: 'Deal', to: openLink('/pipeline', d.id) }));
+      .forEach((d) => out.push({ icon: Target, label: d.name, sub: 'Deal', to: vorgangLink('deals', d.id) }));
     db.orders.filter((o) => has(o.number)).slice(0, 3)
-      .forEach((o) => out.push({ icon: ShoppingCart, label: o.number, sub: o.kind, to: openLink('/orders', o.id) }));
+      .forEach((o) => out.push({ icon: ShoppingCart, label: o.number, sub: o.kind, to: vorgangLink('orders', o.id) }));
     db.invoices.filter((i) => has(i.number)).slice(0, 2)
-      .forEach((i) => out.push({ icon: Receipt, label: i.number, sub: 'Rechnung', to: openLink('/invoices', i.id) }));
+      .forEach((i) => out.push({ icon: Receipt, label: i.number, sub: 'Rechnung', to: vorgangLink('invoices', i.id) }));
     db.products.filter((p) => has(p.name) || has(p.sku)).slice(0, 2)
-      .forEach((p) => out.push({ icon: Package, label: p.name, sub: 'Produkt · ' + p.sku, to: '/products' }));
+      .forEach((p) => out.push({ icon: Package, label: p.name, sub: 'Produkt · ' + p.sku, to: vorgangLink('products', p.id) }));
     db.events.filter((e) => has(e.name) || has(e.location)).slice(0, 2)
-      .forEach((e) => out.push({ icon: Presentation, label: e.name, sub: e.type, to: openLink('/events', e.id) }));
+      .forEach((e) => out.push({ icon: Presentation, label: e.name, sub: e.type, to: vorgangLink('events', e.id) }));
     return out.slice(0, 10);
   }, [q, db]);
 

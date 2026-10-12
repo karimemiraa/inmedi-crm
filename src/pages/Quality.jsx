@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Plus, AlertOctagon, Siren, ClipboardCheck, ShieldAlert, FileWarning } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select, StatusConfigLink, UserChip } from '../components/ui.jsx';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
-import VorgangDrawer, { CommentCount, RowActions, INC_TYPES, SEVERITIES as SEV, SEV_TONE } from '../components/VorgangDrawer.jsx';
+import { CommentCount, RowActions, INC_TYPES, SEVERITIES as SEV, SEV_TONE } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
+import { useNavigate } from 'react-router-dom';
 import { relDate } from '../lib/format.js';
 import { statusTone, isOpen } from '../lib/status.js';
 
@@ -15,13 +17,10 @@ export default function Quality() {
   const db = useStore();
   const toast = useToast();
   const [tab, setTab] = useState('incidents');
-  const [sel, setSel] = useState(null);
-  const [capaSel, setCapaSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'incident' | 'capa'
-  // Deep-Link öffnet Vorkommnis oder CAPA
-  useOpenParam([...db.incidents, ...db.capas], (rec) => {
-    if (db.capas.some((c) => c.id === rec.id)) { setTab('capa'); setSel(null); setCapaSel(rec); } else { setTab('incidents'); setCapaSel(null); setSel(rec); }
-  });
+  const nav = useNavigate();
+  // Alte Deep-Links (?open=) → eigene Seite
+  useOpenParam([...db.incidents, ...db.capas], (rec) => nav(vorgangLink(db.capas.some((c) => c.id === rec.id) ? 'capas' : 'incidents', rec.id), { replace: true }));
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const prod = (id) => db.products.find((p) => p.id === id);
@@ -66,7 +65,7 @@ export default function Quality() {
           <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Produkt / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Meldefrist</th><th className="right">Aktionen</th></tr></thead>
           <tbody>
             {db.incidents.map((i) => (
-              <tr key={i.id} onClick={() => setSel(i)}>
+              <tr key={i.id} onClick={() => nav(vorgangLink('incidents', i.id))}>
                 <td className="cell-main nowrap">{i.number}</td>
                 <td style={{ maxWidth: 260 }}>{i.title}<CommentCount rec={i} /></td>
                 <td><Badge tone="gray">{i.type}</Badge></td>
@@ -77,7 +76,7 @@ export default function Quality() {
                 <td className="tiny nowrap">{i.meldepflichtig && isOpen(db, 'incidents', i.status)
                   ? <Badge tone={new Date(deadline(i)) < new Date() ? 'red' : 'amber'} dot>{relDate(deadline(i))}</Badge>
                   : <span className="muted">—</span>}</td>
-                <td className="right nowrap"><RowActions kind="incidents" rec={i} onEdit={() => setSel(i)} toast={toast} /></td>
+                <td className="right nowrap"><RowActions kind="incidents" rec={i} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
@@ -91,15 +90,15 @@ export default function Quality() {
             {db.capas.map((c) => {
               const overdue = isOpen(db, 'capas', c.status) && new Date(c.dueDate) < new Date();
               return (
-                <tr key={c.id} onClick={() => setCapaSel(c)}>
+                <tr key={c.id} onClick={() => nav(vorgangLink('capas', c.id))}>
                   <td className="cell-main nowrap">{c.number}</td>
                   <td style={{ maxWidth: 280 }}>{c.title}<CommentCount rec={c} /></td>
                   <td><Badge tone={c.type === 'Korrektur' ? 'amber' : 'teal'}>{c.type}</Badge></td>
                   <td className="muted">{db.incidents.find((i) => i.id === c.incidentId)?.number || '—'}</td>
-                  <td>{user(c.ownerId)?.name.split(' ')[0]}</td>
+                  <td><UserChip user={user(c.ownerId)} short /></td>
                   <td><Badge tone={overdue ? 'red' : 'gray'} dot={overdue}>{relDate(c.dueDate)}</Badge></td>
                   <td><Badge tone={statusTone(db, 'capas', c.status)} dot>{c.status}</Badge></td>
-                  <td className="right nowrap"><RowActions kind="capas" rec={c} onEdit={() => setCapaSel(c)} toast={toast} /></td>
+                  <td className="right nowrap"><RowActions kind="capas" rec={c} toast={toast} /></td>
                 </tr>
               );
             })}
@@ -107,8 +106,6 @@ export default function Quality() {
         </table>{db.capas.length === 0 && <Empty label="Keine Maßnahmen" />}</div></Card>
       )}
 
-      {sel && <VorgangDrawer kind="incidents" id={sel.id} onClose={() => setSel(null)} />}
-      {capaSel && <VorgangDrawer kind="capas" id={capaSel.id} onClose={() => setCapaSel(null)} />}
 
       {adding === 'incident' && <AddIncident db={db} onClose={() => setAdding(null)} toast={toast} />}
       {adding === 'capa' && <AddCapa db={db} onClose={() => setAdding(null)} toast={toast} />}

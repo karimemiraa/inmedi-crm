@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, UserPlus, ArrowRightLeft, Flame } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Field, KpiCard, Modal, ScoreMeter, Select, SortTh } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Field, KpiCard, Modal, ScoreMeter, Select, SortTh, UserChip } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
@@ -89,7 +89,7 @@ export default function Leads() {
                 <td><Badge tone="gray">{l.source}</Badge></td>
                 <td><ScoreMeter value={l.score} /></td>
                 <td><Badge tone={STATUS_TONE[l.status]} dot>{l.status}</Badge></td>
-                <td>{owner(l.ownerId)?.name.split(' ')[0]}</td>
+                <td><UserChip user={owner(l.ownerId)} short /></td>
                 <td className="muted tiny">{relDate(l.createdAt)}</td>
                 <td className="right"><button className="btn sm" onClick={(e) => { e.stopPropagation(); convert(l); }} disabled={l.status === 'Qualifiziert'}><ArrowRightLeft size={13} /> Umwandeln</button></td>
               </tr>

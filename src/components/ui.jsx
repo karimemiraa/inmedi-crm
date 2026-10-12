@@ -131,6 +131,21 @@ export function AccountLink({ account, id, name }) {
   const label = account?.name ?? name;
   return <RecordLink to={aid ? '/accounts/' + aid : null} label={label} />;
 }
+// Mitarbeiter (Betreuer, Verantwortliche …) → Mitarbeiterseite
+export function UserLink({ user, id, name }) {
+  const uid = user?.id || id;
+  return <RecordLink to={uid ? '/team/' + uid : null} label={user?.name ?? name} />;
+}
+// Avatar + klickbarer Name (short = nur Vorname)
+export function UserChip({ user, short }) {
+  if (!user) return <span className="muted">—</span>;
+  return (
+    <span className="avatar-row">
+      <Avatar size="sm" name={user.name} color={user.color} src={user.avatar} />
+      <RecordLink to={'/team/' + user.id} label={short ? user.name.split(' ')[0] : user.name} />
+    </span>
+  );
+}
 export function ContactLink({ contact, id, name }) {
   const cid = contact?.id || id;
   const label = contact?.name ?? name;

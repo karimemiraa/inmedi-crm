@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, Building2, MapPin, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Avatar, Badge, Empty, Select, SortTh } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Select, SortTh, UserChip } from '../components/ui.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { useSort } from '../lib/useSort.js';
@@ -131,7 +131,7 @@ export default function Accounts() {
                   </td>
                   <td><Badge tone={TYPE_TONE[a.type]}>{a.type}</Badge></td>
                   <td>{a.tier}</td>
-                  <td>{owner(a.ownerId) && <div className="avatar-row"><Avatar size="sm" name={owner(a.ownerId).name} color={owner(a.ownerId).color} /><span className="tiny">{owner(a.ownerId).name.split(' ')[0]}</span></div>}</td>
+                  <td><UserChip user={owner(a.ownerId)} short /></td>
                   <td><Badge tone={STATUS_TONE[a.status]} dot>{a.status}</Badge></td>
                   <td className="right"><b>{fmtMoney(a.revenueYTD)}</b></td>
                 </tr>
