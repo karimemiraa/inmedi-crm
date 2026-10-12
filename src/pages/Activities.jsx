@@ -1,8 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Plus, Phone, Users, CheckCircle2, Mail, CalendarCheck, List, Calendar as CalIcon } from 'lucide-react';
+import { Plus, Phone, Users, CheckCircle2, Mail, CalendarCheck, List, Calendar as CalIcon, Pencil, Trash2 } from 'lucide-react';
 import { useStore } from '../data/store.js';
 import { Badge, Empty, KpiCard, AccountLink, ContactLink, Select, StatusConfigLink } from '../components/ui.jsx';
 import { statusList, setStatus, toggleDone } from '../lib/status.js';
+import { useOpenParam } from '../lib/nav.js';
+import { trashVorgang } from '../lib/vorgang.js';
+import { useToast } from '../components/Toast.jsx';
+import VorgangDrawer, { CommentCount } from '../components/VorgangDrawer.jsx';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -16,6 +20,10 @@ export default function Activities() {
   const [filter, setFilter] = useState('open');
   const [st, setSt] = useState('');
   const [adding, setAdding] = useState(false);
+  const [sel, setSel] = useState(null);
+  const toast = useToast();
+  useOpenParam(db.activities, setSel);
+  const del = (a) => { if (!window.confirm(`Aktivität „${a.subject}" in den Papierkorb verschieben?`)) return; trashVorgang('activities', a.id); toast('Aktivität in den Papierkorb verschoben'); };
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
@@ -69,30 +77,36 @@ export default function Activities() {
             const Icon = ICON[a.type] || CheckCircle2;
             const isOverdue = !a.done && new Date(a.dueDate) < NOW;
             return (
-              <div key={a.id} className="list-row" style={{ padding: '13px 18px' }}>
-                <label className="check"><input type="checkbox" checked={a.done} onChange={() => toggleDone(db, a)} /></label>
+              <div key={a.id} className="list-row clickable" style={{ padding: '13px 18px' }} onClick={() => setSel(a)}>
+                <label className="check" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={a.done} onChange={() => toggleDone(db, a)} /></label>
                 <span className="ico" style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: `var(--${TONE[a.type] === 'brand' ? 'brand-050' : TONE[a.type] + '-bg'})`, color: `var(--${TONE[a.type] === 'brand' ? 'brand' : TONE[a.type]})` }}><Icon size={16} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, textDecoration: a.done ? 'line-through' : 'none', color: a.done ? 'var(--text-3)' : 'var(--text)' }}>{a.subject}</div>
+                  <div style={{ fontWeight: 600, textDecoration: a.done ? 'line-through' : 'none', color: a.done ? 'var(--text-3)' : 'var(--text)' }}>{a.subject}<CommentCount rec={a} /></div>
                   <div className="muted tiny stat-line" style={{ gap: 6, flexWrap: 'wrap' }}><AccountLink account={acct(a.accountId)} />{a.contactId && <> · <ContactLink contact={db.contacts.find((c) => c.id === a.contactId)} /></>} · {db.users.find((u) => u.id === a.ownerId)?.name.split(' ')[0]}</div>
                 </div>
                 <Badge tone={a.priority === 'Hoch' ? 'red' : a.priority === 'Niedrig' ? 'gray' : 'amber'}>{a.priority}</Badge>
                 <Badge tone={isOverdue ? 'red' : 'gray'}>{relDate(a.dueDate)}</Badge>
-                <Select className="status-select" value={a.status} onChange={(e) => setStatus('activities', a.id, e.target.value)} aria-label="Status">
-                  {statusList(db, 'activities').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-                </Select>
+                <span className="row-actions" onClick={(e) => e.stopPropagation()}>
+                  <Select className="status-select" value={a.status} onChange={(e) => setStatus('activities', a.id, e.target.value)} aria-label="Status">
+                    {statusList(db, 'activities').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                  </Select>
+                  <button className="icon-btn sm" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setSel(a)}><Pencil size={14} /></button>
+                  <button className="icon-btn sm" title="Löschen" aria-label="Löschen" onClick={() => del(a)}><Trash2 size={14} /></button>
+                </span>
               </div>
             );
           })}
         </div>
-      </>) : <CalendarView db={db} acct={acct} />}
+      </>) : <CalendarView db={db} acct={acct} onOpen={setSel} />}
+
+      {sel && <VorgangDrawer kind="activities" id={sel.id} onClose={() => setSel(null)} />}
 
       {adding && <QuickAdd initial="activity" onClose={() => setAdding(false)} />}
     </div>
   );
 }
 
-function CalendarView({ db, acct }) {
+function CalendarView({ db, acct, onOpen }) {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -126,7 +140,7 @@ function CalendarView({ db, acct }) {
               <div style={{ fontWeight: isToday ? 800 : 600, fontSize: 12.5, color: isToday ? 'var(--brand)' : 'var(--text-2)', marginBottom: 4 }}>{d}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {acts.slice(0, 3).map((a) => (
-                  <div key={a.id} className={'badge ' + (TONE[a.type] === 'brand' ? 'teal' : TONE[a.type])} style={{ fontSize: 10, padding: '2px 6px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }} title={a.subject}>{a.subject}</div>
+                  <div key={a.id} className={'badge ' + (TONE[a.type] === 'brand' ? 'teal' : TONE[a.type])} style={{ fontSize: 10, padding: '2px 6px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', cursor: 'pointer' }} title={a.subject} onClick={() => onOpen(a)}>{a.subject}</div>
                 ))}
                 {acts.length > 3 && <span className="muted tiny">+{acts.length - 3} weitere</span>}
               </div>

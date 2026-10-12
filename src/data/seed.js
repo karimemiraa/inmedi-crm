@@ -281,7 +281,7 @@ function demo() {
   ];
 
   const tickets = [
-    { id: 'TK1', number: 'TK-4805', subject: 'Rückmeldung: Monitor-Anzeige schwer ablesbar', accountId: 'A1', contactId: 'C2', ownerId: 'U5', productId: 'P2', channel: 'Telefon', category: 'Feedback', priority: 'Hoch', status: 'In Bearbeitung', createdAt: D(10, 3), resolvedAt: null },
+    { id: 'TK1', number: 'TK-4805', subject: 'Rückmeldung: Monitor-Anzeige schwer ablesbar', accountId: 'A1', contactId: 'C2', ownerId: 'U5', productId: 'P2', channel: 'Telefon', category: 'Feedback', priority: 'Hoch', status: 'In Bearbeitung', description: 'Anzeige bei Tageslicht schwer ablesbar; Kunde wünscht Info zu Displayoptionen.', comments: [{ id: 'CTK1', userId: 'U2', at: D(10, 4), text: 'Kunde wünscht Rückruf bis Freitag.', editedAt: null }], createdAt: D(10, 3), resolvedAt: null },
     { id: 'TK2', number: 'TK-4806', subject: 'Beatmungsgerät Alarm unklar', accountId: 'A4', contactId: 'C7', ownerId: 'U5', productId: 'P4', channel: 'E-Mail', category: 'Produktfrage', priority: 'Hoch', status: 'Neu', createdAt: D(10, 7), resolvedAt: null },
     { id: 'TK3', number: 'TK-4807', subject: 'Rückfrage zu Rechnung RE-25014', accountId: 'A2', contactId: 'C4', ownerId: 'U5', productId: null, channel: 'E-Mail', category: 'Rechnungsfrage', priority: 'Mittel', status: 'Gelöst', createdAt: D(9, 10), resolvedAt: D(9, 12) },
     { id: 'TK4', number: 'TK-4808', subject: 'Lieferverzug Infusionsbesteck', accountId: 'A6', contactId: 'C9', ownerId: 'U5', productId: null, channel: 'Telefon', category: 'Reklamation', priority: 'Mittel', status: 'Wartet auf Kunde', createdAt: D(9, 29), resolvedAt: null },
@@ -339,7 +339,19 @@ function demo() {
     products: PRODUCTS, accounts, contacts, deals, orders, invoices, activities,
     leads, tickets, costEntries, campaigns, contracts, events, recurringOrders,
     kbArticles, documents,
-    incidents: [], capas: [], incomingInvoices: [], ideas: [], auditLog: [],
+    incidents: [
+      { id: 'VK1', number: 'VK-2026-015', title: 'Beatmungsgerät: Alarm ohne erkennbare Ursache', type: 'Vorkommnis', severity: 'Hoch', productId: 'P4', lot: 'LOT 26-0412', serial: 'RC200-0456', accountId: 'A4', status: 'In Prüfung', reportedBy: 'U5', reportedAt: D(10, 8), meldepflichtig: true, description: 'Gerät meldet wiederholt Druckalarm ohne Befund. Kein Patientenschaden. Gerät außer Betrieb genommen.', capaId: null, parent: { kind: 'tickets', id: 'TK2' },
+        comments: [{ id: 'CVK1', userId: 'U1', at: D(10, 8, 14), text: 'Hersteller ist informiert, Rückmeldung erwartet bis Mittwoch.', editedAt: null }], history: [] },
+    ],
+    capas: [
+      { id: 'CAPA1', number: 'CAPA-2026-009', type: 'Korrektur', title: 'Kundeninformation & Abstimmung mit Hersteller', incidentId: 'VK1', ownerId: 'U1', status: 'In Umsetzung', dueDate: D(10, 30), createdAt: D(10, 9), description: 'Betroffene Kunden mit gleicher Charge informieren.', comments: [], history: [] },
+    ],
+    incomingInvoices: [],
+    ideas: [
+      { id: 'I1', title: 'Musterkoffer für Außendienst-Demos', description: 'Einheitlicher Demokoffer mit Verbrauchsmaterial-Mustern.', status: 'In Prüfung', priority: 'Mittel', ownerId: 'U2', createdAt: D(9, 28), comments: [{ id: 'CI1', userId: 'U3', at: D(9, 29), text: 'Gute Idee — für Süd bitte 2 Koffer.', editedAt: null }], history: [] },
+      { id: 'I2', title: 'Nachbestell-Erinnerung für Verbrauchsmaterial', description: 'Kunden automatisch an Nachbestellung erinnern.', status: 'Neu', priority: 'Hoch', ownerId: 'U5', createdAt: D(10, 2), comments: [], history: [] },
+    ],
+    auditLog: [],
   };
 }
 

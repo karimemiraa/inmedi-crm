@@ -12,6 +12,7 @@ import { useStore } from '../data/store.js';
 import { KpiCard, Card, Avatar, Badge, AccountLink } from '../components/ui.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate, relDate, initials } from '../lib/format.js';
 import { toggleDone } from '../lib/status.js';
+import { vorgangLink } from '../lib/vorgang.js';
 
 const MONTHS_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
@@ -195,7 +196,7 @@ export default function Dashboard() {
               const Icon = ACT_ICON[t.type] || CheckCircle2;
               const overdue = !t.done && new Date(t.dueDate) < new Date();
               return (
-                <div key={t.id} className="list-row" style={{ padding: '11px 12px' }}>
+                <div key={t.id} className="list-row clickable" style={{ padding: '11px 12px' }} onClick={() => nav(vorgangLink('activities', t.id))}>
                   <label className="check" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id, t.done)} />
                   </label>

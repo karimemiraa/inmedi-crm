@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, Mail, Phone, Building2, Star, Target, LifeBuoy, Cale
 import { useStore, store } from '../data/store.js';
 import { AccountLink, Avatar, Badge, Card, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import { statusTone } from '../lib/status.js';
+import { vorgangLink } from '../lib/vorgang.js';
 import Notes from '../components/Notes.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
@@ -119,7 +120,7 @@ export default function ContactDetail() {
         <Card pad={false}><div style={{ padding: '10px 18px' }}>
           {activities.length === 0 && <Empty label="Keine Aktivitäten" />}
           {activities.map((a) => (
-            <div key={a.id} className="list-row">
+            <div key={a.id} className="list-row clickable" onClick={() => nav(vorgangLink('activities', a.id))}>
               <span className="badge gray" style={{ width: 8, height: 8, padding: 0, borderRadius: '50%' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{a.subject}</div>
