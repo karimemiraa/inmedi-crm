@@ -43,7 +43,7 @@ npm run build    # production build to /dist
 | **Documents / Messages / Datenschutz** | Document register, per-customer correspondence log, GDPR tools + audit trail |
 | **Settings** | **Vorgänge & Status** (rename, recolor, reorder, add, delete statuses per Vorgangsart, with an "abgeschlossen" flag that drives counters/KPIs; existing records are migrated automatically), if-then **automation rules**, **custom fields**, **users & roles**, **branding**, demo-data / empty reset + JSON export |
 
-Plus global search, notifications, quick-add (account/contact/deal/activity), clickable record links everywhere, and a responsive layout.
+Plus a **KI-Assistent** (see below), global search, notifications, quick-add (account/contact/deal/activity), clickable record links everywhere, and a responsive layout.
 
 ### Ease-of-use & professional polish
 
@@ -52,6 +52,40 @@ Plus global search, notifications, quick-add (account/contact/deal/activity), cl
 - **Sortable tables** — click any column header to sort (asc/desc) on all major lists.
 - **Dashboard drill-downs** — KPI cards and charts jump into the matching (filtered) view; empty states carry a primary create button.
 - **Dark mode** — sun/moon toggle in the top bar, remembers your choice and follows the OS by default.
+
+## KI-Assistent
+
+A data-connected assistant for meeting preparation and analysis. It is available as a full page (**KI-Assistent** in the sidebar), as a side panel on every page (floating button, bottom right) and through the **Gesprächsvorbereitung** button on each Firma.
+
+**What it does:** client meeting preparation (profile, recent orders and products, reorder rhythm, cross-selling, Umsatz vs. prior year, open items, talking points), Umsatz analysis (by Firma, Betreuer, Gebiet, Produkt, Monat or Typ, compared with the prior-year period), Betreuungskosten vs. Umsatz, an attention list (risks, declines, overdue items, no contact), follow-ups per Betreuer, pipeline, team and KPIs.
+
+**How it works:**
+- The model never receives the whole database.
+- It calls 15 data tools (`src/lib/ai/tools.js`) that run locally in the browser and return only what a question needs.
+- Every answer links back to the records (`#/vorgang/...`).
+
+**Providers** (Settings, KI-Assistent tab):
+
+| Provider | Notes |
+|---|---|
+| Ohne KI (default) | Offline, deterministic reports built from the same tools; no key needed |
+| Claude (Anthropic) | Official `@anthropic-ai/sdk`. Models: Opus 5.5 (default), Sonnet 5.5, Haiku 5.5. Adaptive thinking, selectable effort, cached system prompt, streaming |
+| Google Gemini | REST function calling (default `gemini-2.5-pro`) |
+| OpenAI-compatible | Any `/chat/completions` endpoint with tools (OpenAI, Azure, Mistral, local Ollama/LM Studio) |
+
+**Actions:**
+- The assistant can only *propose* a task or a comment.
+- Nothing is written until the user clicks **Ausführen** on the proposal card.
+
+**Privacy and security:**
+- E-mail addresses and phone numbers are never sent. They are left out of tool results and scrubbed from free text.
+- Optional pseudonymization replaces contact and lead names with placeholders such as "Ansprechpartner 1" before sending. Answers are translated back locally for display.
+- Names of your own employees stay visible so that responsibilities can be named.
+- API keys live only in this browser's localStorage (`inmedi-ai-settings`). They are not part of the CRM data, the JSON export or this repository.
+- A browser-stored key can be read by anyone with access to this browser profile. For production, set a **Proxy-URL** (a small server that holds the key and forwards requests). The client already supports it.
+- Before using real customer data, sign a data processing agreement (AVV/DPA) with the provider and check the data region.
+
+Code: `src/lib/ai/` (tools, providers, agent, local mode, chat state) and `src/components/ai/` (chat, panel, Markdown renderer, settings).
 
 ## Tech
 

@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MapPin, Building2, BedDouble, CalendarCheck, Star, FileText,
   Pencil, Plus, Trash2, Hash, Percent, Receipt, CheckSquare, Clock, FileSignature,
-  LifeBuoy, Presentation, ShieldAlert, Copy, MessageSquare, Archive,
+  LifeBuoy, Presentation, ShieldAlert, Copy, MessageSquare, Archive, Sparkles,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select, UserLink } from '../components/ui.jsx';
 import { Comments, EditForm, HistoryList, toDraft, diffDraft } from '../components/Vorgang.jsx';
 import { FIELDS } from '../lib/vorgangFields.js';
+import { openAssistant } from '../lib/ai/chatStore.js';
 import { statusTone } from '../lib/status.js';
 import { vorgangLink, updateVorgang, requestDelete, duplicateVorgang, statusOptions, setVorgangStatus } from '../lib/vorgang.js';
 import QuickAdd from '../components/QuickAdd.jsx';
@@ -114,6 +115,7 @@ export default function AccountDetail() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <button className="btn ai-btn" onClick={() => openAssistant(`Bereite mein nächstes Kundengespräch mit ${a.name} vor`, { kind: 'accounts', id: a.id, label: a.name })}><Sparkles size={15} /> Gesprächsvorbereitung</button>
             <button className="btn" onClick={() => setQuick({ actType: 'task' })}><CheckSquare size={15} /> Aufgabe</button>
             <button className="btn" onClick={() => setQuick({ actType: 'meeting' })}><Clock size={15} /> Termin</button>
             <button className="btn" onClick={() => setTab('comments')}><MessageSquare size={15} /> Kommentieren</button>

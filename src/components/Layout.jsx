@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 import Topbar from './Topbar.jsx';
 import QuickAdd from './QuickAdd.jsx';
+import AssistantPanel from './ai/AssistantPanel.jsx';
 
 export default function Layout() {
   const [navOpen, setNavOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function Layout() {
         <Outlet />
       </div>
       {quickAdd && <QuickAdd onClose={() => setQuickAdd(false)} />}
+      <AssistantPanel />
     </div>
   );
 }
