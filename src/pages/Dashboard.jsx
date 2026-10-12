@@ -8,9 +8,10 @@ import {
   Euro, TrendingUp, Target, Trophy, Building2, ArrowRight,
   Phone, CalendarCheck, Mail, Users, CheckCircle2,
 } from 'lucide-react';
-import { useStore, store } from '../data/store.js';
+import { useStore } from '../data/store.js';
 import { KpiCard, Card, Avatar, Badge, AccountLink } from '../components/ui.jsx';
 import { fmtMoney, fmtMoneyShort, fmtDate, relDate, initials } from '../lib/format.js';
+import { toggleDone } from '../lib/status.js';
 
 const MONTHS_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
@@ -73,7 +74,7 @@ export default function Dashboard() {
   const PIE_COLORS = ['#a81e22', '#0f8f86', '#7a5cf0', '#e0930b'];
   const ACT_ICON = { call: Phone, meeting: Users, task: CheckCircle2, email: Mail, followup: CalendarCheck };
 
-  const toggleTask = (id, done) => store.update('activities', id, { done: !done });
+  const toggleTask = (id) => toggleDone(db, db.activities.find((a) => a.id === id));
 
   return (
     <div className="page">

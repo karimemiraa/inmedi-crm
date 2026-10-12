@@ -193,7 +193,7 @@ function NewContract({ db, onClose, toast }) {
     <Modal title="Neuer Vertrag" wide onClose={onClose}
       footer={<><div style={{ marginRight: 'auto', fontWeight: 700 }}>Jahreswert: {fmtMoney(v.annual)}{v.once > 0 ? ` (+ ${fmtMoney(v.once)} einm.)` : ''}</div><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Erstellen</button></>}>
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Wartungsvertrag Endoskopie 2026" autoFocus /></Field></div>
+        <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="z. B. Liefervertrag Endoskopie 2026" autoFocus /></Field></div>
         <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('contactId', ''); set('fromOrderId', ''); }}>{db.accounts.length === 0 && <option value="">— kein Konto —</option>}{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Ansprechpartner"><Select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
         <Field label="Verantwortlich"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{db.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>

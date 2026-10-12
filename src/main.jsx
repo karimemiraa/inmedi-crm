@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createHashRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider, Navigate } from 'react-router-dom';
 import './index.css';
 import Layout from './components/Layout.jsx';
 import { ToastProvider } from './components/Toast.jsx';
@@ -23,7 +23,6 @@ import RecurringOrders from './pages/RecurringOrders.jsx';
 import Invoices from './pages/Invoices.jsx';
 import Contracts from './pages/Contracts.jsx';
 import Service from './pages/Service.jsx';
-import ServiceOrders from './pages/ServiceOrders.jsx';
 import Quality from './pages/Quality.jsx';
 import Products from './pages/Products.jsx';
 import Activities from './pages/Activities.jsx';
@@ -37,7 +36,6 @@ import Reports from './pages/Reports.jsx';
 import Documents from './pages/Documents.jsx';
 import Ideas from './pages/Ideas.jsx';
 import Messages from './pages/Messages.jsx';
-import Devices from './pages/Devices.jsx';
 import CostCalc from './pages/CostCalc.jsx';
 import CareCostAnalysis from './pages/CareCostAnalysis.jsx';
 import DataProtection from './pages/DataProtection.jsx';
@@ -61,9 +59,7 @@ const router = createHashRouter([
       { path: 'invoices', element: <Invoices /> },
       { path: 'contracts', element: <Contracts /> },
       { path: 'service', element: <Service /> },
-      { path: 'service-orders', element: <ServiceOrders /> },
       { path: 'quality', element: <Quality /> },
-      { path: 'devices', element: <Devices /> },
       { path: 'cost-calc', element: <CostCalc /> },
       { path: 'care-cost', element: <CareCostAnalysis /> },
       { path: 'products', element: <Products /> },
@@ -81,6 +77,8 @@ const router = createHashRouter([
       { path: 'datenschutz', element: <DataProtection /> },
       { path: 'profile', element: <Profile /> },
       { path: 'settings', element: <Settings /> },
+      // Entfernte Module (Serviceaufträge, Geräte) und unbekannte Links → Dashboard
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ]);

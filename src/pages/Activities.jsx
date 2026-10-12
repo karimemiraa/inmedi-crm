@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Plus, Phone, Users, CheckCircle2, Mail, CalendarCheck, List, Calendar as CalIcon } from 'lucide-react';
-import { useStore, store } from '../data/store.js';
-import { Badge, Empty, KpiCard, AccountLink, ContactLink } from '../components/ui.jsx';
+import { useStore } from '../data/store.js';
+import { Badge, Empty, KpiCard, AccountLink, ContactLink, Select, StatusConfigLink } from '../components/ui.jsx';
+import { statusList, setStatus, toggleDone } from '../lib/status.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -13,6 +14,7 @@ export default function Activities() {
   const db = useStore();
   const [view, setView] = useState('list');
   const [filter, setFilter] = useState('open');
+  const [st, setSt] = useState('');
   const [adding, setAdding] = useState(false);
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
@@ -22,8 +24,9 @@ export default function Activities() {
     if (filter === 'open') r = r.filter((a) => !a.done);
     if (filter === 'done') r = r.filter((a) => a.done);
     if (filter === 'overdue') r = r.filter((a) => !a.done && new Date(a.dueDate) < NOW);
+    if (st) r = r.filter((a) => a.status === st);
     return r.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-  }, [db.activities, filter]);
+  }, [db.activities, filter, st]);
 
   const overdue = db.activities.filter((a) => !a.done && new Date(a.dueDate) < NOW).length;
   const today = db.activities.filter((a) => !a.done && fmtDate(a.dueDate) === fmtDate(NOW.toISOString())).length;
@@ -33,7 +36,7 @@ export default function Activities() {
       <div className="page-head">
         <div><h1>Aktivitäten</h1><div className="sub">Aufgaben, Anrufe, Termine & Nachfassaktionen</div></div>
         <div className="page-actions">
-          <div className="seg">
+          <StatusConfigLink kind="activities" /><div className="seg">
             <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><List size={15} /></button>
             <button className={view === 'cal' ? 'active' : ''} onClick={() => setView('cal')}><CalIcon size={15} /></button>
           </div>
@@ -55,6 +58,10 @@ export default function Activities() {
               <button key={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{l}</button>
             ))}
           </div>
+          <Select style={{ width: 'auto' }} value={st} onChange={(e) => setSt(e.target.value)} aria-label="Status filtern">
+            <option value="">Alle Status</option>
+            {statusList(db, 'activities').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </Select>
         </div>
         <div className="card" style={{ overflow: 'hidden' }}>
           {list.length === 0 && <Empty label="Keine Aktivitäten" />}
@@ -63,14 +70,17 @@ export default function Activities() {
             const isOverdue = !a.done && new Date(a.dueDate) < NOW;
             return (
               <div key={a.id} className="list-row" style={{ padding: '13px 18px' }}>
-                <label className="check"><input type="checkbox" checked={a.done} onChange={() => store.update('activities', a.id, { done: !a.done })} /></label>
+                <label className="check"><input type="checkbox" checked={a.done} onChange={() => toggleDone(db, a)} /></label>
                 <span className="ico" style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: `var(--${TONE[a.type] === 'brand' ? 'brand-050' : TONE[a.type] + '-bg'})`, color: `var(--${TONE[a.type] === 'brand' ? 'brand' : TONE[a.type]})` }}><Icon size={16} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, textDecoration: a.done ? 'line-through' : 'none', color: a.done ? 'var(--text-3)' : 'var(--text)' }}>{a.subject}</div>
                   <div className="muted tiny stat-line" style={{ gap: 6, flexWrap: 'wrap' }}><AccountLink account={acct(a.accountId)} />{a.contactId && <> · <ContactLink contact={db.contacts.find((c) => c.id === a.contactId)} /></>} · {db.users.find((u) => u.id === a.ownerId)?.name.split(' ')[0]}</div>
                 </div>
                 <Badge tone={a.priority === 'Hoch' ? 'red' : a.priority === 'Niedrig' ? 'gray' : 'amber'}>{a.priority}</Badge>
-                <Badge tone={a.done ? 'green' : isOverdue ? 'red' : 'blue'}>{a.done ? 'Erledigt' : relDate(a.dueDate)}</Badge>
+                <Badge tone={isOverdue ? 'red' : 'gray'}>{relDate(a.dueDate)}</Badge>
+                <Select className="status-select" value={a.status} onChange={(e) => setStatus('activities', a.id, e.target.value)} aria-label="Status">
+                  {statusList(db, 'activities').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                </Select>
               </div>
             );
           })}

@@ -77,7 +77,7 @@ export default function Reports() {
       case 'stage': return db.stages.find((s) => s.id === r.stage)?.name || r.stage;
       case 'territory': return terrName(r.territoryId || acctTerr(r.accountId));
       case 'type': return ACT_LABEL[r.type] || r.type;
-      case 'done': return r.done ? 'Erledigt' : 'Offen';
+      case 'done': return r.status || (r.done ? 'Erledigt' : 'Offen');
       case 'tier': return r.tier;
       case 'month': { const d = new Date(r[cfg.dateField]); return MONTHS_DE[d.getMonth()] + ' ' + d.getFullYear(); }
       default: return '—';

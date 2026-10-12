@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Plus, Lightbulb, Search, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
+import { statusList, isOpen, setStatus as setIdeaStatus } from '../lib/status.js';
 
-const STATUS = ['Neu', 'In Prüfung', 'Umgesetzt', 'Verworfen'];
-const STATUS_TONE = { Neu: 'blue', 'In Prüfung': 'amber', Umgesetzt: 'green', Verworfen: 'gray' };
 const PRIO_TONE = { Hoch: 'red', Mittel: 'amber', Niedrig: 'gray' };
 
 export default function Ideas() {
@@ -22,20 +21,22 @@ export default function Ideas() {
     (!q || i.title.toLowerCase().includes(q.toLowerCase()))
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)), [db.ideas, q, status]);
 
-  const cnt = (s) => db.ideas.filter((i) => i.status === s).length;
+  const STATUS = statusList(db, 'ideas').map((s) => s.name);
+  const openCount = db.ideas.filter((i) => isOpen(db, 'ideas', i.status)).length;
+  const weekAgo = Date.now() - 7 * 86400000;
 
   return (
     <div className="page">
       <div className="page-head">
         <div><h1>Ideen</h1><div className="sub">Vorschläge und Verbesserungen sammeln, bewerten und umsetzen</div></div>
-        <div className="page-actions"><button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Neue Idee</button></div>
+        <div className="page-actions"><StatusConfigLink kind="ideas" /><button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Neue Idee</button></div>
       </div>
 
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <KpiCard icon={Lightbulb} tone="brand" label="Ideen gesamt" value={db.ideas.length} />
-        <KpiCard icon={Clock} tone="blue" label="Neu" value={cnt('Neu')} />
-        <KpiCard icon={Clock} tone="amber" label="In Prüfung" value={cnt('In Prüfung')} />
-        <KpiCard icon={CheckCircle2} tone="green" label="Umgesetzt" value={cnt('Umgesetzt')} />
+        <KpiCard icon={Clock} tone="blue" label="Neu (7 Tage)" value={db.ideas.filter((i) => new Date(i.createdAt) >= weekAgo).length} />
+        <KpiCard icon={Clock} tone="amber" label="Offen" value={openCount} />
+        <KpiCard icon={CheckCircle2} tone="green" label="Abgeschlossen" value={db.ideas.length - openCount} />
       </div>
 
       <div className="filter-bar">
@@ -56,7 +57,7 @@ export default function Ideas() {
                 <td><div className="cell-main">{i.title}</div>{i.description && <div className="cell-sub" style={{ maxWidth: 420, whiteSpace: 'normal' }}>{i.description}</div>}</td>
                 <td><Badge tone={PRIO_TONE[i.priority]}>{i.priority}</Badge></td>
                 <td>
-                  <Select className="select" style={{ width: 'auto', padding: '4px 8px', fontSize: 12.5 }} value={i.status} onChange={(e) => { store.update('ideas', i.id, { status: e.target.value }); toast('Status aktualisiert'); }}>
+                  <Select className="status-select" value={i.status} onChange={(e) => { setIdeaStatus('ideas', i.id, e.target.value); toast('Status aktualisiert'); }}>
                     {STATUS.map((s) => <option key={s}>{s}</option>)}
                   </Select>
                 </td>
@@ -79,7 +80,7 @@ function NewIdea({ db, onClose, toast }) {
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const save = () => {
     if (!f.title) return;
-    store.add('ideas', { title: f.title, description: f.description, status: 'Neu', priority: f.priority, ownerId: db.meta.currentUserId, createdAt: new Date().toISOString() });
+    store.add('ideas', { title: f.title, description: f.description, status: '', priority: f.priority, ownerId: db.meta.currentUserId, createdAt: new Date().toISOString() });
     toast('Idee eingereicht'); onClose();
   };
   return (

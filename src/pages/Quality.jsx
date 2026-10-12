@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { Plus, AlertOctagon, Siren, ClipboardCheck, ShieldAlert, FileWarning } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Badge, Card, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Drawer, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate, relDate } from '../lib/format.js';
+import { statusList, statusTone, isOpen, setStatus } from '../lib/status.js';
 
 const INC_TYPES = ['Vorkommnis', 'Beinahe-Vorkommnis', 'Produktmangel', 'Rückruf (FSCA)'];
-const INC_STATUS = ['Erfasst', 'In Prüfung', 'Gemeldet BfArM', 'Abgeschlossen'];
 const SEV = ['Niedrig', 'Mittel', 'Hoch', 'Schwerwiegend'];
 const SEV_TONE = { Niedrig: 'gray', Mittel: 'blue', Hoch: 'amber', Schwerwiegend: 'red' };
-const INC_TONE = { Erfasst: 'gray', 'In Prüfung': 'amber', 'Gemeldet BfArM': 'purple', Abgeschlossen: 'green' };
-const CAPA_STATUS = ['Offen', 'In Umsetzung', 'Wirksamkeit prüfen', 'Abgeschlossen'];
-const CAPA_TONE = { Offen: 'gray', 'In Umsetzung': 'amber', 'Wirksamkeit prüfen': 'blue', Abgeschlossen: 'green' };
+// Spätester Meldezeitpunkt für schwerwiegende Vorkommnisse (MDR Art. 87: max. 15 Tage).
+const deadline = (i) => new Date(new Date(i.reportedAt).getTime() + 15 * 86400000).toISOString();
 
 export default function Quality() {
   const db = useStore();
@@ -24,20 +23,20 @@ export default function Quality() {
   useOpenParam(db.incidents, (rec) => { setTab('incidents'); setSel(rec); });
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
-  const dev = (id) => db.devices.find((d) => d.id === id);
+  const prod = (id) => db.products.find((p) => p.id === id);
   const user = (id) => db.users.find((u) => u.id === id);
 
-  const openInc = db.incidents.filter((i) => i.status !== 'Abgeschlossen').length;
-  const reportable = db.incidents.filter((i) => i.meldepflichtig && i.status !== 'Abgeschlossen').length;
-  const inReview = db.incidents.filter((i) => i.status === 'In Prüfung').length;
-  const openCapa = db.capas.filter((c) => c.status !== 'Abgeschlossen').length;
+  const openInc = db.incidents.filter((i) => isOpen(db, 'incidents', i.status)).length;
+  const reportable = db.incidents.filter((i) => i.meldepflichtig && isOpen(db, 'incidents', i.status)).length;
+  const overdueReport = db.incidents.filter((i) => i.meldepflichtig && isOpen(db, 'incidents', i.status) && new Date(deadline(i)) < new Date()).length;
+  const openCapa = db.capas.filter((c) => isOpen(db, 'capas', c.status)).length;
 
   return (
     <div className="page">
       <div className="page-head">
         <div><h1>QM & Vigilanz</h1><div className="sub">Vorkommnisse (MDR/MPDG), Meldungen und Korrektur-/Vorbeugemaßnahmen (CAPA)</div></div>
         <div className="page-actions">
-          {tab === 'incidents'
+          <StatusConfigLink kind={tab === 'capa' ? 'capas' : 'incidents'} />{tab === 'incidents'
             ? <button className="btn primary" onClick={() => setAdding('incident')}><Plus size={16} /> Vorkommnis erfassen</button>
             : <button className="btn primary" onClick={() => setAdding('capa')}><Plus size={16} /> Maßnahme anlegen</button>}
         </div>
@@ -46,7 +45,7 @@ export default function Quality() {
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <KpiCard icon={AlertOctagon} tone="brand" label="Offene Vorkommnisse" value={openInc} />
         <KpiCard icon={Siren} tone="red" label="Meldepflichtig (offen)" value={reportable} />
-        <KpiCard icon={FileWarning} tone="amber" label="In Prüfung" value={inReview} />
+        <KpiCard icon={FileWarning} tone="amber" label="Meldefrist überschritten" value={overdueReport} />
         <KpiCard icon={ClipboardCheck} tone="teal" label="Offene CAPA" value={openCapa} />
       </div>
 
@@ -63,18 +62,20 @@ export default function Quality() {
 
       {tab === 'incidents' && (
         <Card pad={false}><div className="table-wrap list"><table className="tbl">
-          <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Gerät / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Gemeldet</th></tr></thead>
+          <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Produkt / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Meldefrist</th></tr></thead>
           <tbody>
             {db.incidents.map((i) => (
               <tr key={i.id} onClick={() => setSel(i)}>
                 <td className="cell-main nowrap">{i.number}</td>
                 <td style={{ maxWidth: 260 }}>{i.title}</td>
                 <td><Badge tone="gray">{i.type}</Badge></td>
-                <td><div className="cell-main" style={{ fontWeight: 500 }}>{dev(i.deviceId)?.name.replace(/\s*\(.*\)/, '')}</div><div className="cell-sub">{acct(i.accountId)?.name}</div></td>
+                <td><div className="cell-main" style={{ fontWeight: 500 }}>{prod(i.productId)?.name || '—'}</div><div className="cell-sub">{acct(i.accountId)?.name}</div></td>
                 <td><Badge tone={SEV_TONE[i.severity]} dot>{i.severity}</Badge></td>
                 <td>{i.meldepflichtig ? <Badge tone="red" dot>Ja</Badge> : <Badge tone="gray">Nein</Badge>}</td>
-                <td><Badge tone={INC_TONE[i.status]} dot>{i.status}</Badge></td>
-                <td className="muted tiny nowrap">{relDate(i.reportedAt)}</td>
+                <td><Badge tone={statusTone(db, 'incidents', i.status)} dot>{i.status}</Badge></td>
+                <td className="tiny nowrap">{i.meldepflichtig && isOpen(db, 'incidents', i.status)
+                  ? <Badge tone={new Date(deadline(i)) < new Date() ? 'red' : 'amber'} dot>{relDate(deadline(i))}</Badge>
+                  : <span className="muted">—</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -86,7 +87,7 @@ export default function Quality() {
           <thead><tr><th>Nr.</th><th>Maßnahme</th><th>Typ</th><th>Vorkommnis</th><th>Verantwortlich</th><th>Fällig</th><th>Status</th></tr></thead>
           <tbody>
             {db.capas.map((c) => {
-              const overdue = c.status !== 'Abgeschlossen' && new Date(c.dueDate) < new Date();
+              const overdue = isOpen(db, 'capas', c.status) && new Date(c.dueDate) < new Date();
               return (
                 <tr key={c.id} onClick={() => setCapaSel(c)}>
                   <td className="cell-main nowrap">{c.number}</td>
@@ -95,7 +96,7 @@ export default function Quality() {
                   <td className="muted">{db.incidents.find((i) => i.id === c.incidentId)?.number || '—'}</td>
                   <td>{user(c.ownerId)?.name.split(' ')[0]}</td>
                   <td><Badge tone={overdue ? 'red' : 'gray'} dot={overdue}>{relDate(c.dueDate)}</Badge></td>
-                  <td><Badge tone={CAPA_TONE[c.status]} dot>{c.status}</Badge></td>
+                  <td><Badge tone={statusTone(db, 'capas', c.status)} dot>{c.status}</Badge></td>
                 </tr>
               );
             })}
@@ -117,14 +118,16 @@ export default function Quality() {
           </div>
           <p style={{ fontSize: 13.5, marginBottom: 16 }}>{sel.description}</p>
           <Field label="Status">
-            <Select className="select" value={sel.status} onChange={(e) => { store.update('incidents', sel.id, { status: e.target.value }); toast('Status aktualisiert'); setSel({ ...sel, status: e.target.value }); }}>
-              {INC_STATUS.map((s) => <option key={s}>{s}</option>)}
+            <Select className="select" value={sel.status} onChange={(e) => { setStatus('incidents', sel.id, e.target.value); toast('Status aktualisiert'); setSel({ ...sel, status: e.target.value }); }}>
+              {statusList(db, 'incidents').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
             </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
-            <dt>Gerät</dt><dd>{dev(sel.deviceId)?.name || '—'}</dd>
-            <dt>Seriennr.</dt><dd>{dev(sel.deviceId)?.serial || '—'}</dd>
+            <dt>Produkt</dt><dd>{prod(sel.productId)?.name || '—'}</dd>
+            <dt>Charge / LOT</dt><dd>{sel.lot || '—'}</dd>
+            <dt>Seriennr.</dt><dd>{sel.serial || '—'}</dd>
+            {sel.meldepflichtig && <><dt>Meldefrist</dt><dd>{fmtDate(deadline(sel))} (spätestens, MDR Art. 87)</dd></>}
             <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Erfasst von</dt><dd>{user(sel.reportedBy)?.name}</dd>
             <dt>Erfasst am</dt><dd>{fmtDate(sel.reportedAt)}</dd>
@@ -140,8 +143,8 @@ export default function Quality() {
           <Badge tone={capaSel.type === 'Korrektur' ? 'amber' : 'teal'}>{capaSel.type}maßnahme</Badge>
           <p style={{ fontSize: 13.5, margin: '16px 0' }}>{capaSel.description}</p>
           <Field label="Status">
-            <Select className="select" value={capaSel.status} onChange={(e) => { store.update('capas', capaSel.id, { status: e.target.value }); toast('Maßnahme aktualisiert'); setCapaSel({ ...capaSel, status: e.target.value }); }}>
-              {CAPA_STATUS.map((s) => <option key={s}>{s}</option>)}
+            <Select className="select" value={capaSel.status} onChange={(e) => { setStatus('capas', capaSel.id, e.target.value); toast('Maßnahme aktualisiert'); setCapaSel({ ...capaSel, status: e.target.value }); }}>
+              {statusList(db, 'capas').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
             </Select>
           </Field>
           <div style={{ height: 14 }} />
@@ -163,13 +166,12 @@ export default function Quality() {
 function AddIncident({ db, onClose, toast }) {
   const [f, setF] = useState({ type: 'Vorkommnis', severity: 'Mittel', accountId: db.accounts[0]?.id, meldepflichtig: false, description: '' });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const devs = db.devices.filter((d) => d.accountId === f.accountId);
   const save = () => {
     if (!f.title) return;
     const n = 'VK-2026-' + String(16 + db.incidents.length).padStart(3, '0');
     store.add('incidents', {
-      number: n, title: f.title, type: f.type, severity: f.severity, deviceId: f.deviceId || devs[0]?.id || null,
-      accountId: f.accountId, status: 'Erfasst', reportedBy: db.meta.currentUserId, reportedAt: new Date().toISOString(),
+      number: n, title: f.title, type: f.type, severity: f.severity, productId: f.productId || null, lot: f.lot || '', serial: f.serial || '',
+      accountId: f.accountId, status: '', reportedBy: db.meta.currentUserId, reportedAt: new Date().toISOString(),
       meldepflichtig: f.meldepflichtig || f.severity === 'Schwerwiegend', description: f.description, capaId: null,
     });
     store.add('auditLog', { at: new Date().toISOString(), userId: db.meta.currentUserId, action: 'Vorkommnis erfasst', entity: n, detail: f.title });
@@ -182,8 +184,10 @@ function AddIncident({ db, onClose, toast }) {
         <div className="full"><Field label="Titel"><input className="input" onChange={(e) => set('title', e.target.value)} placeholder="Kurzbeschreibung des Vorkommnisses" autoFocus /></Field></div>
         <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{INC_TYPES.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Schweregrad"><Select className="select" value={f.severity} onChange={(e) => set('severity', e.target.value)}>{SEV.map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => { set('accountId', e.target.value); set('deviceId', ''); }}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
-        <Field label="Gerät"><Select className="select" value={f.deviceId || ''} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Ohne Gerät —</option>{devs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</Select></Field>
+        <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
+        <Field label="Produkt"><Select className="select" value={f.productId || ''} onChange={(e) => set('productId', e.target.value)}><option value="">— Ohne Produkt —</option>{db.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+        <Field label="Charge / LOT"><input className="input" onChange={(e) => set('lot', e.target.value)} placeholder="z. B. LOT 24-0815" /></Field>
+        <Field label="Seriennummer"><input className="input" onChange={(e) => set('serial', e.target.value)} placeholder="falls vorhanden" /></Field>
         <div className="full"><label className="check" style={{ marginTop: 4 }}><input type="checkbox" checked={f.meldepflichtig} onChange={(e) => set('meldepflichtig', e.target.checked)} /> Meldepflichtig (an BfArM &amp; Hersteller)</label></div>
         <div className="full"><Field label="Beschreibung"><textarea className="input" rows={3} onChange={(e) => set('description', e.target.value)} placeholder="Was ist passiert? Auswirkung? Sofortmaßnahmen?" /></Field></div>
       </div>
@@ -199,7 +203,7 @@ function AddCapa({ db, onClose, toast }) {
     const n = 'CAPA-2026-' + String(10 + db.capas.length).padStart(3, '0');
     store.add('capas', {
       number: n, type: f.type, title: f.title, incidentId: f.incidentId || null, ownerId: f.ownerId,
-      status: 'Offen', dueDate: new Date(f.dueDate).toISOString(), createdAt: new Date().toISOString(), description: f.description,
+      status: '', dueDate: new Date(f.dueDate).toISOString(), createdAt: new Date().toISOString(), description: f.description,
     });
     toast('Maßnahme angelegt'); onClose();
   };

@@ -1,13 +1,16 @@
 import { useState, useRef } from 'react';
-import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
 import { Avatar, Badge, Card, Field, Modal, Select } from '../components/ui.jsx';
 import { LogoMark } from '../components/Logo.jsx';
 import { useToast } from '../components/Toast.jsx';
+import StatusSettings from '../components/StatusSettings.jsx';
 
 const TABS = [
+  ['status', 'Vorgänge & Status', ListChecks],
   ['automation', 'Automatisierung', Zap],
   ['fields', 'Benutzerdefinierte Felder', SlidersHorizontal],
   ['users', 'Benutzer & Rollen', Users],
@@ -20,7 +23,8 @@ const AV_COLORS = ['#a81e22', '#0f8f86', '#7a5cf0', '#e0930b', '#2f7ce0', '#10a7
 export default function Settings() {
   const db = useStore();
   const toast = useToast();
-  const [tab, setTab] = useState('automation');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(params.get('tab') || 'status');
   const [modal, setModal] = useState(null); // 'field' | 'rule' | 'user'
   const [editRule, setEditRule] = useState(null);
 
@@ -50,6 +54,8 @@ export default function Settings() {
         </div>
 
         <div>
+          {tab === 'status' && <StatusSettings db={db} toast={toast} initialKind={params.get('kind')} />}
+
           {tab === 'automation' && (
             <Card title="Automatisierungsregeln" sub="WENN ein Objekt bestimmte Bedingungen erfüllt, DANN führe Aktionen aus — wird bei Änderungen automatisch ausgeführt." pad={false}
               action={<button className="btn sm primary" onClick={() => { setEditRule(null); setModal('rule'); }}><Plus size={14} /> Neue Regel</button>}>
@@ -166,7 +172,7 @@ function FieldModal({ onClose, toast }) {
       footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Speichern</button></>}>
       <div className="form-grid">
         <div className="full"><Field label="Bezeichnung"><input className="input" onChange={(e) => set('label', e.target.value)} placeholder="z. B. Einkaufsverbund" autoFocus /></Field></div>
-        <Field label="Objekt"><Select className="select" value={f.entity} onChange={(e) => set('entity', e.target.value)}>{['Firma', 'Ansprechpartner', 'Deal', 'Interessent', 'Gerät', 'Vorgang', 'Vertrag'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
+        <Field label="Objekt"><Select className="select" value={f.entity} onChange={(e) => set('entity', e.target.value)}>{['Firma', 'Ansprechpartner', 'Deal', 'Interessent', 'Vorgang', 'Vertrag'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
         <Field label="Feldtyp"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Text', 'Zahl', 'Datum', 'Auswahl', 'Kontrollkästchen'].map((x) => <option key={x}>{x}</option>)}</Select></Field>
         {f.type === 'Auswahl' && <div className="full"><Field label="Auswahlwerte (durch Komma getrennt)"><input className="input" onChange={(e) => set('options', e.target.value)} placeholder="z. B. Bronze, Silber, Gold" /></Field></div>}
       </div>

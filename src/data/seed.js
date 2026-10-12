@@ -93,7 +93,6 @@ const F = (id, entity, label, type, options, active = true) => ({ id, entity, la
 export const CUSTOM_FIELDS = [
   F('F1', 'Firma', 'ABCD-Klassifizierung', 'Auswahl', ['A (Fokuskunde)', 'B (hochwertig)', 'C (wertig)', 'D (Standard)']),
   F('F2', 'Firma', 'Kontakt ist', 'Auswahl', ['Kunde', 'Interessent', 'Passiv', 'Lieferant', 'Vertriebspartner', 'Wettbewerber', 'Kaltkontakt', 'Ex-Kunde', 'Multiplikator']),
-  F('F3', 'Firma', 'Service Level', 'Auswahl', ['Kein Service', 'Bronze', 'Silber', 'Gold']),
   F('F4', 'Firma', 'Branche', 'Auswahl', ['Gastroenterologie', 'Onkologie', 'Proktologie', 'Intensivmedizin', 'Allgemeinmedizin', 'Pflege', 'Sonstige']),
   F('F5', 'Firma', 'Verband', 'Auswahl', ['Kein Verband', 'AGKAMED', 'Asklepios', 'HELIOS', 'Sana', 'Vivantes', 'Prospitalia', 'Sonstiger']),
   F('F6', 'Firma', 'Innovationsaffinität', 'Auswahl', ['abgeneigt', 'selten offen', 'mittel', 'interessiert', 'sehr interessiert']),
@@ -107,8 +106,6 @@ export const CUSTOM_FIELDS = [
   F('F14', 'Ansprechpartner', 'Geburtstag', 'Datum', []),
   F('F15', 'Deal', 'Potential-Klasse', 'Auswahl', ['A: hoch (min. 10.000 €/J.)', 'B: mittel (1.000–10.000 €/J.)', 'C: gering (max. 1.000 €/J.)', 'D: kein Umsatz']),
   F('F16', 'Deal', 'Abschlusswahrscheinlichkeit %', 'Zahl', []),
-  F('F17', 'Gerät', 'Standort im Haus', 'Text', []),
-  F('F18', 'Gerät', 'Gerätehersteller', 'Auswahl', ['Olympus', 'Fuji', 'Pentax', 'Storz', 'InMedi', 'Andere']),
 ];
 
 // ---- Produktkategorien ----
@@ -235,9 +232,9 @@ function demo() {
   ];
 
   const contracts = [
-    { id: 'V1', number: 'V-1001', title: 'Wartungsvertrag Monitoring 2026', accountId: 'A1', contactId: 'C2', ownerId: 'U2', status: 'Aktiv', startDate: D(1, 15), termMonths: 24, items: [li('P2', 1, 'jährlich'), li('P1', 1, 'quartalsweise')], cancellationReason: '', fromOrderId: 'O1', description: 'Vollwartung inkl. MTK/STK für Monitoring-Systeme.', createdAt: D(1, 15), customValues: {} },
-    { id: 'V2', number: 'V-1002', title: 'Vollservice Intensivmedizin', accountId: 'A4', contactId: 'C6', ownerId: 'U4', status: 'Aktiv', startDate: D(3, 1), termMonths: 36, items: [li('P4', 2, 'jährlich')], cancellationReason: '', fromOrderId: null, description: 'Servicevertrag Beatmungstechnik.', createdAt: D(3, 1), customValues: {} },
-    { id: 'V3', number: 'V-1003', title: 'Endoskopie-Servicevertrag', accountId: 'A2', contactId: 'C3', ownerId: 'U3', status: 'Gekündigt', startDate: D(2, 1), termMonths: 12, items: [li('P3', 1, 'jährlich')], cancellationReason: 'Budgetkürzung 2026', fromOrderId: null, description: '', createdAt: D(2, 1), customValues: {} },
+    { id: 'V1', number: 'V-1001', title: 'Liefervertrag Monitoring 2026', accountId: 'A1', contactId: 'C2', ownerId: 'U2', status: 'Aktiv', startDate: D(1, 15), termMonths: 24, items: [li('P2', 1, 'jährlich'), li('P1', 1, 'quartalsweise')], cancellationReason: '', fromOrderId: 'O1', description: 'Rahmenliefervertrag Monitoring-Systeme inkl. Zubehör.', createdAt: D(1, 15), customValues: {} },
+    { id: 'V2', number: 'V-1002', title: 'Rahmenvertrag Intensivmedizin', accountId: 'A4', contactId: 'C6', ownerId: 'U4', status: 'Aktiv', startDate: D(3, 1), termMonths: 36, items: [li('P4', 2, 'jährlich')], cancellationReason: '', fromOrderId: null, description: 'Liefervertrag Beatmungstechnik.', createdAt: D(3, 1), customValues: {} },
+    { id: 'V3', number: 'V-1003', title: 'Endoskopie-Liefervertrag', accountId: 'A2', contactId: 'C3', ownerId: 'U3', status: 'Gekündigt', startDate: D(2, 1), termMonths: 12, items: [li('P3', 1, 'jährlich')], cancellationReason: 'Budgetkürzung 2026', fromOrderId: null, description: '', createdAt: D(2, 1), customValues: {} },
   ];
 
   const act = (o) => ({ priority: 'Mittel', notes: '', contactId: null, dealId: null, done: false, ...o });
@@ -263,14 +260,14 @@ function demo() {
     ce('Demo', 'A1', 'U2', 2, 18, 90, 45, 'Gerätedemonstration'),
     ce('Besuch', 'A1', 'U2', 8, 9, 90, 45, 'Nachbestellung Verbrauch'),
     ce('Anruf', 'A1', 'U5', 10, 8, 20, 0, 'Zahlungserinnerung'),
-    ce('Besuch', 'A4', 'U4', 7, 22, 150, 120, 'Lieferung & Einweisung Beatmung'),
+    ce('Besuch', 'A4', 'U4', 7, 22, 150, 120, 'Lieferung & Übergabe Beatmung'),
     ce('Besuch', 'A4', 'U4', 9, 16, 120, 120, 'Angebotspräsentation'),
     ce('Schulung', 'A4', 'U4', 10, 12, 180, 120, 'Anwenderschulung Intensiv'),
     ce('Besuch', 'A2', 'U3', 4, 18, 90, 60, 'Endoskopie-Lieferung'),
     ce('Besuch', 'A2', 'U3', 9, 5, 100, 60, 'Angebotsgespräch'),
     ce('Besuch', 'A3', 'U2', 6, 28, 90, 85, 'Schulung Infusionspumpen'),
     ce('Anruf', 'A3', 'U2', 9, 10, 15, 0, 'Nachbestellung'),
-    ce('Besuch', 'A5', 'U3', 9, 14, 80, 30, 'EKG Einweisung'),
+    ce('Besuch', 'A5', 'U3', 9, 14, 80, 30, 'EKG Produktvorstellung'),
     ce('Besuch', 'A5', 'U3', 10, 18, 90, 30, 'Beratung Erweiterung'),
     // A6 Pflegeheim: viele Besuche, geringer Umsatz → ungünstiges Verhältnis
     ce('Besuch', 'A6', 'U4', 3, 10, 120, 95, 'Bedarfsaufnahme'),
@@ -283,19 +280,11 @@ function demo() {
     ce('Besuch', 'A7', 'U2', 4, 5, 60, 40, 'Rahmenvertrag Verhandlung'),
   ];
 
-  const devices = [
-    { id: 'DEV1', name: 'Vitalzeichenmonitor VS7', serial: 'VS7-00123', udi: '(01)04012345000012(11)260302', category: 'Patientenüberwachung', accountId: 'A1', kind: 'Verkauf', status: 'Im Einsatz', installedAt: D(3, 10), lastMtk: D(3, 10), nextMtk: D(10, 25), lastStk: D(3, 10), nextStk: D(3, 10), ownerId: 'U5', notes: '', orderId: 'O1', contractId: 'V1' },
-    { id: 'DEV2', name: 'Beatmungsgerät RespiCare 200', serial: 'RC200-0456', udi: '(01)04012345000029(11)260301', category: 'Beatmung', accountId: 'A4', kind: 'Leihgerät', status: 'Im Einsatz', installedAt: D(3, 2), lastMtk: D(3, 2), nextMtk: D(9, 20), lastStk: null, nextStk: D(12, 1), ownerId: 'U5', notes: 'Leihgerät im Rahmen Servicevertrag', orderId: null, contractId: 'V2' },
-    { id: 'DEV3', name: 'Endoskopie-Set EasyScope', serial: 'ES-0789', udi: '', category: 'Diagnostik', accountId: 'A2', kind: 'Verkauf', status: 'Im Einsatz', installedAt: D(4, 20), lastMtk: null, nextMtk: D(4, 20), lastStk: null, nextStk: null, ownerId: 'U5', notes: '', orderId: 'O4', contractId: null },
-    { id: 'DEV4', name: 'Infusionspumpe X300', serial: 'X300-1120', udi: '', category: 'Infusion & IV', accountId: 'A1', kind: 'Verkauf', status: 'Im Einsatz', installedAt: D(3, 10), lastMtk: null, nextMtk: D(11, 5), lastStk: null, nextStk: D(10, 30), ownerId: 'U5', notes: '', orderId: 'O1', contractId: 'V1' },
-    { id: 'DEV5', name: 'Defibrillator LifePro AED', serial: 'AED-2201', udi: '', category: 'Notfall', accountId: 'A5', kind: 'Verkauf', status: 'Im Einsatz', installedAt: D(9, 20), lastMtk: null, nextMtk: null, lastStk: null, nextStk: D(9, 20), ownerId: 'U5', notes: '', orderId: 'O7', contractId: null },
-  ];
-
   const tickets = [
-    { id: 'TK1', number: 'TK-4805', subject: 'Monitor zeigt Kalibrierungsfehler', accountId: 'A1', contactId: 'C2', ownerId: 'U5', deviceId: 'DEV1', channel: 'Telefon', category: 'Technische Anfrage', priority: 'Hoch', status: 'In Bearbeitung', createdAt: D(10, 3), resolvedAt: null },
-    { id: 'TK2', number: 'TK-4806', subject: 'Beatmungsgerät Alarm unklar', accountId: 'A4', contactId: 'C7', ownerId: 'U5', deviceId: 'DEV2', channel: 'E-Mail', category: 'Wartung', priority: 'Hoch', status: 'Neu', createdAt: D(10, 7), resolvedAt: null },
-    { id: 'TK3', number: 'TK-4807', subject: 'Rückfrage zu Rechnung RE-25014', accountId: 'A2', contactId: 'C4', ownerId: 'U5', deviceId: null, channel: 'E-Mail', category: 'Rechnungsfrage', priority: 'Mittel', status: 'Gelöst', createdAt: D(9, 10), resolvedAt: D(9, 12) },
-    { id: 'TK4', number: 'TK-4808', subject: 'Lieferverzug Infusionsbesteck', accountId: 'A6', contactId: 'C9', ownerId: 'U5', deviceId: null, channel: 'Telefon', category: 'Reklamation', priority: 'Mittel', status: 'Wartet auf Kunde', createdAt: D(9, 29), resolvedAt: null },
+    { id: 'TK1', number: 'TK-4805', subject: 'Rückmeldung: Monitor-Anzeige schwer ablesbar', accountId: 'A1', contactId: 'C2', ownerId: 'U5', productId: 'P2', channel: 'Telefon', category: 'Feedback', priority: 'Hoch', status: 'In Bearbeitung', createdAt: D(10, 3), resolvedAt: null },
+    { id: 'TK2', number: 'TK-4806', subject: 'Beatmungsgerät Alarm unklar', accountId: 'A4', contactId: 'C7', ownerId: 'U5', productId: 'P4', channel: 'E-Mail', category: 'Produktfrage', priority: 'Hoch', status: 'Neu', createdAt: D(10, 7), resolvedAt: null },
+    { id: 'TK3', number: 'TK-4807', subject: 'Rückfrage zu Rechnung RE-25014', accountId: 'A2', contactId: 'C4', ownerId: 'U5', productId: null, channel: 'E-Mail', category: 'Rechnungsfrage', priority: 'Mittel', status: 'Gelöst', createdAt: D(9, 10), resolvedAt: D(9, 12) },
+    { id: 'TK4', number: 'TK-4808', subject: 'Lieferverzug Infusionsbesteck', accountId: 'A6', contactId: 'C9', ownerId: 'U5', productId: null, channel: 'Telefon', category: 'Reklamation', priority: 'Mittel', status: 'Wartet auf Kunde', createdAt: D(9, 29), resolvedAt: null },
   ];
 
   const events = [
@@ -335,8 +324,8 @@ function demo() {
   ];
 
   const kbArticles = [
-    { id: 'KB1', title: 'MTK/STK-Prüfungen richtig dokumentieren', category: 'Technik', views: 142 },
-    { id: 'KB2', title: 'Infusionspumpe X300 – häufige Fehlercodes', category: 'Geräte', views: 98 },
+    { id: 'KB1', title: 'Kundenfeedback richtig erfassen & weiterleiten', category: 'Prozesse', views: 142 },
+    { id: 'KB2', title: 'Infusionspumpe X300 – häufige Kundenfragen', category: 'Produkte', views: 98 },
     { id: 'KB3', title: 'Retouren & Reklamationen – Ablauf', category: 'Prozesse', views: 61 },
   ];
 
@@ -348,19 +337,19 @@ function demo() {
 
   return {
     products: PRODUCTS, accounts, contacts, deals, orders, invoices, activities,
-    leads, tickets, devices, costEntries, campaigns, contracts, events, recurringOrders,
+    leads, tickets, costEntries, campaigns, contracts, events, recurringOrders,
     kbArticles, documents,
-    serviceOrders: [], incidents: [], capas: [], incomingInvoices: [], ideas: [], auditLog: [],
+    incidents: [], capas: [], incomingInvoices: [], ideas: [], auditLog: [],
   };
 }
 
 function emptyTransactions() {
   return {
     products: [], accounts: [], contacts: [], deals: [], orders: [],
-    invoices: [], activities: [], leads: [], tickets: [], devices: [],
+    invoices: [], activities: [], leads: [], tickets: [],
     costEntries: [], campaigns: [], contracts: [], events: [], recurringOrders: [],
     kbArticles: [], documents: [],
-    serviceOrders: [], incidents: [], capas: [], incomingInvoices: [], ideas: [], auditLog: [],
+    incidents: [], capas: [], incomingInvoices: [], ideas: [], auditLog: [],
   };
 }
 

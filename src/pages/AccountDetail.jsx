@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MapPin, Building2, BedDouble, CalendarCheck, Star, FileText,
   Pencil, Plus, Trash2, Hash, Percent, Receipt, CheckSquare, Clock, FileSignature,
-  Cpu, LifeBuoy, Presentation, ShieldAlert, Wrench,
+  LifeBuoy, Presentation, ShieldAlert,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
+import { statusTone } from '../lib/status.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
@@ -26,13 +27,11 @@ const TABS = [
   { key: 'deals', label: 'Deals' },
   { key: 'activities', label: 'Aktivitäten' },
   { key: 'invoices', label: 'Rechnungen' },
-  { key: 'devices', label: 'Geräte' },
-  { key: 'serviceqm', label: 'Service & QM' },
+  { key: 'serviceqm', label: 'Kundendienst & QM' },
   { key: 'events', label: 'Messen' },
   { key: 'documents', label: 'Dokumente' },
 ];
 const INV_TONE = { Entwurf: 'gray', Versendet: 'blue', Teilbezahlt: 'amber', Bezahlt: 'green', Überfällig: 'red' };
-const TICKET_TONE = { Neu: 'blue', 'In Bearbeitung': 'amber', 'Wartet auf Kunde': 'purple', Gelöst: 'green' };
 const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'gray' };
 
 export default function AccountDetail() {
@@ -53,9 +52,7 @@ export default function AccountDetail() {
   const invoices = db.invoices.filter((o) => o.accountId === id);
   const activities = db.activities.filter((x) => x.accountId === id).sort((x, y) => new Date(y.dueDate) - new Date(x.dueDate));
   const docs = db.documents.filter((d) => d.accountId === id);
-  const devices = db.devices.filter((d) => d.accountId === id);
   const tickets = db.tickets.filter((t) => t.accountId === id);
-  const serviceOrders = db.serviceOrders.filter((s) => s.accountId === id);
   const incidents = db.incidents.filter((i) => i.accountId === id);
   const events = db.events.filter((e) => (e.attendees || []).some((at) => at.refType === 'account' && at.refId === id));
   const recurring = db.recurringOrders.filter((r) => r.accountId === id);
@@ -115,8 +112,7 @@ export default function AccountDetail() {
             {t.key === 'deals' && ` (${deals.length})`}
             {t.key === 'invoices' && ` (${invoices.length})`}
             {t.key === 'recurring' && ` (${recurring.length})`}
-            {t.key === 'devices' && ` (${devices.length})`}
-            {t.key === 'serviceqm' && ` (${tickets.length + serviceOrders.length + incidents.length})`}
+            {t.key === 'serviceqm' && ` (${tickets.length + incidents.length})`}
             {t.key === 'events' && ` (${events.length})`}
           </button>
         ))}
@@ -162,7 +158,7 @@ export default function AccountDetail() {
                     <div key={act.id} className="tl-item">
                       <span className="tl-dot" />
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{act.subject}</div>
-                      <div className="tl-time">{ACT_LABEL[act.type]} · {relDate(act.dueDate)} · {act.done ? 'Erledigt' : 'Offen'}</div>
+                      <div className="tl-time">{ACT_LABEL[act.type]} · {relDate(act.dueDate)} · {act.status}</div>
                     </div>
                   ))}
                 </div>
@@ -244,7 +240,7 @@ export default function AccountDetail() {
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{act.subject}</div>
                 <div className="muted tiny">{ACT_LABEL[act.type]} · {uname(act.ownerId).split(' ')[0]}</div>
               </div>
-              <Badge tone={act.done ? 'green' : 'amber'}>{act.done ? 'Erledigt' : relDate(act.dueDate)}</Badge>
+              <Badge tone={act.done ? statusTone(db, 'activities', act.status) : 'amber'}>{act.done ? act.status : relDate(act.dueDate)}</Badge>
             </div>
           ))}
         </div></Card>
@@ -273,61 +269,24 @@ export default function AccountDetail() {
         </Card>
       )}
 
-      {tab === 'devices' && (
-        <Card title="Geräte" sub="Installierte Geräte, Leihgeräte & Konsignation" pad={false}>
-          <div className="table-wrap"><table className="tbl">
-            <thead><tr><th>Gerät</th><th>Seriennr.</th><th>Art</th><th>Status</th><th>Herkunft</th></tr></thead>
-            <tbody>
-              {devices.map((d) => {
-                const ord = orders.find((o) => o.id === d.orderId);
-                const con = db.contracts.find((c) => c.id === d.contractId);
-                return (
-                  <tr key={d.id} onClick={() => nav(openLink('/devices', d.id))}>
-                    <td className="cell-main"><Cpu size={14} style={{ verticalAlign: -2, marginRight: 6, color: 'var(--brand)' }} />{d.name}</td>
-                    <td className="muted nowrap">{d.serial}</td>
-                    <td><Badge tone={d.kind === 'Verkauf' ? 'teal' : d.kind === 'Leihgerät' ? 'amber' : 'purple'}>{d.kind}</Badge></td>
-                    <td><Badge tone={d.status === 'Im Einsatz' ? 'green' : 'gray'} dot>{d.status}</Badge></td>
-                    <td className="muted tiny">{ord ? 'Auftrag ' + ord.number : con ? 'Vertrag ' + con.number : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>{devices.length === 0 && <Empty label="Keine Geräte" />}</div>
-        </Card>
-      )}
-
       {tab === 'serviceqm' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card title="Tickets" sub="Kundendienst & Reklamationen" pad={false}>
             <div className="table-wrap"><table className="tbl">
-              <thead><tr><th>Ticket</th><th>Gerät</th><th>Priorität</th><th>Status</th></tr></thead>
+              <thead><tr><th>Ticket</th><th>Produkt</th><th>Priorität</th><th>Status</th></tr></thead>
               <tbody>
                 {tickets.map((t) => (
                   <tr key={t.id} onClick={() => nav(openLink('/service', t.id))}>
                     <td><div className="cell-main">{t.subject}</div><div className="cell-sub">{t.number}</div></td>
-                    <td className="muted">{devices.find((d) => d.id === t.deviceId)?.name || '—'}</td>
+                    <td className="muted">{db.products.find((p) => p.id === t.productId)?.name || '—'}</td>
                     <td><Badge tone={t.priority === 'Hoch' ? 'red' : t.priority === 'Niedrig' ? 'gray' : 'amber'}>{t.priority}</Badge></td>
-                    <td><Badge tone={TICKET_TONE[t.status]} dot>{t.status}</Badge></td>
+                    <td><Badge tone={statusTone(db, 'tickets', t.status)} dot>{t.status}</Badge></td>
                   </tr>
                 ))}
               </tbody>
             </table>{tickets.length === 0 && <Empty label="Keine Tickets" />}</div>
           </Card>
-          <Card title="Serviceaufträge" sub="Wartung, Reparatur, MTK/STK" pad={false}>
-            <div className="table-wrap"><table className="tbl">
-              <thead><tr><th>Nr.</th><th>Typ</th><th>Gerät</th><th>Status</th></tr></thead>
-              <tbody>
-                {serviceOrders.map((s) => (
-                  <tr key={s.id} onClick={() => nav(openLink('/service-orders', s.id))}>
-                    <td className="cell-main nowrap">{s.number}</td><td>{s.type}</td>
-                    <td className="muted">{devices.find((d) => d.id === s.deviceId)?.name || '—'}</td>
-                    <td><Badge tone={s.status === 'Erledigt' ? 'green' : 'blue'} dot>{s.status}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>{serviceOrders.length === 0 && <Empty label="Keine Serviceaufträge" />}</div>
-          </Card>
-          <Card title="QM & Vigilanz" sub="Vorkommnisse (MDR/MPDG)" pad={false}>
+          <Card title="QM-Vorkommnisse" sub="Vigilanz nach MDR/MPDG" pad={false}>
             <div className="table-wrap"><table className="tbl">
               <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Schweregrad</th><th>Status</th></tr></thead>
               <tbody>
@@ -335,7 +294,7 @@ export default function AccountDetail() {
                   <tr key={i.id} onClick={() => nav(openLink('/quality', i.id))}>
                     <td className="cell-main nowrap">{i.number}</td><td>{i.title}</td>
                     <td><Badge tone={i.severity === 'Schwerwiegend' ? 'red' : i.severity === 'Hoch' ? 'amber' : 'gray'} dot>{i.severity}</Badge></td>
-                    <td><Badge tone={i.status === 'Abgeschlossen' ? 'green' : 'blue'} dot>{i.status}</Badge></td>
+                    <td><Badge tone={statusTone(db, 'incidents', i.status)} dot>{i.status}</Badge></td>
                   </tr>
                 ))}
               </tbody>
