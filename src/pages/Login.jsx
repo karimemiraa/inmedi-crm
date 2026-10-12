@@ -39,7 +39,7 @@ export default function Login() {
           <Logo light />
           <h2 style={{ color: '#fff', fontSize: 26, marginTop: 40, lineHeight: 1.3 }}>Das CRM für den<br />Medizintechnik-Vertrieb</h2>
           <p style={{ color: '#aeb9d0', marginTop: 14, maxWidth: 340, lineHeight: 1.6 }}>
-            Kunden, Geräte, Service, Vorgänge und Regulatorik an einem Ort. Für Außendienst und Innendienst.
+            Kunden, Produkte, Vorgänge und Regulatorik an einem Ort. Für Außendienst und Innendienst.
           </p>
           <div style={{ marginTop: 'auto', display: 'flex', gap: 18, color: '#8e9bb5', fontSize: 12.5 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ShieldCheck size={15} /> 2FA & DSGVO-konform</span>

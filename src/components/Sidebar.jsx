@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
-  LifeBuoy, Receipt, Cpu, Calculator, ShieldCheck, LogOut, Wrench, ShieldAlert,
+  LifeBuoy, Receipt, Calculator, ShieldCheck, LogOut, ShieldAlert,
   FileSignature, Lightbulb, Mail, Presentation, Repeat, CopyCheck, Percent, Scale,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
 import { useStore } from '../data/store.js';
 import { logout } from '../data/auth.js';
+import { isOpen } from '../lib/status.js';
 
 const GROUPS = [
   {
@@ -30,6 +31,7 @@ const GROUPS = [
     items: [
       { to: '/activities', icon: CalendarCheck, label: 'Aufgaben & Termine', countKey: 'dueTasks' },
       { to: '/service', icon: LifeBuoy, label: 'Kundendienst', countKey: 'openTickets' },
+      { to: '/quality', icon: ShieldAlert, label: 'QM & Vigilanz', countKey: 'openIncidents' },
       { to: '/ideas', icon: Lightbulb, label: 'Ideen' },
     ],
   },
@@ -42,14 +44,6 @@ const GROUPS = [
       { to: '/contracts', icon: FileSignature, label: 'Verträge' },
       { to: '/invoices', icon: Receipt, label: 'Rechnungen' },
       { to: '/products', icon: Package, label: 'Produkte' },
-    ],
-  },
-  {
-    label: 'Service & Technik',
-    items: [
-      { to: '/service-orders', icon: Wrench, label: 'Serviceaufträge', countKey: 'openOrders' },
-      { to: '/devices', icon: Cpu, label: 'Geräteverwaltung', countKey: 'dueDevices' },
-      { to: '/quality', icon: ShieldAlert, label: 'QM & Vigilanz', countKey: 'openIncidents' },
     ],
   },
   {
@@ -81,11 +75,9 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
   const counts = {
     openDeals: db.deals.filter((d) => d.stage !== 'won' && d.stage !== 'lost').length,
     newLeads: db.leads.filter((l) => l.status === 'Neu').length,
-    dueTasks: db.activities.filter((a) => !a.done).length,
-    openTickets: db.tickets.filter((t) => t.status !== 'Gelöst').length,
-    dueDevices: db.devices.filter((d) => [d.nextMtk, d.nextStk].some((x) => x && new Date(x) - new Date() < 30 * 86400000)).length,
-    openOrders: db.serviceOrders.filter((s) => s.status !== 'Erledigt').length,
-    openIncidents: db.incidents.filter((i) => i.meldepflichtig && i.status !== 'Abgeschlossen').length,
+    dueTasks: db.activities.filter((a) => isOpen(db, 'activities', a.status)).length,
+    openTickets: db.tickets.filter((t) => isOpen(db, 'tickets', t.status)).length,
+    openIncidents: db.incidents.filter((i) => i.meldepflichtig && isOpen(db, 'incidents', i.status)).length,
     dueRecurring: db.recurringOrders.filter((r) => r.active && new Date(r.nextDue) <= new Date()).length,
   };
   const nav = useNavigate();

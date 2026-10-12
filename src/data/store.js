@@ -2,15 +2,37 @@
 // Swap this out for a real API layer later — pages consume it via useStore().
 import { useSyncExternalStore } from 'react';
 import { buildSeed, STAGES } from './seed.js';
+import { cloneDefaultStatus } from './statusDefaults.js';
 
 const KEY = 'inmedi-crm-v12';
+
+// Bringt gespeicherte Daten auf den aktuellen Stand, ohne Nutzerdaten zu verlieren:
+// Serviceaufträge & Geräteverwaltung entfernt (kein Serviceangebot), Status konfigurierbar.
+function migrate(s) {
+  const out = { ...s };
+  delete out.serviceOrders;
+  delete out.devices;
+  if (!out.statusConfig) out.statusConfig = cloneDefaultStatus();
+  const strip = ({ deviceId, ...r }) => r;
+  out.tickets = (out.tickets || []).map((t) => ({ ...strip(t), category: t.category === 'Wartung' ? 'Produktfrage' : t.category }));
+  out.incidents = (out.incidents || []).map(strip);
+  out.activities = (out.activities || []).map((a) => (a.status ? a : { ...a, status: a.done ? 'Erledigt' : 'Offen' }));
+  out.kbArticles = (out.kbArticles || []).filter((k) => !/MTK|STK/.test(k.title));
+  if (Array.isArray(out.customFields)) out.customFields = out.customFields.filter((f) => f.label !== 'Service Level' && f.entity !== 'Gerät');
+  if (Array.isArray(out.automations)) out.automations = out.automations.filter((r) => r.trigger?.object !== 'Gerät');
+  return out;
+}
 
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const s = migrate(JSON.parse(raw));
+      try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+      return s;
+    }
   } catch (e) { /* ignore */ }
-  const seed = buildSeed();
+  const seed = migrate(buildSeed());
   try { localStorage.setItem(KEY, JSON.stringify(seed)); } catch (e) {}
   return seed;
 }
@@ -22,6 +44,20 @@ function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
 }
 function emit() { listeners.forEach((l) => l()); }
+
+// Neue Vorgänge bekommen immer einen gültigen Status aus der Konfiguration
+// (z. B. wenn ein Status umbenannt wurde) — Aufgaben zusätzlich passendes `done`.
+function withStatus(coll, rec) {
+  const list = state.statusConfig?.[coll];
+  if (!list?.length) return rec;
+  let r = rec;
+  if (!list.some((s) => s.name === r.status)) {
+    const target = coll === 'activities' && r.done ? (list.find((s) => s.closed) || list.at(-1)) : (list.find((s) => !s.closed) || list[0]);
+    r = { ...r, status: target.name };
+  }
+  if (coll === 'activities') r = { ...r, done: !!list.find((s) => s.name === r.status)?.closed };
+  return r;
+}
 
 let mutationHandler = null;
 function notifyMutation(coll, event, rec) { if (mutationHandler) { try { mutationHandler(coll, event, rec); } catch (e) {} } }
@@ -36,7 +72,7 @@ export const store = {
   // ---- generic collection helpers ----
   add(coll, item) {
     const id = item.id || (coll[0].toUpperCase() + Date.now().toString().slice(-7));
-    const rec = { ...item, id };
+    const rec = withStatus(coll, { ...item, id });
     state = { ...state, [coll]: [rec, ...state[coll]] };
     persist(); emit();
     notifyMutation(coll, 'create', rec);
@@ -53,7 +89,7 @@ export const store = {
     persist(); emit();
   },
   reset(opts) {
-    state = buildSeed(opts); persist(); emit();
+    state = migrate(buildSeed(opts)); persist(); emit();
   },
 };
 

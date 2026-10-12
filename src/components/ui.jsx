@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect, Children, isValidElement 
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { initials } from '../lib/format.js';
-import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown, Check } from 'lucide-react';
+import { X, Inbox, ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ChevronsUpDown, Check, ListChecks } from 'lucide-react';
 
 // Styled dropdown — a drop-in replacement for native <select>. Reads <option>
 // children and keeps the native onChange(e.target.value) signature. Renders the
@@ -97,6 +97,11 @@ export function Select({ value, onChange, children, className = '', style, disab
         </div>, document.body)}
     </>
   );
+}
+
+// Kurzweg zu Einstellungen → Vorgänge & Status für eine Vorgangsart.
+export function StatusConfigLink({ kind }) {
+  return <Link className="btn" to={'/settings?tab=status&kind=' + kind} title="Status dieser Vorgangsart bearbeiten"><ListChecks size={15} /> Status anpassen</Link>;
 }
 
 // Sortable table header cell. Pairs with useSort(): <SortTh label sortKey sort onSort />

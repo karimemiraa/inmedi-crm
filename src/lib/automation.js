@@ -2,6 +2,7 @@
 // Regeln liegen in db.automations als strukturierte Objekte.
 import { store } from '../data/store.js';
 import { fieldsFor } from '../components/CustomFields.jsx';
+import { statusList } from './status.js';
 
 // --- Objekte mit auswählbaren Feldern ---
 export const OBJECTS = {
@@ -31,13 +32,9 @@ export const OBJECTS = {
     { key: 'status', label: 'Status', type: 'enum', options: ['Entwurf', 'Angebot gesendet', 'Bestätigt', 'Versendet', 'Geliefert'] },
     { key: 'total', label: 'Betrag (€)', type: 'number' },
   ] },
-  Gerät: { coll: 'devices', fields: [
-    { key: 'status', label: 'Status', type: 'enum', options: ['Im Einsatz', 'Lager', 'In Wartung', 'Defekt'] },
-    { key: 'kind', label: 'Art', type: 'enum', options: ['Verkauf', 'Leihgerät', 'Konsignation'] },
-  ] },
   Vorkommnis: { coll: 'incidents', fields: [
     { key: 'severity', label: 'Schweregrad', type: 'enum', options: ['Niedrig', 'Mittel', 'Hoch', 'Schwerwiegend'] },
-    { key: 'status', label: 'Status', type: 'enum', options: ['Erfasst', 'In Prüfung', 'Gemeldet BfArM', 'Abgeschlossen'] },
+    { key: 'status', label: 'Status', type: 'enum', get options() { return statusList(store.get(), 'incidents').map((s) => s.name); } },
     { key: 'meldepflichtig', label: 'Meldepflichtig', type: 'bool' },
   ] },
 };

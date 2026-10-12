@@ -16,7 +16,7 @@ export default function Duplicates() {
   const acctPairs = useMemo(() => findAccountDuplicates(db.accounts).filter((p) => !dismissed.has(pairKey(p))), [db.accounts, dismissed]);
   const contactPairs = useMemo(() => findContactDuplicates(db.contacts).filter((p) => !dismissed.has(pairKey(p))), [db.contacts, dismissed]);
 
-  const childCount = (aid) => ['contacts', 'deals', 'orders', 'invoices', 'contracts', 'activities', 'devices', 'tickets', 'serviceOrders', 'incidents', 'costEntries', 'documents', 'recurringOrders']
+  const childCount = (aid) => ['contacts', 'deals', 'orders', 'invoices', 'contracts', 'activities', 'tickets', 'incidents', 'costEntries', 'documents', 'recurringOrders']
     .reduce((s, coll) => s + db[coll].filter((r) => r.accountId === aid).length, 0);
   const contactChildCount = (cid) => ['deals', 'activities', 'contracts', 'tickets'].reduce((s, coll) => s + db[coll].filter((r) => r.contactId === cid).length, 0);
 

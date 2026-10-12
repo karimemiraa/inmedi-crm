@@ -70,8 +70,8 @@ export function findContactDuplicates(contacts) {
 // ---- Fremdschlüssel-Karte für die Zusammenführung ----
 const ACCOUNT_REFS = [
   ['contacts', 'accountId'], ['deals', 'accountId'], ['orders', 'accountId'], ['invoices', 'accountId'],
-  ['contracts', 'accountId'], ['activities', 'accountId'], ['devices', 'accountId'], ['tickets', 'accountId'],
-  ['serviceOrders', 'accountId'], ['incidents', 'accountId'], ['costEntries', 'accountId'],
+  ['contracts', 'accountId'], ['activities', 'accountId'], ['tickets', 'accountId'],
+  ['incidents', 'accountId'], ['costEntries', 'accountId'],
   ['documents', 'accountId'], ['recurringOrders', 'accountId'], ['leads', 'accountId'],
 ];
 const CONTACT_REFS = [

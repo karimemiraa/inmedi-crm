@@ -1,22 +1,22 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Search, LifeBuoy, Clock, CheckCircle2, AlertTriangle, Phone, Mail, Globe, BookOpen } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Avatar, Badge, Card, ContactLink, Drawer, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
-import { useOpenParam, openLink } from '../lib/nav.js';
+import { AccountLink, Avatar, Badge, Card, ContactLink, Drawer, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
+import { useOpenParam } from '../lib/nav.js';
+import { statusList, statusTone, isOpen, setStatus, firstClosed } from '../lib/status.js';
 import { useToast } from '../components/Toast.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
-const STATUS_TONE = { Neu: 'blue', 'In Bearbeitung': 'amber', 'Wartet auf Kunde': 'purple', Gelöst: 'green' };
 const PRIO_TONE = { Hoch: 'red', Mittel: 'amber', Niedrig: 'gray' };
 const CHANNEL_ICON = { Telefon: Phone, 'E-Mail': Mail, Web: Globe };
+const CATEGORIES = ['Feedback', 'Produktfrage', 'Reklamation', 'Retoure', 'Lieferung', 'Rechnungsfrage'];
 
 export default function Service() {
   const db = useStore();
   const toast = useToast();
-  const nav = useNavigate();
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState('Offen');
+  const [scope, setScope] = useState('Offen');
+  const [st, setSt] = useState('');
   const [adding, setAdding] = useState(false);
   const [sel, setSel] = useState(null);
 
@@ -25,31 +25,33 @@ export default function Service() {
 
   const rows = useMemo(() => {
     let r = [...db.tickets];
-    if (status === 'Offen') r = r.filter((t) => t.status !== 'Gelöst');
-    else if (status !== 'Alle') r = r.filter((t) => t.status === status);
+    if (scope === 'Offen') r = r.filter((t) => isOpen(db, 'tickets', t.status));
+    else if (scope === 'Abgeschlossen') r = r.filter((t) => !isOpen(db, 'tickets', t.status));
+    if (st) r = r.filter((t) => t.status === st);
     if (q) r = r.filter((t) => t.subject.toLowerCase().includes(q.toLowerCase()) || t.number.toLowerCase().includes(q.toLowerCase()));
     return r.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [db.tickets, q, status]);
+  }, [db, q, scope, st]);
 
-  const open = db.tickets.filter((t) => t.status !== 'Gelöst').length;
-  const inProgress = db.tickets.filter((t) => t.status === 'In Bearbeitung').length;
-  const highPrio = db.tickets.filter((t) => t.status !== 'Gelöst' && t.priority === 'Hoch').length;
-  const solved = db.tickets.filter((t) => t.status === 'Gelöst').length;
+  const open = db.tickets.filter((t) => isOpen(db, 'tickets', t.status)).length;
+  const weekAgo = Date.now() - 7 * 86400000;
+  const newWeek = db.tickets.filter((t) => new Date(t.createdAt) >= weekAgo).length;
+  const highPrio = db.tickets.filter((t) => isOpen(db, 'tickets', t.status) && t.priority === 'Hoch').length;
+  const solved = db.tickets.length - open;
 
-  const setStatusOf = (id, s) => { store.update('tickets', id, { status: s, resolvedAt: s === 'Gelöst' ? new Date().toISOString() : null }); toast('Ticket aktualisiert'); };
+  const setStatusOf = (id, s) => { setStatus('tickets', id, s); toast('Ticket aktualisiert'); };
 
   return (
     <div className="page">
       <div className="page-head">
-        <div><h1>Kundendienst</h1><div className="sub">Tickets, Reklamationen & Wissensdatenbank</div></div>
-        <div className="page-actions"><button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Neues Ticket</button></div>
+        <div><h1>Kundendienst</h1><div className="sub">Anfragen, Reklamationen & Kundenfeedback</div></div>
+        <div className="page-actions"><StatusConfigLink kind="tickets" /><button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Neues Ticket</button></div>
       </div>
 
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <KpiCard icon={LifeBuoy} tone="brand" label="Offene Tickets" value={open} />
-        <KpiCard icon={Clock} tone="amber" label="In Bearbeitung" value={inProgress} />
+        <KpiCard icon={Clock} tone="amber" label="Neu (7 Tage)" value={newWeek} />
         <KpiCard icon={AlertTriangle} tone="red" label="Hohe Priorität" value={highPrio} />
-        <KpiCard icon={CheckCircle2} tone="green" label="Gelöst" value={solved} />
+        <KpiCard icon={CheckCircle2} tone="green" label="Abgeschlossen" value={solved} />
       </div>
 
       <div className="grid split">
@@ -59,8 +61,12 @@ export default function Service() {
               <Search size={16} /><input placeholder="Tickets suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="seg">
-              {['Offen', 'In Bearbeitung', 'Gelöst', 'Alle'].map((s) => <button key={s} className={status === s ? 'active' : ''} onClick={() => setStatus(s)}>{s}</button>)}
+              {['Offen', 'Abgeschlossen', 'Alle'].map((s) => <button key={s} className={scope === s ? 'active' : ''} onClick={() => setScope(s)}>{s}</button>)}
             </div>
+            <Select style={{ width: 'auto' }} value={st} onChange={(e) => setSt(e.target.value)} aria-label="Status filtern">
+              <option value="">Alle Status</option>
+              {statusList(db, 'tickets').map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </Select>
           </div>
 
           <div className="card" style={{ overflow: 'hidden' }}>
@@ -75,7 +81,7 @@ export default function Service() {
                       <td><AccountLink account={acct(t.accountId)} /></td>
                       <td><span className="chip" style={{ padding: '3px 8px' }}><Ch size={12} /> {t.channel}</span></td>
                       <td><Badge tone={PRIO_TONE[t.priority]}>{t.priority}</Badge></td>
-                      <td><Badge tone={STATUS_TONE[t.status]} dot>{t.status}</Badge></td>
+                      <td><Badge tone={statusTone(db, 'tickets', t.status)} dot>{t.status}</Badge></td>
                       <td className="muted tiny nowrap">{relDate(t.createdAt)}</td>
                     </tr>
                   );
@@ -104,29 +110,29 @@ export default function Service() {
       {sel && (
         <Drawer title={sel.number} onClose={() => setSel(null)}
           footer={<>
-            <button className="btn" onClick={() => { setStatusOf(sel.id, 'Wartet auf Kunde'); setSel(null); }}>Eskalieren</button>
-            <button className="btn primary" disabled={sel.status === 'Gelöst'} onClick={() => { setStatusOf(sel.id, 'Gelöst'); setSel(null); }}>Als gelöst markieren</button>
+            <button className="btn" onClick={() => setSel(null)}>Schließen</button>
+            <button className="btn primary" disabled={!isOpen(db, 'tickets', sel.status)} onClick={() => { setStatusOf(sel.id, firstClosed(db, 'tickets')); setSel(null); }}>Abschließen</button>
           </>}>
           <h3 style={{ fontSize: 16, marginBottom: 12 }}>{sel.subject}</h3>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            <Badge tone={STATUS_TONE[sel.status]} dot>{sel.status}</Badge>
+            <Badge tone={statusTone(db, 'tickets', sel.status)} dot>{sel.status}</Badge>
             <Badge tone={PRIO_TONE[sel.priority]}>Priorität: {sel.priority}</Badge>
             <Badge tone="gray">{sel.category}</Badge>
           </div>
           <Field label="Status ändern">
             <Select className="select" value={sel.status} onChange={(e) => { setStatusOf(sel.id, e.target.value); setSel({ ...sel, status: e.target.value }); }}>
-              {['Neu', 'In Bearbeitung', 'Wartet auf Kunde', 'Gelöst'].map((s) => <option key={s}>{s}</option>)}
+              {statusList(db, 'tickets').map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </Select>
           </Field>
           <div style={{ height: 14 }} />
           <dl className="kv">
             <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
             <dt>Kontakt</dt><dd>{sel.contactId ? <ContactLink contact={db.contacts.find((c) => c.id === sel.contactId)} /> : '—'}</dd>
-            {sel.deviceId && <><dt>Gerät</dt><dd><span className="rec-link" onClick={() => nav(openLink('/devices', sel.deviceId))}>{db.devices.find((d) => d.id === sel.deviceId)?.name || '—'}</span></dd></>}
+            <dt>Produkt</dt><dd>{db.products.find((p) => p.id === sel.productId)?.name || '—'}</dd>
             <dt>Kanal</dt><dd>{sel.channel}</dd>
             <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
             <dt>Erstellt</dt><dd>{fmtDate(sel.createdAt)}</dd>
-            <dt>Gelöst</dt><dd>{sel.resolvedAt ? fmtDate(sel.resolvedAt) : '—'}</dd>
+            <dt>Abgeschlossen</dt><dd>{sel.resolvedAt ? fmtDate(sel.resolvedAt) : '—'}</dd>
           </dl>
         </Drawer>
       )}
@@ -137,19 +143,18 @@ export default function Service() {
 
 function NewTicket({ db, onClose, toast }) {
   const firstContact = (aid) => db.contacts.find((c) => c.accountId === aid)?.id || '';
-  const [f, setF] = useState({ accountId: db.accounts[0]?.id, contactId: firstContact(db.accounts[0]?.id), deviceId: '', channel: 'Telefon', priority: 'Mittel', category: 'Technische Anfrage', subject: '' });
+  const [f, setF] = useState({ accountId: db.accounts[0]?.id, contactId: firstContact(db.accounts[0]?.id), productId: '', channel: 'Telefon', priority: 'Mittel', category: 'Feedback', subject: '' });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const setAccount = (v) => setF((p) => ({ ...p, accountId: v, contactId: firstContact(v), deviceId: '' }));
+  const setAccount = (v) => setF((p) => ({ ...p, accountId: v, contactId: firstContact(v) }));
   const accContacts = db.contacts.filter((c) => c.accountId === f.accountId);
-  const accDevices = db.devices.filter((d) => d.accountId === f.accountId);
   const save = () => {
     if (!f.subject) return;
     const n = 'TK-' + (4804 + db.tickets.length + 1);
     const acc = db.accounts.find((a) => a.id === f.accountId);
     store.add('tickets', {
-      number: n, subject: f.subject, accountId: f.accountId, contactId: f.contactId || null, deviceId: f.deviceId || null,
+      number: n, subject: f.subject, accountId: f.accountId, contactId: f.contactId || null, productId: f.productId || null,
       ownerId: acc?.innendienstId || db.meta.currentUserId, channel: f.channel, category: f.category,
-      priority: f.priority, status: 'Neu', createdAt: new Date().toISOString(), resolvedAt: null,
+      priority: f.priority, status: '', createdAt: new Date().toISOString(), resolvedAt: null,
     });
     toast('Ticket erstellt'); onClose();
   };
@@ -160,8 +165,8 @@ function NewTicket({ db, onClose, toast }) {
         <div className="full"><Field label="Betreff"><input className="input" onChange={(e) => set('subject', e.target.value)} placeholder="Kurzbeschreibung des Anliegens" autoFocus /></Field></div>
         <Field label="Kunde"><Select className="select" value={f.accountId} onChange={(e) => setAccount(e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Ansprechpartner"><Select className="select" value={f.contactId} onChange={(e) => set('contactId', e.target.value)}><option value="">— Keiner —</option>{accContacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
-        <Field label="Betroffenes Gerät"><Select className="select" value={f.deviceId} onChange={(e) => set('deviceId', e.target.value)}><option value="">— Kein Gerät —</option>{accDevices.map((d) => <option key={d.id} value={d.id}>{d.name} ({d.serial})</option>)}</Select></Field>
-        <Field label="Kategorie"><Select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{['Technische Anfrage', 'Reklamation', 'Retoure', 'Wartung', 'Rechnungsfrage'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Betroffenes Produkt"><Select className="select" value={f.productId} onChange={(e) => set('productId', e.target.value)}><option value="">— Kein Produkt —</option>{db.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+        <Field label="Kategorie"><Select className="select" value={f.category} onChange={(e) => set('category', e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Kanal"><Select className="select" value={f.channel} onChange={(e) => set('channel', e.target.value)}>{['Telefon', 'E-Mail', 'Web'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Priorität"><Select className="select" value={f.priority} onChange={(e) => set('priority', e.target.value)}>{['Mittel', 'Hoch', 'Niedrig'].map((c) => <option key={c}>{c}</option>)}</Select></Field>
       </div>

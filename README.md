@@ -25,12 +25,12 @@ npm run build    # production build to /dist
 | **Invoices** | Open items & payment status; invoice ↔ order ↔ account cross-links, item prefill from order |
 | **Contracts** | Term contracts with recurring billing (MRR), contact + origin-order links |
 | **Activities** | Tasks, calls, meetings, emails, follow-ups · list + month calendar · linked to contact + deal |
-| **Accounts** | Hospitals / clinics / pharmacies / distributors; detail view with tabs: overview, custom fields, notes, Vorgänge, Daueraufträge, conditions, contacts, deals, activities, invoices, devices, Service & QM, Messen, documents |
+| **Accounts** | Hospitals / clinics / pharmacies / distributors; detail view with tabs: overview, custom fields, notes, Vorgänge, Daueraufträge, conditions, contacts, deals, activities, invoices, Kundendienst & QM, Messen, documents |
 | **Contacts** | Full contact detail page — its own deals, activities, tickets, contracts, Messen participation, custom fields, notes |
 | **Dublettenprüfung** | Duplicate detection for accounts & contacts (name/email/phone/PLZ) with side-by-side review and safe merge that re-points all child records |
 | **Messen & Events** | Trade shows / congresses / webinars with budget vs. cost and mixed attendee lists (accounts, contacts, leads) |
 | **Products** | Medical catalog — SKU, category, price, stock, inventory value |
-| **Service / ServiceOrders / Devices / QM** | Tickets, maintenance orders (MTK/STK), device register, MDR/MPDG vigilance — all cross-linked |
+| **Vorgänge: Kundendienst / QM & Vigilanz / Ideen** | Customer requests, complaints & product feedback (linked to product); MDR/MPDG incidents with product, LOT/serial, reportable flag and 15-day reporting deadline; CAPA. InMedi sells products only — no field-service, repair or device-maintenance modules |
 | **Campaigns** | Email marketing & newsletters, open/click rates, segmentation, member links |
 | **Reports** | Flexible builder — list **and 2-D cross-tab (Kreuztabelle)**, any source × dimension × measure, date-filtered, CSV export |
 | **Betreuungskosten-Analyse** | Cost-to-serve vs. revenue per customer / rep / territory — Netto, Kostenquote, defizitär flagging |
@@ -38,7 +38,7 @@ npm run build    # production build to /dist
 | **Kostenkalkulation** | Visit/call/travel/training costs valued via stored rates |
 | **Territories & Team** | Territory coverage, rep quota attainment, commission, user roles |
 | **Documents / Messages / Datenschutz** | Document register, per-customer correspondence log, GDPR tools + audit trail |
-| **Settings** | If-then **automation rules**, **custom fields**, **users & roles**, **branding**, demo-data / empty reset + JSON export |
+| **Settings** | **Vorgänge & Status** (rename, recolor, reorder, add, delete statuses per Vorgangsart, with an "abgeschlossen" flag that drives counters/KPIs; existing records are migrated automatically), if-then **automation rules**, **custom fields**, **users & roles**, **branding**, demo-data / empty reset + JSON export |
 
 Plus global search, notifications, quick-add (account/contact/deal/activity), clickable record links everywhere, and a responsive layout.
 
