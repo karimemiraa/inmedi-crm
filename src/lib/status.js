@@ -24,8 +24,9 @@ function derived(list, kind, rec, status) {
 export function setStatus(kind, id, status) {
   const db = store.get();
   const rec = db[kind].find((r) => r.id === id);
-  if (!rec) return;
-  store.update(kind, id, { status, ...derived(statusList(db, kind), kind, rec, status) });
+  if (!rec || rec.status === status) return;
+  const entry = { id: 'H' + Date.now().toString(36), at: new Date().toISOString(), userId: db.meta.currentUserId, text: `Status: ${rec.status || '—'} → ${status}` };
+  store.update(kind, id, { status, ...derived(statusList(db, kind), kind, rec, status), history: [entry, ...(rec.history || [])] });
 }
 
 export function toggleDone(db, act) {

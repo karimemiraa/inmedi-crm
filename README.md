@@ -31,6 +31,7 @@ npm run build    # production build to /dist
 | **Messen & Events** | Trade shows / congresses / webinars with budget vs. cost and mixed attendee lists (accounts, contacts, leads) |
 | **Products** | Medical catalog — SKU, category, price, stock, inventory value |
 | **Vorgänge: Kundendienst / QM & Vigilanz / Ideen** | Customer requests, complaints & product feedback (linked to product); MDR/MPDG incidents with product, LOT/serial, reportable flag and 15-day reporting deadline; CAPA. InMedi sells products only — no field-service, repair or device-maintenance modules |
+| **Vorgang-Detailansicht** | One panel for every Vorgang (tickets, tasks, ideas, QM incidents, CAPA): edit all details, change status, comment thread (author edits own, admins can delete any), linked records (parent/child Vorgänge, Firma, Kontakt, Deal, Produkt) with one-click follow-up task / ticket → QM incident / incident → CAPA, automatic change history, delete to **Papierkorb** (restore or purge in Einstellungen → Daten) |
 | **Campaigns** | Email marketing & newsletters, open/click rates, segmentation, member links |
 | **Reports** | Flexible builder — list **and 2-D cross-tab (Kreuztabelle)**, any source × dimension × measure, date-filtered, CSV export |
 | **Betreuungskosten-Analyse** | Cost-to-serve vs. revenue per customer / rep / territory — Netto, Kostenquote, defizitär flagging |

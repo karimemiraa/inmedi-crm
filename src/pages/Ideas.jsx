@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
-import { Plus, Lightbulb, Search, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { Plus, Lightbulb, Search, CheckCircle2, Clock, Trash2, Pencil } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 import { statusList, isOpen, setStatus as setIdeaStatus } from '../lib/status.js';
+import { useOpenParam } from '../lib/nav.js';
+import { trashVorgang } from '../lib/vorgang.js';
+import VorgangDrawer, { CommentCount } from '../components/VorgangDrawer.jsx';
 
 const PRIO_TONE = { Hoch: 'red', Mittel: 'amber', Niedrig: 'gray' };
 
@@ -14,6 +17,9 @@ export default function Ideas() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Alle');
   const [adding, setAdding] = useState(false);
+  const [sel, setSel] = useState(null);
+  useOpenParam(db.ideas, setSel);
+  const del = (i) => { if (!window.confirm(`Idee „${i.title}" in den Papierkorb verschieben?`)) return; trashVorgang('ideas', i.id); toast('Idee in den Papierkorb verschoben'); };
 
   const user = (id) => db.users.find((u) => u.id === id);
   const rows = useMemo(() => db.ideas.filter((i) =>
@@ -53,23 +59,27 @@ export default function Ideas() {
           <thead><tr><th>Idee</th><th>Priorität</th><th>Status</th><th>Eingereicht von</th><th>Datum</th><th></th></tr></thead>
           <tbody>
             {rows.map((i) => (
-              <tr key={i.id} style={{ cursor: 'default' }}>
-                <td><div className="cell-main">{i.title}</div>{i.description && <div className="cell-sub" style={{ maxWidth: 420, whiteSpace: 'normal' }}>{i.description}</div>}</td>
+              <tr key={i.id} onClick={() => setSel(i)}>
+                <td><div className="cell-main">{i.title}<CommentCount rec={i} /></div>{i.description && <div className="cell-sub" style={{ maxWidth: 420, whiteSpace: 'normal' }}>{i.description}</div>}</td>
                 <td><Badge tone={PRIO_TONE[i.priority]}>{i.priority}</Badge></td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <Select className="status-select" value={i.status} onChange={(e) => { setIdeaStatus('ideas', i.id, e.target.value); toast('Status aktualisiert'); }}>
                     {STATUS.map((s) => <option key={s}>{s}</option>)}
                   </Select>
                 </td>
                 <td>{user(i.ownerId) && <div className="avatar-row"><Avatar size="sm" name={user(i.ownerId).name} color={user(i.ownerId).color} src={user(i.ownerId).avatar} /><span className="tiny">{user(i.ownerId).name.split(' ')[0]}</span></div>}</td>
                 <td className="muted tiny nowrap">{relDate(i.createdAt)}</td>
-                <td className="right"><button className="btn ghost sm" onClick={() => { store.remove('ideas', i.id); toast('Idee gelöscht'); }}><Trash2 size={13} /></button></td>
+                <td className="right nowrap" onClick={(e) => e.stopPropagation()}><span className="row-actions">
+                  <button className="icon-btn sm" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setSel(i)}><Pencil size={14} /></button>
+                  <button className="icon-btn sm" title="Löschen" aria-label="Löschen" onClick={() => del(i)}><Trash2 size={14} /></button>
+                </span></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Noch keine Ideen" hint="Teilen Sie Vorschläge mit dem Team." />}</div>
       </div>
 
+      {sel && <VorgangDrawer kind="ideas" id={sel.id} onClose={() => setSel(null)} />}
       {adding && <NewIdea db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );
@@ -80,7 +90,7 @@ function NewIdea({ db, onClose, toast }) {
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const save = () => {
     if (!f.title) return;
-    store.add('ideas', { title: f.title, description: f.description, status: '', priority: f.priority, ownerId: db.meta.currentUserId, createdAt: new Date().toISOString() });
+    store.add('ideas', { title: f.title, description: f.description, status: '', comments: [], history: [], priority: f.priority, ownerId: db.meta.currentUserId, createdAt: new Date().toISOString() });
     toast('Idee eingereicht'); onClose();
   };
   return (

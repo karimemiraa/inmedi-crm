@@ -9,6 +9,7 @@ import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import Notes from '../components/Notes.jsx';
 import { statusTone } from '../lib/status.js';
+import { vorgangLink } from '../lib/vorgang.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
@@ -234,7 +235,7 @@ export default function AccountDetail() {
         <Card pad={false}><div style={{ padding: '16px 20px' }}>
           {activities.length === 0 && <Empty label="Keine Aktivitäten" />}
           {activities.map((act) => (
-            <div key={act.id} className="list-row">
+            <div key={act.id} className="list-row clickable" onClick={() => nav(vorgangLink('activities', act.id))}>
               <span className="badge gray" style={{ width: 8, height: 8, padding: 0, borderRadius: '50%' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{act.subject}</div>

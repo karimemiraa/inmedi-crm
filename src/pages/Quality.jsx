@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Plus, AlertOctagon, Siren, ClipboardCheck, ShieldAlert, FileWarning } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Badge, Card, Drawer, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
 import { useOpenParam } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
-import { fmtDate, relDate } from '../lib/format.js';
-import { statusList, statusTone, isOpen, setStatus } from '../lib/status.js';
+import VorgangDrawer, { CommentCount, RowActions, INC_TYPES, SEVERITIES as SEV, SEV_TONE } from '../components/VorgangDrawer.jsx';
+import { relDate } from '../lib/format.js';
+import { statusTone, isOpen } from '../lib/status.js';
 
-const INC_TYPES = ['Vorkommnis', 'Beinahe-Vorkommnis', 'Produktmangel', 'Rückruf (FSCA)'];
-const SEV = ['Niedrig', 'Mittel', 'Hoch', 'Schwerwiegend'];
-const SEV_TONE = { Niedrig: 'gray', Mittel: 'blue', Hoch: 'amber', Schwerwiegend: 'red' };
 // Spätester Meldezeitpunkt für schwerwiegende Vorkommnisse (MDR Art. 87: max. 15 Tage).
 const deadline = (i) => new Date(new Date(i.reportedAt).getTime() + 15 * 86400000).toISOString();
 
@@ -20,7 +18,10 @@ export default function Quality() {
   const [sel, setSel] = useState(null);
   const [capaSel, setCapaSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'incident' | 'capa'
-  useOpenParam(db.incidents, (rec) => { setTab('incidents'); setSel(rec); });
+  // Deep-Link öffnet Vorkommnis oder CAPA
+  useOpenParam([...db.incidents, ...db.capas], (rec) => {
+    if (db.capas.some((c) => c.id === rec.id)) { setTab('capa'); setSel(null); setCapaSel(rec); } else { setTab('incidents'); setCapaSel(null); setSel(rec); }
+  });
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const prod = (id) => db.products.find((p) => p.id === id);
@@ -62,12 +63,12 @@ export default function Quality() {
 
       {tab === 'incidents' && (
         <Card pad={false}><div className="table-wrap list"><table className="tbl">
-          <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Produkt / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Meldefrist</th></tr></thead>
+          <thead><tr><th>Nr.</th><th>Vorkommnis</th><th>Typ</th><th>Produkt / Kunde</th><th>Schweregrad</th><th>Meldepflichtig</th><th>Status</th><th>Meldefrist</th><th className="right">Aktionen</th></tr></thead>
           <tbody>
             {db.incidents.map((i) => (
               <tr key={i.id} onClick={() => setSel(i)}>
                 <td className="cell-main nowrap">{i.number}</td>
-                <td style={{ maxWidth: 260 }}>{i.title}</td>
+                <td style={{ maxWidth: 260 }}>{i.title}<CommentCount rec={i} /></td>
                 <td><Badge tone="gray">{i.type}</Badge></td>
                 <td><div className="cell-main" style={{ fontWeight: 500 }}>{prod(i.productId)?.name || '—'}</div><div className="cell-sub">{acct(i.accountId)?.name}</div></td>
                 <td><Badge tone={SEV_TONE[i.severity]} dot>{i.severity}</Badge></td>
@@ -76,6 +77,7 @@ export default function Quality() {
                 <td className="tiny nowrap">{i.meldepflichtig && isOpen(db, 'incidents', i.status)
                   ? <Badge tone={new Date(deadline(i)) < new Date() ? 'red' : 'amber'} dot>{relDate(deadline(i))}</Badge>
                   : <span className="muted">—</span>}</td>
+                <td className="right nowrap"><RowActions kind="incidents" rec={i} onEdit={() => setSel(i)} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
@@ -84,19 +86,20 @@ export default function Quality() {
 
       {tab === 'capa' && (
         <Card pad={false}><div className="table-wrap list"><table className="tbl">
-          <thead><tr><th>Nr.</th><th>Maßnahme</th><th>Typ</th><th>Vorkommnis</th><th>Verantwortlich</th><th>Fällig</th><th>Status</th></tr></thead>
+          <thead><tr><th>Nr.</th><th>Maßnahme</th><th>Typ</th><th>Vorkommnis</th><th>Verantwortlich</th><th>Fällig</th><th>Status</th><th className="right">Aktionen</th></tr></thead>
           <tbody>
             {db.capas.map((c) => {
               const overdue = isOpen(db, 'capas', c.status) && new Date(c.dueDate) < new Date();
               return (
                 <tr key={c.id} onClick={() => setCapaSel(c)}>
                   <td className="cell-main nowrap">{c.number}</td>
-                  <td style={{ maxWidth: 280 }}>{c.title}</td>
+                  <td style={{ maxWidth: 280 }}>{c.title}<CommentCount rec={c} /></td>
                   <td><Badge tone={c.type === 'Korrektur' ? 'amber' : 'teal'}>{c.type}</Badge></td>
                   <td className="muted">{db.incidents.find((i) => i.id === c.incidentId)?.number || '—'}</td>
                   <td>{user(c.ownerId)?.name.split(' ')[0]}</td>
                   <td><Badge tone={overdue ? 'red' : 'gray'} dot={overdue}>{relDate(c.dueDate)}</Badge></td>
                   <td><Badge tone={statusTone(db, 'capas', c.status)} dot>{c.status}</Badge></td>
+                  <td className="right nowrap"><RowActions kind="capas" rec={c} onEdit={() => setCapaSel(c)} toast={toast} /></td>
                 </tr>
               );
             })}
@@ -104,58 +107,8 @@ export default function Quality() {
         </table>{db.capas.length === 0 && <Empty label="Keine Maßnahmen" />}</div></Card>
       )}
 
-      {sel && (
-        <Drawer title={sel.number} onClose={() => setSel(null)}
-          footer={<>
-            <button className="btn" onClick={() => { store.update('incidents', sel.id, { meldepflichtig: !sel.meldepflichtig }); toast('Meldepflicht aktualisiert'); setSel({ ...sel, meldepflichtig: !sel.meldepflichtig }); }}>Meldepflicht umschalten</button>
-            <button className="btn primary" onClick={() => setSel(null)}>Schließen</button>
-          </>}>
-          <h3 style={{ fontSize: 16, marginBottom: 12 }}>{sel.title}</h3>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-            <Badge tone={SEV_TONE[sel.severity]} dot>{sel.severity}</Badge>
-            <Badge tone="gray">{sel.type}</Badge>
-            {sel.meldepflichtig && <Badge tone="red" dot>Meldepflichtig</Badge>}
-          </div>
-          <p style={{ fontSize: 13.5, marginBottom: 16 }}>{sel.description}</p>
-          <Field label="Status">
-            <Select className="select" value={sel.status} onChange={(e) => { setStatus('incidents', sel.id, e.target.value); toast('Status aktualisiert'); setSel({ ...sel, status: e.target.value }); }}>
-              {statusList(db, 'incidents').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-            </Select>
-          </Field>
-          <div style={{ height: 14 }} />
-          <dl className="kv">
-            <dt>Produkt</dt><dd>{prod(sel.productId)?.name || '—'}</dd>
-            <dt>Charge / LOT</dt><dd>{sel.lot || '—'}</dd>
-            <dt>Seriennr.</dt><dd>{sel.serial || '—'}</dd>
-            {sel.meldepflichtig && <><dt>Meldefrist</dt><dd>{fmtDate(deadline(sel))} (spätestens, MDR Art. 87)</dd></>}
-            <dt>Kunde</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
-            <dt>Erfasst von</dt><dd>{user(sel.reportedBy)?.name}</dd>
-            <dt>Erfasst am</dt><dd>{fmtDate(sel.reportedAt)}</dd>
-            <dt>CAPA</dt><dd>{db.capas.filter((c) => c.incidentId === sel.id || c.id === sel.capaId).map((c) => c.number).join(', ') || '—'}</dd>
-          </dl>
-        </Drawer>
-      )}
-
-      {capaSel && (
-        <Drawer title={capaSel.number} onClose={() => setCapaSel(null)}
-          footer={<button className="btn primary" onClick={() => setCapaSel(null)}>Schließen</button>}>
-          <h3 style={{ fontSize: 16, marginBottom: 12 }}>{capaSel.title}</h3>
-          <Badge tone={capaSel.type === 'Korrektur' ? 'amber' : 'teal'}>{capaSel.type}maßnahme</Badge>
-          <p style={{ fontSize: 13.5, margin: '16px 0' }}>{capaSel.description}</p>
-          <Field label="Status">
-            <Select className="select" value={capaSel.status} onChange={(e) => { setStatus('capas', capaSel.id, e.target.value); toast('Maßnahme aktualisiert'); setCapaSel({ ...capaSel, status: e.target.value }); }}>
-              {statusList(db, 'capas').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-            </Select>
-          </Field>
-          <div style={{ height: 14 }} />
-          <dl className="kv">
-            <dt>Bezug Vorkommnis</dt><dd>{db.incidents.find((i) => i.id === capaSel.incidentId)?.number || '—'}</dd>
-            <dt>Verantwortlich</dt><dd>{user(capaSel.ownerId)?.name}</dd>
-            <dt>Fällig</dt><dd>{fmtDate(capaSel.dueDate)}</dd>
-            <dt>Erstellt</dt><dd>{fmtDate(capaSel.createdAt)}</dd>
-          </dl>
-        </Drawer>
-      )}
+      {sel && <VorgangDrawer kind="incidents" id={sel.id} onClose={() => setSel(null)} />}
+      {capaSel && <VorgangDrawer kind="capas" id={capaSel.id} onClose={() => setCapaSel(null)} />}
 
       {adding === 'incident' && <AddIncident db={db} onClose={() => setAdding(null)} toast={toast} />}
       {adding === 'capa' && <AddCapa db={db} onClose={() => setAdding(null)} toast={toast} />}
@@ -172,7 +125,7 @@ function AddIncident({ db, onClose, toast }) {
     store.add('incidents', {
       number: n, title: f.title, type: f.type, severity: f.severity, productId: f.productId || null, lot: f.lot || '', serial: f.serial || '',
       accountId: f.accountId, status: '', reportedBy: db.meta.currentUserId, reportedAt: new Date().toISOString(),
-      meldepflichtig: f.meldepflichtig || f.severity === 'Schwerwiegend', description: f.description, capaId: null,
+      meldepflichtig: f.meldepflichtig || f.severity === 'Schwerwiegend', description: f.description, capaId: null, comments: [], history: [],
     });
     store.add('auditLog', { at: new Date().toISOString(), userId: db.meta.currentUserId, action: 'Vorkommnis erfasst', entity: n, detail: f.title });
     toast('Vorkommnis erfasst'); onClose();
@@ -203,7 +156,7 @@ function AddCapa({ db, onClose, toast }) {
     const n = 'CAPA-2026-' + String(10 + db.capas.length).padStart(3, '0');
     store.add('capas', {
       number: n, type: f.type, title: f.title, incidentId: f.incidentId || null, ownerId: f.ownerId,
-      status: '', dueDate: new Date(f.dueDate).toISOString(), createdAt: new Date().toISOString(), description: f.description,
+      status: '', dueDate: new Date(f.dueDate).toISOString(), createdAt: new Date().toISOString(), description: f.description, comments: [], history: [],
     });
     toast('Maßnahme angelegt'); onClose();
   };

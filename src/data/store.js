@@ -13,6 +13,7 @@ function migrate(s) {
   delete out.serviceOrders;
   delete out.devices;
   if (!out.statusConfig) out.statusConfig = cloneDefaultStatus();
+  if (!Array.isArray(out.trash)) out.trash = [];
   const strip = ({ deviceId, ...r }) => r;
   out.tickets = (out.tickets || []).map((t) => ({ ...strip(t), category: t.category === 'Wartung' ? 'Produktfrage' : t.category }));
   out.incidents = (out.incidents || []).map(strip);
@@ -60,7 +61,7 @@ function withStatus(coll, rec) {
 }
 
 let mutationHandler = null;
-function notifyMutation(coll, event, rec) { if (mutationHandler) { try { mutationHandler(coll, event, rec); } catch (e) {} } }
+function notifyMutation(coll, event, rec, prev) { if (mutationHandler) { try { mutationHandler(coll, event, rec, prev); } catch (e) {} } }
 
 export const store = {
   get: () => state,
@@ -78,10 +79,12 @@ export const store = {
     notifyMutation(coll, 'create', rec);
     return rec;
   },
-  update(coll, id, patch) {
+  // opts.silent: reine Kommentar-/Verlaufs-Änderungen lösen keine Automatisierung aus.
+  update(coll, id, patch, opts = {}) {
+    const prev = state[coll].find((r) => r.id === id);
     state = { ...state, [coll]: state[coll].map((r) => (r.id === id ? { ...r, ...patch } : r)) };
     persist(); emit();
-    notifyMutation(coll, 'update', state[coll].find((r) => r.id === id));
+    if (!opts.silent) notifyMutation(coll, 'update', state[coll].find((r) => r.id === id), prev);
   },
   setMutationHandler(fn) { mutationHandler = fn; },
   remove(coll, id) {

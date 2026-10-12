@@ -8,6 +8,7 @@ import { Avatar, Badge, Card, Field, Modal, Select } from '../components/ui.jsx'
 import { LogoMark } from '../components/Logo.jsx';
 import { useToast } from '../components/Toast.jsx';
 import StatusSettings from '../components/StatusSettings.jsx';
+import Trash from '../components/Trash.jsx';
 
 const TABS = [
   ['status', 'Vorgänge & Status', ListChecks],
@@ -16,7 +17,7 @@ const TABS = [
   ['users', 'Benutzer & Rollen', Users],
   ['integrations', 'Integrationen', Cloud],
   ['branding', 'Branding', Palette],
-  ['data', 'Daten', Database],
+  ['data', 'Daten & Papierkorb', Database],
 ];
 const AV_COLORS = ['#a81e22', '#0f8f86', '#7a5cf0', '#e0930b', '#2f7ce0', '#10a760', '#d6459b'];
 
@@ -147,6 +148,7 @@ export default function Settings() {
               </div>
             </Card>
           )}
+          {tab === 'data' && <div style={{ marginTop: 16 }}><Trash db={db} toast={toast} /></div>}
         </div>
       </div>
 

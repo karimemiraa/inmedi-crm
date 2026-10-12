@@ -539,3 +539,28 @@ table.tbl td.right, table.tbl th.right { font-variant-numeric: tabular-nums; }
   .status-row { grid-template-columns: 56px 1fr 1fr; }
   .status-head { display: none; }
 }
+
+/* ---- Vorgang-Detailansicht ---- */
+.vg-status { margin: 14px 0 4px; max-width: 280px; }
+.vg-tabs { margin: 14px 0 14px; }
+.vg-tabs button { display: inline-flex; align-items: center; gap: 5px; }
+.vg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.vg-link-group { margin-bottom: 16px; }
+.vg-link-head { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+.vg-link { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); margin-bottom: 6px; cursor: pointer; font: inherit; font-size: 13px; transition: border-color .13s, background .13s; }
+.vg-link:hover { border-color: var(--brand); background: var(--brand-050); }
+.vg-link svg { color: var(--text-3); flex-shrink: 0; }
+.vg-link-kind { font-size: 11px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: .03em; flex-shrink: 0; }
+.vg-link-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.vg-comment { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.vg-comment-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.vg-comment-head .btn.ghost.sm { padding: 2px 7px; font-size: 12px; }
+.vg-comment-text { font-size: 13.5px; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+.vg-comment-new { display: flex; gap: 10px; padding-top: 14px; }
+.vg-history { position: relative; padding-left: 4px; }
+.vg-history-row { display: flex; gap: 12px; padding: 8px 0; font-size: 13px; position: relative; }
+.vg-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--brand); margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 0 3px var(--brand-050); }
+.comment-count { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--text-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
+.row-actions { display: inline-flex; gap: 4px; }
+.list-row.clickable { cursor: pointer; transition: background .12s; }
+.list-row.clickable:hover { background: var(--surface-2); }

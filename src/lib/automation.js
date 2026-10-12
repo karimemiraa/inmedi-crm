@@ -153,11 +153,14 @@ function runActions(rule, object, rec) {
   }
 }
 
-function onMutation(coll, event, rec) {
+function onMutation(coll, event, rec, prev) {
   if (suppress) return;
   const object = COLL_TO_OBJECT[coll];
   if (!object) return;
-  const rules = (store.get().automations || []).filter((r) => r.trigger && ruleMatches(r, object, event, rec));
+  // Regeln mit Bedingungen greifen bei Änderungen nur, wenn die Bedingung NEU erfüllt wird —
+  // sonst würde z. B. jede Bearbeitung eines schwerwiegenden Vorkommnisses erneut eine Aufgabe anlegen.
+  const fresh = (r) => !(event === 'update' && prev && (r.conditions || []).length && ruleMatches(r, object, event, prev));
+  const rules = (store.get().automations || []).filter((r) => r.trigger && ruleMatches(r, object, event, rec) && fresh(r));
   if (rules.length === 0) return;
   suppress = true;
   try { for (const r of rules) runActions(r, object, store.get()[coll].find((x) => x.id === rec.id) || rec); }
