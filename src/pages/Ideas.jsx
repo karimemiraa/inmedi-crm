@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { Plus, Lightbulb, Search, CheckCircle2, Clock, Trash2, Pencil } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select, StatusConfigLink } from '../components/ui.jsx';
+import { Avatar, Badge, Empty, Field, KpiCard, Modal, Select, StatusConfigLink, UserChip } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { relDate } from '../lib/format.js';
 import { statusList, isOpen, setStatus as setIdeaStatus } from '../lib/status.js';
 import { useOpenParam } from '../lib/nav.js';
-import { trashVorgang } from '../lib/vorgang.js';
-import VorgangDrawer, { CommentCount } from '../components/VorgangDrawer.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
+import { CommentCount, RowActions } from '../components/Vorgang.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const PRIO_TONE = { Hoch: 'red', Mittel: 'amber', Niedrig: 'gray' };
 
@@ -17,9 +18,8 @@ export default function Ideas() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('Alle');
   const [adding, setAdding] = useState(false);
-  const [sel, setSel] = useState(null);
-  useOpenParam(db.ideas, setSel);
-  const del = (i) => { if (!window.confirm(`Idee „${i.title}" in den Papierkorb verschieben?`)) return; trashVorgang('ideas', i.id); toast('Idee in den Papierkorb verschoben'); };
+  const nav = useNavigate();
+  useOpenParam(db.ideas, (r) => nav(vorgangLink('ideas', r.id), { replace: true }));
 
   const user = (id) => db.users.find((u) => u.id === id);
   const rows = useMemo(() => db.ideas.filter((i) =>
@@ -59,7 +59,7 @@ export default function Ideas() {
           <thead><tr><th>Idee</th><th>Priorität</th><th>Status</th><th>Eingereicht von</th><th>Datum</th><th></th></tr></thead>
           <tbody>
             {rows.map((i) => (
-              <tr key={i.id} onClick={() => setSel(i)}>
+              <tr key={i.id} onClick={() => nav(vorgangLink('ideas', i.id))}>
                 <td><div className="cell-main">{i.title}<CommentCount rec={i} /></div>{i.description && <div className="cell-sub" style={{ maxWidth: 420, whiteSpace: 'normal' }}>{i.description}</div>}</td>
                 <td><Badge tone={PRIO_TONE[i.priority]}>{i.priority}</Badge></td>
                 <td onClick={(e) => e.stopPropagation()}>
@@ -67,19 +67,15 @@ export default function Ideas() {
                     {STATUS.map((s) => <option key={s}>{s}</option>)}
                   </Select>
                 </td>
-                <td>{user(i.ownerId) && <div className="avatar-row"><Avatar size="sm" name={user(i.ownerId).name} color={user(i.ownerId).color} src={user(i.ownerId).avatar} /><span className="tiny">{user(i.ownerId).name.split(' ')[0]}</span></div>}</td>
+                <td><UserChip user={user(i.ownerId)} short /></td>
                 <td className="muted tiny nowrap">{relDate(i.createdAt)}</td>
-                <td className="right nowrap" onClick={(e) => e.stopPropagation()}><span className="row-actions">
-                  <button className="icon-btn sm" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setSel(i)}><Pencil size={14} /></button>
-                  <button className="icon-btn sm" title="Löschen" aria-label="Löschen" onClick={() => del(i)}><Trash2 size={14} /></button>
-                </span></td>
+                <td className="right nowrap"><RowActions kind="ideas" rec={i} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Noch keine Ideen" hint="Teilen Sie Vorschläge mit dem Team." />}</div>
       </div>
 
-      {sel && <VorgangDrawer kind="ideas" id={sel.id} onClose={() => setSel(null)} />}
       {adding && <NewIdea db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );

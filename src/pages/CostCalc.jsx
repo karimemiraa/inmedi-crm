@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Euro, Car, Phone, Users, Download, Calculator } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
+import { AccountLink, Badge, Card, Empty, Field, KpiCard, Modal, Select, UserChip } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
@@ -107,7 +107,7 @@ export default function CostCalc() {
                   <td><Badge tone={TYPE_TONE[e.type]}>{e.type}</Badge></td>
                   <td className="nowrap">{fmtDate(e.date)}</td>
                   <td><AccountLink account={acct(e.accountId)} /></td>
-                  <td>{user(e.userId)?.name.split(' ')[0]}</td>
+                  <td><UserChip user={user(e.userId)} short /></td>
                   <td className="right">{e.durationMin ? e.durationMin + ' Min' : '—'}</td>
                   <td className="right">{e.distanceKm ? e.distanceKm : '—'}</td>
                   <td className="right"><b>{fmtMoney(e.cost)}</b></td>

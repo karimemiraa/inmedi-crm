@@ -7,6 +7,8 @@ import { useSort } from '../lib/useSort.js';
 import { useOpenParam, openLink } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
 const STATUS_TONE = { Entwurf: 'gray', 'Angebot gesendet': 'amber', Bestätigt: 'blue', Versendet: 'purple', Geliefert: 'green' };
@@ -18,10 +20,9 @@ export default function Orders() {
   const [params] = useSearchParams();
   const [q, setQ] = useState('');
   const [kind, setKind] = useState(['Auftrag', 'Angebot'].includes(params.get('kind')) ? params.get('kind') : 'All');
-  const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(null); // 'Angebot' | 'Auftrag'
 
-  useOpenParam(db.orders, setSel);
+  useOpenParam(db.orders, (r) => nav(vorgangLink('orders', r.id), { replace: true }));
   const { sort, toggle, apply } = useSort('date', 'desc');
   const acct = (id) => db.accounts.find((a) => a.id === id);
   const rows = useMemo(() => {
@@ -71,63 +72,31 @@ export default function Orders() {
             <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
             <SortTh label="Datum" sortKey="date" sort={sort} onSort={toggle} />
             <SortTh label="Gesamt" sortKey="total" sort={sort} onSort={toggle} align="right" />
+            <th className="right">Aktionen</th>
           </tr></thead>
           <tbody>
             {rows.map((o) => (
-              <tr key={o.id} onClick={() => setSel(o)}>
-                <td className="cell-main nowrap">{o.number}</td>
+              <tr key={o.id} onClick={() => nav(vorgangLink('orders', o.id))}>
+                <td className="cell-main nowrap">{o.number}<CommentCount rec={o} /></td>
                 <td><Badge tone={o.kind === 'Angebot' ? 'amber' : 'teal'}>{o.kind}</Badge></td>
                 <td><AccountLink account={acct(o.accountId)} /></td>
                 <td>{o.items.length}</td>
-                <td><Badge tone={STATUS_TONE[o.status]} dot>{o.status}</Badge></td>
+                <td><StatusBadge db={db} kind="orders" rec={o} /></td>
                 <td className="nowrap">{fmtDate(o.date)}</td>
                 <td className="right"><b>{fmtMoney(o.total)}</b></td>
+                <td className="right nowrap"><RowActions kind="orders" rec={o} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Keine passenden Datensätze" />}</div>
       </div>
 
-      {sel && (
-        <Drawer title={sel.number} onClose={() => setSel(null)} footer={<button className="btn primary" onClick={() => setSel(null)}>Schließen</button>}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <Badge tone={sel.kind === 'Angebot' ? 'amber' : 'teal'}>{sel.kind}</Badge>
-            <Badge tone={STATUS_TONE[sel.status]} dot>{sel.status}</Badge>
-          </div>
-          <dl className="kv" style={{ marginBottom: 18 }}>
-            <dt>Konto</dt><dd><AccountLink account={acct(sel.accountId)} /></dd>
-            <dt>Datum</dt><dd>{fmtDate(sel.date)}</dd>
-            <dt>Betreuer</dt><dd>{db.users.find((u) => u.id === sel.ownerId)?.name}</dd>
-            {sel.dealId && <><dt>Deal</dt><dd><span className="rec-link" onClick={() => nav(openLink('/pipeline', sel.dealId))}>{db.deals.find((d) => d.id === sel.dealId)?.name || '—'}</span></dd></>}
-            {db.invoices.filter((i) => i.orderId === sel.id).length > 0 && (
-              <><dt>Rechnungen</dt><dd>{db.invoices.filter((i) => i.orderId === sel.id).map((i) => <span key={i.id} className="rec-link" style={{ marginRight: 8 }} onClick={() => nav(openLink('/invoices', i.id))}>{i.number}</span>)}</dd></>
-            )}
-          </dl>
-          <h3 style={{ fontSize: 14, marginBottom: 10 }}>Positionen</h3>
-          <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
-            <thead><tr><th>Produkt</th><th className="right">Menge</th><th className="right">Preis</th><th className="right">Gesamt</th></tr></thead>
-            <tbody>
-              {sel.items.map((it, i) => (
-                <tr key={i} style={{ cursor: 'default' }}>
-                  <td className="cell-main">{it.name}</td>
-                  <td className="right">{it.qty}</td>
-                  <td className="right">{fmtMoney(it.price)}</td>
-                  <td className="right"><b>{fmtMoney(it.qty * it.price)}</b></td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, padding: '0 4px', fontSize: 16, fontWeight: 800 }}>
-            <span>Gesamt</span><span>{fmtMoney(sel.total)}</span>
-          </div>
-        </Drawer>
-      )}
-      {adding && <NewOrder db={db} kind={adding} onClose={() => setAdding(null)} toast={toast} />}
+      {adding && <NewOrder db={db} kind={adding} onClose={() => setAdding(null)} toast={toast} onCreated={(rec) => nav(vorgangLink('orders', rec.id))} />}
     </div>
   );
 }
 
-function NewOrder({ db, kind, onClose, toast }) {
+function NewOrder({ db, kind, onClose, toast, onCreated }) {
   const [accountId, setAccountId] = useState(db.accounts[0]?.id);
   const [dealId, setDealId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0,10));
@@ -140,11 +109,11 @@ function NewOrder({ db, kind, onClose, toast }) {
     if (items.length === 0) { toast('Bitte mindestens eine Position hinzufügen'); return; }
     const prefix = kind === 'Angebot' ? 'ANG-' : 'AUF-';
     const n = prefix + (24515 + db.orders.length + 1);
-    store.add('orders', {
+    const rec = store.add('orders', {
       number: n, kind, accountId, dealId: dealId || null, ownerId: db.accounts.find((a) => a.id === accountId)?.ownerId || db.meta.currentUserId,
       status, items, total, date: new Date(date).toISOString(),
     });
-    toast(kind + ' erstellt'); onClose();
+    toast(kind + ' erstellt'); onClose(); onCreated?.(rec);
   };
   return (
     <Modal title={'Neue(r) ' + kind} wide onClose={onClose}

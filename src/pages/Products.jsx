@@ -1,15 +1,19 @@
+import { useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { Plus, Search, Package } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Empty, Field, KpiCard, Modal, Select, SortTh } from '../components/ui.jsx';
 import { useSort } from '../lib/useSort.js';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtMoney } from '../lib/format.js';
 import { Package2, Boxes, AlertTriangle, Tag } from 'lucide-react';
 
 export default function Products() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('All');
   const [adding, setAdding] = useState(false);
@@ -63,17 +67,18 @@ export default function Products() {
             <SortTh label="Preis" sortKey="price" sort={sort} onSort={toggle} align="right" />
             <SortTh label="Bestand" sortKey="stock" sort={sort} onSort={toggle} align="right" />
             <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
-          </tr></thead>
+          <th className="right">Aktionen</th></tr></thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id} onClick={() => nav(vorgangLink('products', p.id))}>
                 <td className="muted nowrap">{p.sku}</td>
-                <td className="cell-main">{p.name}</td>
+                <td className="cell-main">{p.name}<CommentCount rec={p} /></td>
                 <td><Badge tone="gray">{p.category}</Badge></td>
                 <td className="muted">{p.unit}</td>
                 <td className="right"><b>{fmtMoney(p.price)}</b></td>
                 <td className="right">{p.stock}</td>
                 <td><Badge tone={p.stock < 20 ? 'red' : 'green'} dot>{p.stock < 20 ? 'Geringer Bestand' : 'Auf Lager'}</Badge></td>
+                <td className="right nowrap"><RowActions kind="products" rec={p} toast={toast} /></td>
               </tr>
             ))}
           </tbody>

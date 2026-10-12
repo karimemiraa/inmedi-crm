@@ -41,6 +41,8 @@ import CareCostAnalysis from './pages/CareCostAnalysis.jsx';
 import DataProtection from './pages/DataProtection.jsx';
 import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
+import VorgangPage from './pages/VorgangPage.jsx';
+import TeamMember from './pages/TeamMember.jsx';
 
 const router = createHashRouter([
   {
@@ -77,6 +79,8 @@ const router = createHashRouter([
       { path: 'datenschutz', element: <DataProtection /> },
       { path: 'profile', element: <Profile /> },
       { path: 'settings', element: <Settings /> },
+      { path: 'vorgang/:slug/:id', element: <VorgangPage /> },
+      { path: 'team/:id', element: <TeamMember /> },
       // Entfernte Module (Serviceaufträge, Geräte) und unbekannte Links → Dashboard
       { path: '*', element: <Navigate to="/" replace /> },
     ],

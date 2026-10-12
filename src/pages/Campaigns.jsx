@@ -1,8 +1,11 @@
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Plus, Megaphone, Mail, MousePointerClick, Eye } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Badge, Card, Empty, Field, KpiCard, Modal, Select } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtNum, fmtDate } from '../lib/format.js';
 
 const STATUS_TONE = { Aktiv: 'green', Abgeschlossen: 'blue', Geplant: 'amber', Entwurf: 'gray' };
@@ -10,6 +13,7 @@ const STATUS_TONE = { Aktiv: 'green', Abgeschlossen: 'blue', Geplant: 'amber', E
 export default function Campaigns() {
   const db = useStore();
   const toast = useToast();
+  const nav = useNavigate();
   const [adding, setAdding] = useState(false);
   const totalSent = db.campaigns.reduce((s, c) => s + c.sent, 0);
   const totalOpen = db.campaigns.reduce((s, c) => s + c.opened, 0);
@@ -38,7 +42,7 @@ export default function Campaigns() {
             <div key={c.id} className="card card-pad">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
                 <Badge tone={c.type === 'Newsletter' ? 'purple' : 'teal'}>{c.type}</Badge>
-                <Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge>
+                <StatusBadge db={db} kind="campaigns" rec={c} />
               </div>
               <div style={{ fontWeight: 700, marginBottom: 4 }}>{c.name}</div>
               <div className="muted tiny" style={{ marginBottom: 14 }}>{c.segment}</div>
@@ -55,18 +59,19 @@ export default function Campaigns() {
 
       <Card title="Alle Kampagnen" pad={false}>
         <div className="table-wrap list"><table className="tbl">
-          <thead><tr><th>Kampagne</th><th>Typ</th><th>Segment</th><th>Status</th><th className="right">Gesendet</th><th className="right">Öffnung %</th><th className="right">Klick %</th><th>Datum</th></tr></thead>
+          <thead><tr><th>Kampagne</th><th>Typ</th><th>Segment</th><th>Status</th><th className="right">Gesendet</th><th className="right">Öffnung %</th><th className="right">Klick %</th><th>Datum</th><th className="right">Aktionen</th></tr></thead>
           <tbody>
             {db.campaigns.map((c) => (
-              <tr key={c.id} style={{ cursor: 'default' }}>
+              <tr key={c.id} onClick={() => nav(vorgangLink('campaigns', c.id))}>
                 <td className="cell-main">{c.name}</td>
                 <td><Badge tone={c.type === 'Newsletter' ? 'purple' : 'teal'}>{c.type}</Badge></td>
                 <td className="muted">{c.segment}</td>
-                <td><Badge tone={STATUS_TONE[c.status]} dot>{c.status}</Badge></td>
+                <td><StatusBadge db={db} kind="campaigns" rec={c} /></td>
                 <td className="right">{fmtNum(c.sent)}</td>
                 <td className="right">{c.sent ? Math.round((c.opened / c.sent) * 100) + '%' : '—'}</td>
                 <td className="right">{c.sent ? Math.round((c.clicked / c.sent) * 100) + '%' : '—'}</td>
                 <td className="nowrap">{fmtDate(c.date)}</td>
+                <td className="right nowrap"><RowActions kind="campaigns" rec={c} toast={toast} /></td>
               </tr>
             ))}
           </tbody>

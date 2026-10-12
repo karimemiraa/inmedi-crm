@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Plus, Phone, Users, CheckCircle2, Mail, CalendarCheck, List, Calendar as CalIcon, Pencil, Trash2 } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Badge, Empty, KpiCard, AccountLink, ContactLink, Select, StatusConfigLink } from '../components/ui.jsx';
+import { Badge, Empty, KpiCard, AccountLink, ContactLink, Select, StatusConfigLink, UserLink } from '../components/ui.jsx';
 import { statusList, setStatus, toggleDone } from '../lib/status.js';
 import { useOpenParam } from '../lib/nav.js';
-import { trashVorgang } from '../lib/vorgang.js';
+import { vorgangLink } from '../lib/vorgang.js';
 import { useToast } from '../components/Toast.jsx';
-import VorgangDrawer, { CommentCount } from '../components/VorgangDrawer.jsx';
+import { CommentCount, RowActions } from '../components/Vorgang.jsx';
+import { useNavigate } from 'react-router-dom';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { relDate, fmtDate } from '../lib/format.js';
 
@@ -20,10 +21,10 @@ export default function Activities() {
   const [filter, setFilter] = useState('open');
   const [st, setSt] = useState('');
   const [adding, setAdding] = useState(false);
-  const [sel, setSel] = useState(null);
+  const nav = useNavigate();
+  const open = (a) => nav(vorgangLink('activities', a.id));
   const toast = useToast();
-  useOpenParam(db.activities, setSel);
-  const del = (a) => { if (!window.confirm(`Aktivität „${a.subject}" in den Papierkorb verschieben?`)) return; trashVorgang('activities', a.id); toast('Aktivität in den Papierkorb verschoben'); };
+  useOpenParam(db.activities, (r) => nav(vorgangLink('activities', r.id), { replace: true }));
 
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
@@ -77,12 +78,12 @@ export default function Activities() {
             const Icon = ICON[a.type] || CheckCircle2;
             const isOverdue = !a.done && new Date(a.dueDate) < NOW;
             return (
-              <div key={a.id} className="list-row clickable" style={{ padding: '13px 18px' }} onClick={() => setSel(a)}>
+              <div key={a.id} className="list-row clickable" style={{ padding: '13px 18px' }} onClick={() => open(a)}>
                 <label className="check" onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={a.done} onChange={() => toggleDone(db, a)} /></label>
                 <span className="ico" style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: `var(--${TONE[a.type] === 'brand' ? 'brand-050' : TONE[a.type] + '-bg'})`, color: `var(--${TONE[a.type] === 'brand' ? 'brand' : TONE[a.type]})` }}><Icon size={16} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, textDecoration: a.done ? 'line-through' : 'none', color: a.done ? 'var(--text-3)' : 'var(--text)' }}>{a.subject}<CommentCount rec={a} /></div>
-                  <div className="muted tiny stat-line" style={{ gap: 6, flexWrap: 'wrap' }}><AccountLink account={acct(a.accountId)} />{a.contactId && <> · <ContactLink contact={db.contacts.find((c) => c.id === a.contactId)} /></>} · {db.users.find((u) => u.id === a.ownerId)?.name.split(' ')[0]}</div>
+                  <div className="muted tiny stat-line" style={{ gap: 6, flexWrap: 'wrap' }}><AccountLink account={acct(a.accountId)} />{a.contactId && <> · <ContactLink contact={db.contacts.find((c) => c.id === a.contactId)} /></>} · <UserLink user={db.users.find((u) => u.id === a.ownerId)} /></div>
                 </div>
                 <Badge tone={a.priority === 'Hoch' ? 'red' : a.priority === 'Niedrig' ? 'gray' : 'amber'}>{a.priority}</Badge>
                 <Badge tone={isOverdue ? 'red' : 'gray'}>{relDate(a.dueDate)}</Badge>
@@ -90,16 +91,13 @@ export default function Activities() {
                   <Select className="status-select" value={a.status} onChange={(e) => setStatus('activities', a.id, e.target.value)} aria-label="Status">
                     {statusList(db, 'activities').map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
                   </Select>
-                  <button className="icon-btn sm" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setSel(a)}><Pencil size={14} /></button>
-                  <button className="icon-btn sm" title="Löschen" aria-label="Löschen" onClick={() => del(a)}><Trash2 size={14} /></button>
+                  <RowActions kind="activities" rec={a} toast={toast} />
                 </span>
               </div>
             );
           })}
         </div>
-      </>) : <CalendarView db={db} acct={acct} onOpen={setSel} />}
-
-      {sel && <VorgangDrawer kind="activities" id={sel.id} onClose={() => setSel(null)} />}
+      </>) : <CalendarView db={db} acct={acct} onOpen={open} />}
 
       {adding && <QuickAdd initial="activity" onClose={() => setAdding(false)} />}
     </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShieldCheck, ScrollText, UserCheck, FileDown, Trash2, Lock, KeyRound, Server, FileSignature, Eye } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Badge, Card, Empty } from '../components/ui.jsx';
+import { Badge, Card, Empty, UserLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { fmtDate, relDate } from '../lib/format.js';
 
@@ -80,7 +80,7 @@ export default function DataProtection() {
               {[...db.auditLog].sort((a, b) => new Date(b.at) - new Date(a.at)).map((e) => (
                 <tr key={e.id} style={{ cursor: 'default' }}>
                   <td className="nowrap muted">{relDate(e.at)}</td>
-                  <td className="cell-main">{uname(e.userId)}</td>
+                  <td className="cell-main"><UserLink id={e.userId} name={uname(e.userId)} /></td>
                   <td><Badge tone={e.action.includes('Löschung') ? 'red' : e.action.includes('Sperr') ? 'amber' : 'blue'}>{e.action}</Badge></td>
                   <td>{e.entity}</td>
                   <td className="muted">{e.detail}</td>

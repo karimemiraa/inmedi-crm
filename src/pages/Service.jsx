@@ -5,7 +5,9 @@ import { AccountLink, Avatar, Badge, Card, Empty, Field, KpiCard, Modal, Select,
 import { useOpenParam } from '../lib/nav.js';
 import { statusList, statusTone, isOpen } from '../lib/status.js';
 import { useToast } from '../components/Toast.jsx';
-import VorgangDrawer, { CommentCount, RowActions, TICKET_CATEGORIES, PRIO_TONE } from '../components/VorgangDrawer.jsx';
+import { CommentCount, RowActions, TICKET_CATEGORIES, PRIO_TONE } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
+import { useNavigate } from 'react-router-dom';
 import { relDate } from '../lib/format.js';
 
 const CHANNEL_ICON = { Telefon: Phone, 'E-Mail': Mail, Web: Globe };
@@ -17,9 +19,9 @@ export default function Service() {
   const [scope, setScope] = useState('Offen');
   const [st, setSt] = useState('');
   const [adding, setAdding] = useState(false);
-  const [sel, setSel] = useState(null);
 
-  useOpenParam(db.tickets, setSel);
+  const nav = useNavigate();
+  useOpenParam(db.tickets, (r) => nav(vorgangLink('tickets', r.id), { replace: true }));
   const acct = (id) => db.accounts.find((a) => a.id === id);
 
   const rows = useMemo(() => {
@@ -74,14 +76,14 @@ export default function Service() {
                 {rows.map((t) => {
                   const Ch = CHANNEL_ICON[t.channel] || Globe;
                   return (
-                    <tr key={t.id} onClick={() => setSel(t)}>
+                    <tr key={t.id} onClick={() => nav(vorgangLink('tickets', t.id))}>
                       <td><div className="cell-main">{t.subject}<CommentCount rec={t} /></div><div className="cell-sub">{t.number} · {t.category}</div></td>
                       <td><AccountLink account={acct(t.accountId)} /></td>
                       <td><span className="chip" style={{ padding: '3px 8px' }}><Ch size={12} /> {t.channel}</span></td>
                       <td><Badge tone={PRIO_TONE[t.priority]}>{t.priority}</Badge></td>
                       <td><Badge tone={statusTone(db, 'tickets', t.status)} dot>{t.status}</Badge></td>
                       <td className="muted tiny nowrap">{relDate(t.createdAt)}</td>
-                      <td className="right nowrap"><RowActions kind="tickets" rec={t} onEdit={() => setSel(t)} toast={toast} /></td>
+                      <td className="right nowrap"><RowActions kind="tickets" rec={t} toast={toast} /></td>
                     </tr>
                   );
                 })}
@@ -106,7 +108,6 @@ export default function Service() {
         </Card>
       </div>
 
-      {sel && <VorgangDrawer kind="tickets" id={sel.id} onClose={() => setSel(null)} />}
       {adding && <NewTicket db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );

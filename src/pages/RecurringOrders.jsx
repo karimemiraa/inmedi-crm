@@ -6,6 +6,8 @@ import { AccountLink, Badge, Drawer, Empty, Field, KpiCard, Modal, Select } from
 import { useOpenParam } from '../lib/nav.js';
 import LineItems from '../components/LineItems.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { CommentCount, RowActions, StatusBadge } from '../components/Vorgang.jsx';
+import { vorgangLink } from '../lib/vorgang.js';
 import { fmtMoney, fmtMoneyShort, fmtDate } from '../lib/format.js';
 
 export const INTERVALS = ['monatlich', 'quartalsweise', 'halbjährlich', 'jährlich'];
@@ -33,10 +35,10 @@ export function generateOne(db, r, seq) {
 
 export default function RecurringOrders() {
   const db = useStore();
+  const nav = useNavigate();
   const toast = useToast();
-  const [sel, setSel] = useState(null);
   const [adding, setAdding] = useState(false);
-  useOpenParam(db.recurringOrders, setSel);
+  useOpenParam(db.recurringOrders, (r) => nav(vorgangLink('recurringOrders', r.id), { replace: true }));
 
   const rows = useMemo(() => [...db.recurringOrders].sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue)), [db.recurringOrders]);
   const acct = (id) => db.accounts.find((a) => a.id === id);
@@ -75,78 +77,28 @@ export default function RecurringOrders() {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap list"><table className="tbl">
-          <thead><tr><th>Kunde</th><th>Intervall</th><th>Positionen</th><th>Nächste Fälligkeit</th><th>Status</th><th className="right">Betrag/Lauf</th></tr></thead>
+          <thead><tr><th>Kunde</th><th>Intervall</th><th>Positionen</th><th>Nächste Fälligkeit</th><th>Status</th><th className="right">Betrag/Lauf</th><th className="right">Aktionen</th></tr></thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} onClick={() => setSel(r)}>
+              <tr key={r.id} onClick={() => nav(vorgangLink('recurringOrders', r.id))}>
                 <td className="cell-main"><AccountLink account={acct(r.accountId)} /></td>
                 <td><Badge tone="teal">{r.interval}</Badge></td>
                 <td className="muted">{r.items.length} Position(en)</td>
                 <td className="nowrap"><Badge tone={isDue(r) ? 'amber' : 'gray'} dot={isDue(r)}>{fmtDate(r.nextDue)}</Badge></td>
                 <td><Badge tone={r.active ? 'green' : 'gray'} dot>{r.active ? 'Aktiv' : 'Pausiert'}</Badge></td>
                 <td className="right"><b>{fmtMoney(sum(r.items))}</b></td>
+                <td className="right nowrap"><RowActions kind="recurringOrders" rec={r} toast={toast} /></td>
               </tr>
             ))}
           </tbody>
         </table>{rows.length === 0 && <Empty label="Keine Daueraufträge" hint="Wiederkehrende Bestellungen je Kunde." action={{ label: 'Neuer Dauerauftrag', onClick: () => setAdding(true) }} />}</div>
       </div>
 
-      {sel && <RODrawer db={db} ro={db.recurringOrders.find((r) => r.id === sel.id) || sel} onClose={() => setSel(null)} toast={toast} />}
       {adding && <NewRO db={db} onClose={() => setAdding(false)} toast={toast} />}
     </div>
   );
 }
 
-function RODrawer({ db, ro: r, onClose, toast }) {
-  const nav = useNavigate();
-  const acct = (id) => db.accounts.find((a) => a.id === id);
-  const owner = db.users.find((u) => u.id === r.ownerId);
-  const generated = (r.generatedOrderIds || []).map((oid) => db.orders.find((o) => o.id === oid)).filter(Boolean);
-  const toggle = () => { store.update('recurringOrders', r.id, { active: !r.active }); toast(r.active ? 'Pausiert' : 'Aktiviert'); };
-  const genNow = () => { generateOne(db, r, 0); toast('Auftrag erzeugt'); };
-  const del = () => { if (confirm('Dauerauftrag löschen?')) { store.remove('recurringOrders', r.id); onClose(); toast('Dauerauftrag gelöscht'); } };
-
-  return (
-    <Drawer title="Dauerauftrag" onClose={onClose}
-      footer={<>
-        <button className="btn danger" onClick={del}><Trash2 size={14} /> Löschen</button>
-        <button className="btn" onClick={toggle}>{r.active ? <><Pause size={14} /> Pausieren</> : <><PlayCircle size={14} /> Aktivieren</>}</button>
-        <button className="btn primary" onClick={genNow}><Zap size={14} /> Jetzt erzeugen</button>
-      </>}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Badge tone="teal">{r.interval}</Badge>
-        <Badge tone={r.active ? 'green' : 'gray'} dot>{r.active ? 'Aktiv' : 'Pausiert'}</Badge>
-        {isDue(r) && <Badge tone="amber" dot>fällig</Badge>}
-      </div>
-      <dl className="kv">
-        <dt>Kunde</dt><dd><AccountLink account={acct(r.accountId)} /></dd>
-        <dt>Verantwortlich</dt><dd>{owner?.name || '—'}</dd>
-        <dt>Intervall</dt><dd>{r.interval}</dd>
-        <dt>Start</dt><dd>{fmtDate(r.startDate)}</dd>
-        <dt>Nächste Fälligkeit</dt><dd>{fmtDate(r.nextDue)}</dd>
-        <dt>Zuletzt erzeugt</dt><dd>{r.lastGenerated ? fmtDate(r.lastGenerated) : '—'}</dd>
-        <dt>Betrag je Lauf</dt><dd><b>{fmtMoney(sum(r.items))}</b></dd>
-      </dl>
-      <h3 style={{ fontSize: 14, margin: '20px 0 10px' }}>Positionen</h3>
-      <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
-        <thead><tr><th>Produkt</th><th className="right">Menge</th><th className="right">Preis</th><th className="right">Gesamt</th></tr></thead>
-        <tbody>
-          {r.items.map((it, i) => (
-            <tr key={i} style={{ cursor: 'default' }}><td className="cell-main">{it.name}</td><td className="right">{it.qty}</td><td className="right">{fmtMoney(it.price)}</td><td className="right"><b>{fmtMoney(it.qty * it.price)}</b></td></tr>
-          ))}
-        </tbody>
-      </table></div>
-      <h3 style={{ fontSize: 14, margin: '20px 0 10px' }}>Erzeugte Aufträge ({generated.length})</h3>
-      <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
-        <tbody>
-          {generated.map((o) => (
-            <tr key={o.id} onClick={() => nav('/orders')}><td className="cell-main">{o.number}</td><td className="nowrap">{fmtDate(o.date)}</td><td className="right"><b>{fmtMoney(o.total)}</b></td></tr>
-          ))}
-        </tbody>
-      </table>{generated.length === 0 && <Empty label="Noch keine Aufträge erzeugt" />}</div>
-    </Drawer>
-  );
-}
 
 function NewRO({ db, onClose, toast }) {
   const [f, setF] = useState({ accountId: db.accounts[0]?.id, ownerId: db.meta.currentUserId, interval: 'monatlich', startDate: new Date().toISOString().slice(0, 10) });

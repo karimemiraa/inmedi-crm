@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { Map, Users } from 'lucide-react';
 import { useStore } from '../data/store.js';
-import { Avatar, Badge, Card, KpiCard } from '../components/ui.jsx';
+import { Avatar, Badge, Card, KpiCard, UserLink } from '../components/ui.jsx';
 import { computeCommission } from '../lib/commission.js';
 import { fmtMoney, fmtMoneyShort } from '../lib/format.js';
 
@@ -84,7 +84,7 @@ export default function Territories() {
           <tbody>
             {reps.map((r) => (
               <tr key={r.id} style={{ cursor: 'default' }}>
-                <td><div className="avatar-row"><Avatar size="sm" name={r.name} color={r.color} /><div><div className="cell-main">{r.name}</div><div className="cell-sub">{r.title}</div></div></div></td>
+                <td><div className="avatar-row"><Avatar size="sm" name={r.name} color={r.color} /><div><div className="cell-main"><UserLink id={r.id || r.userId} name={r.name} /></div><div className="cell-sub">{r.title}</div></div></div></td>
                 <td><Badge tone={ROLE_TONE[r.role]}>{r.role}</Badge></td>
                 <td>{terr(r.territoryId)}</td>
                 <td className="right">{r.accounts}</td>

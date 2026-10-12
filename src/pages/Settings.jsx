@@ -4,7 +4,7 @@ import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, 
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
-import { Avatar, Badge, Card, Field, Modal, Select } from '../components/ui.jsx';
+import { Avatar, Badge, Card, Field, Modal, Select, UserLink } from '../components/ui.jsx';
 import { LogoMark } from '../components/Logo.jsx';
 import { useToast } from '../components/Toast.jsx';
 import StatusSettings from '../components/StatusSettings.jsx';
@@ -118,7 +118,7 @@ export default function Settings() {
                 <tbody>
                   {db.users.map((u) => (
                     <tr key={u.id} style={{ cursor: 'default' }}>
-                      <td><div className="avatar-row"><Avatar size="sm" name={u.name} color={u.color} src={u.avatar} /><div><div className="cell-main">{u.name}</div><div className="cell-sub">{u.title}</div></div></div></td>
+                      <td><div className="avatar-row"><Avatar size="sm" name={u.name} color={u.color} src={u.avatar} /><div><div className="cell-main"><UserLink user={u} /></div><div className="cell-sub">{u.title}</div></div></div></td>
                       <td><Badge tone={u.role === 'Administrator' ? 'purple' : u.role === 'Manager' ? 'blue' : 'gray'}>{u.role}</Badge></td>
                       <td>{db.territories.find((t) => t.id === u.territoryId)?.name || '—'}</td>
                       <td><Badge tone={u.twoFactor ? 'green' : 'gray'} dot>{u.twoFactor ? 'Aktiv' : 'Aus'}</Badge></td>

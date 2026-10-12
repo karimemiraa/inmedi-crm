@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, Percent, Euro, TrendingUp, Filter, Settings2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
-import { Card, KpiCard, Avatar, Field, Badge } from '../components/ui.jsx';
+import { Card, KpiCard, Avatar, Field, Badge, UserLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { computeCommission } from '../lib/commission.js';
@@ -70,7 +70,7 @@ export default function Provision() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.userId} style={{ cursor: 'default' }}>
-                <td><div className="avatar-row"><Avatar size="sm" name={r.name} color={r.color} /><span className="cell-main">{r.name}</span></div></td>
+                <td><div className="avatar-row"><Avatar size="sm" name={r.name} color={r.color} /><span className="cell-main"><UserLink id={r.userId} name={r.name} /></span></div></td>
                 <td className="right">{r.orders}</td>
                 <td className="right">{fmtMoney(r.base)}</td>
                 <td className="right"><Badge tone="gray">{Math.round(r.rate * 1000) / 10} %</Badge></td>
@@ -101,7 +101,7 @@ function RateConfig({ db, toast }) {
         <tbody>
           {reps.map((u) => (
             <tr key={u.id} style={{ cursor: 'default' }}>
-              <td><div className="avatar-row"><Avatar size="sm" name={u.name} color={u.color} /><span className="cell-main">{u.name}</span></div></td>
+              <td><div className="avatar-row"><Avatar size="sm" name={u.name} color={u.color} /><span className="cell-main"><UserLink user={u} /></span></div></td>
               <td className="muted">{u.role}</td>
               <td><input className="input" type="number" step="0.5" defaultValue={u.commissionRate ? Math.round(u.commissionRate * 1000) / 10 : ''} placeholder={`Standard (${def} %)`} onBlur={(e) => { setRep(u.id, e.target.value); toast('Satz gespeichert'); }} /></td>
             </tr>
