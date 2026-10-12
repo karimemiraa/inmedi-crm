@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MapPin, Building2, BedDouble, CalendarCheck, Star, FileText,
   Pencil, Plus, Trash2, Hash, Percent, Receipt, CheckSquare, Clock, FileSignature,
-  LifeBuoy, Presentation, ShieldAlert,
+  LifeBuoy, Presentation, ShieldAlert, Copy, MessageSquare, Archive,
 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { Avatar, Badge, Card, ContactLink, Empty, Field, Modal, ScoreMeter, Select, UserLink } from '../components/ui.jsx';
-import Notes from '../components/Notes.jsx';
+import { Comments, EditForm, HistoryList, toDraft, diffDraft } from '../components/Vorgang.jsx';
+import { FIELDS } from '../lib/vorgangFields.js';
 import { statusTone } from '../lib/status.js';
-import { vorgangLink } from '../lib/vorgang.js';
+import { vorgangLink, updateVorgang, requestDelete, duplicateVorgang, statusOptions, setVorgangStatus } from '../lib/vorgang.js';
 import QuickAdd from '../components/QuickAdd.jsx';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
@@ -20,7 +21,7 @@ import { fmtMoney, fmtMoneyShort, fmtDate, relDate } from '../lib/format.js';
 const TABS = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'custom', label: 'Zusatzfelder' },
-  { key: 'notes', label: 'Notizen' },
+  { key: 'comments', label: 'Kommentare' },
   { key: 'process', label: 'Vorgänge' },
   { key: 'recurring', label: 'Daueraufträge' },
   { key: 'conditions', label: 'Konditionen' },
@@ -31,9 +32,10 @@ const TABS = [
   { key: 'serviceqm', label: 'Kundendienst & QM' },
   { key: 'events', label: 'Messen' },
   { key: 'documents', label: 'Dokumente' },
+  { key: 'history', label: 'Verlauf' },
 ];
 const INV_TONE = { Entwurf: 'gray', Versendet: 'blue', Teilbezahlt: 'amber', Bezahlt: 'green', Überfällig: 'red' };
-const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'gray' };
+const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'blue', Inaktiv: 'gray' };
 
 export default function AccountDetail() {
   const { id } = useParams();
@@ -41,11 +43,33 @@ export default function AccountDetail() {
   const nav = useNavigate();
   const toast = useToast();
   const [tab, setTab] = useState('overview');
-  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null); // Bearbeitungsmodus
   const [quick, setQuick] = useState(null); // { actType }
 
   const a = db.accounts.find((x) => x.id === id);
-  if (!a) return <div className="page"><Empty label="Firma nicht gefunden" /></div>;
+  if (!a) {
+    const t = (db.trash || []).find((x) => x.kind === 'accounts' && x.record.id === id);
+    return <div className="page"><Card><Empty label={t ? 'Firma liegt im Papierkorb' : 'Firma nicht gefunden'} hint={t ? t.record.name : undefined} action={t ? { label: 'Zum Papierkorb', onClick: () => nav('/settings?tab=data') } : undefined} /></Card></div>;
+  }
+  const fields = FIELDS.accounts;
+  const startEdit = () => { setDraft(toDraft(a, fields)); setTab('overview'); };
+  const save = () => {
+    const { patch, changed, error } = diffDraft('accounts', a, fields, draft);
+    if (error) { toast(error); return; }
+    if (changed.length) { updateVorgang('accounts', a.id, patch, 'Geändert: ' + changed.join(', ')); toast('Firma gespeichert'); }
+    setDraft(null);
+  };
+  const remove = () => {
+    const res = requestDelete('accounts', a.id);
+    if (res === 'trashed') { toast('Firma in den Papierkorb verschoben'); nav('/accounts'); }
+    if (res === 'inactive') toast('Firma als inaktiv markiert');
+  };
+  const duplicate = () => { const c = duplicateVorgang('accounts', a.id); if (c) { toast('Firma dupliziert'); nav('/accounts/' + c.id); } };
+  const assign = (key, label, value) => {
+    const name = key === 'territoryId' ? db.territories.find((t) => t.id === value)?.name : db.users.find((u) => u.id === value)?.name;
+    updateVorgang('accounts', a.id, { [key]: value }, `${label}: ${name || '—'}`);
+    toast(label + ' zugewiesen');
+  };
 
   const contacts = db.contacts.filter((c) => c.accountId === id);
   const deals = db.deals.filter((d) => d.accountId === id);
@@ -92,7 +116,15 @@ export default function AccountDetail() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <button className="btn" onClick={() => setQuick({ actType: 'task' })}><CheckSquare size={15} /> Aufgabe</button>
             <button className="btn" onClick={() => setQuick({ actType: 'meeting' })}><Clock size={15} /> Termin</button>
-            <button className="btn primary" onClick={() => setEditing(true)}><Pencil size={15} /> Bearbeiten</button>
+            <button className="btn" onClick={() => setTab('comments')}><MessageSquare size={15} /> Kommentieren</button>
+            <button className="btn" onClick={duplicate}><Copy size={15} /> Duplizieren</button>
+            <button className="btn danger" onClick={remove}><Trash2 size={15} /> Löschen</button>
+            <button className="btn primary" onClick={startEdit}><Pencil size={15} /> Bearbeiten</button>
+            <div className="vp-status" style={{ width: 170 }}>
+              <Select value={a.status} onChange={(e) => { setVorgangStatus('accounts', a.id, e.target.value); toast('Status: ' + e.target.value); }} aria-label="Status">
+                {statusOptions(db, 'accounts').map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -104,11 +136,17 @@ export default function AccountDetail() {
         </div>
       </div>
 
+      {a.status === 'Inaktiv' && (
+        <div className="inactive-banner"><Archive size={15} /> Diese Firma ist inaktiv und wird in Listen ausgeblendet. Alle Daten bleiben erhalten.
+          <button className="btn sm" onClick={() => { setVorgangStatus('accounts', a.id, 'Aktiv'); toast('Firma reaktiviert'); }}>Reaktivieren</button>
+        </div>
+      )}
+
       <div className="tabs">
         {TABS.map((t) => (
           <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>
             {t.label}
-            {t.key === 'notes' && (a.notes?.length ? ` (${a.notes.length})` : '')}
+            {t.key === 'comments' && ` (${a.comments?.length || 0})`}
             {t.key === 'contacts' && ` (${contacts.length})`}
             {t.key === 'deals' && ` (${deals.length})`}
             {t.key === 'invoices' && ` (${invoices.length})`}
@@ -119,9 +157,19 @@ export default function AccountDetail() {
         ))}
       </div>
 
-      {tab === 'overview' && (
+      {tab === 'overview' && draft && (
+        <Card title="Firma bearbeiten" sub="Alle Stammdaten inkl. Zusatzfelder — Änderungen werden im Verlauf protokolliert.">
+          <EditForm db={db} kind="accounts" fields={fields} draft={draft} setDraft={setDraft} selfId={a.id} />
+          <div className="vp-form-foot">
+            <button className="btn" onClick={() => setDraft(null)}>Abbrechen</button>
+            <button className="btn primary" onClick={save}>Speichern</button>
+          </div>
+        </Card>
+      )}
+
+      {tab === 'overview' && !draft && (
         <div className="grid cols-2">
-          <Card title="Stammdaten" action={<button className="btn ghost sm" onClick={() => setEditing(true)}><Pencil size={13} /> Bearbeiten</button>}>
+          <Card title="Stammdaten" action={<button className="btn ghost sm" onClick={startEdit}><Pencil size={13} /> Bearbeiten</button>}>
             <dl className="kv">
               <dt>Kundennummer</dt><dd>{a.kundennummer}</dd>
               <dt>Typ</dt><dd>{a.type}</dd>
@@ -138,15 +186,15 @@ export default function AccountDetail() {
             <Card title="Zuständigkeit & Betreuung" sub="Kundenbetreuer direkt zuweisen">
               <div className="kv">
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Außendienst{aussen && <> · <UserLink user={aussen} /></>}</span>
-                <Select className="select" value={a.ownerId} onChange={(e) => { store.update('accounts', a.id, { ownerId: e.target.value }); toast('Außendienst zugewiesen'); }}>
+                <Select className="select" value={a.ownerId} onChange={(e) => assign('ownerId', 'Außendienst', e.target.value)}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Select>
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Innendienst{innen && <> · <UserLink user={innen} /></>}</span>
-                <Select className="select" value={a.innendienstId} onChange={(e) => { store.update('accounts', a.id, { innendienstId: e.target.value }); toast('Innendienst zugewiesen'); }}>
+                <Select className="select" value={a.innendienstId} onChange={(e) => assign('innendienstId', 'Innendienst', e.target.value)}>
                   {db.users.filter((u) => u.role !== 'Administrator').map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Select>
                 <span style={{ color: 'var(--text-3)', alignSelf: 'center' }}>Gebiet</span>
-                <Select className="select" value={a.territoryId} onChange={(e) => { store.update('accounts', a.id, { territoryId: e.target.value }); toast('Gebiet zugewiesen'); }}>
+                <Select className="select" value={a.territoryId} onChange={(e) => assign('territoryId', 'Gebiet', e.target.value)}>
                   {db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </Select>
               </div>
@@ -171,12 +219,14 @@ export default function AccountDetail() {
 
       {tab === 'custom' && (
         <Card title="Zusatzfelder" sub="Individuelle Felder (Einstellungen → Benutzerdefinierte Felder)"
-          action={<button className="btn ghost sm" onClick={() => setEditing(true)}><Pencil size={13} /> Bearbeiten</button>}>
+          action={<button className="btn ghost sm" onClick={startEdit}><Pencil size={13} /> Bearbeiten</button>}>
           <CustomFieldsDisplay db={db} entity="Firma" record={a} />
         </Card>
       )}
 
-      {tab === 'notes' && <Card title="Notizen & Kommentare" sub="Sichtbar für Außendienst, Innendienst & Kundendienst"><Notes coll="accounts" record={a} /></Card>}
+      {tab === 'comments' && <Card title="Kommentare" sub="Sichtbar für Außendienst, Innendienst & Kundendienst"><Comments db={db} kind="accounts" r={a} toast={toast} /></Card>}
+
+      {tab === 'history' && <Card title="Verlauf"><HistoryList db={db} kind="accounts" r={a} /></Card>}
 
       {tab === 'conditions' && <Conditions account={a} db={db} toast={toast} />}
 
@@ -336,7 +386,6 @@ export default function AccountDetail() {
           </tbody></table>{docs.length === 0 && <Empty label="Keine Dokumente hinterlegt" />}</div></Card>
       )}
 
-      {editing && <AccountEdit account={a} db={db} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); toast('Firma gespeichert'); }} />}
       {quick && <QuickAdd initial="activity" accountId={a.id} actType={quick.actType} lockAccount onClose={() => setQuick(null)} />}
     </div>
   );
@@ -450,48 +499,3 @@ function Conditions({ account, db, toast }) {
   );
 }
 
-function AccountEdit({ account, db, onClose, onSaved }) {
-  const [f, setF] = useState({ ...account });
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const office = db.users.filter((u) => u.role !== 'Administrator');
-
-  const save = () => {
-    store.update('accounts', account.id, {
-      name: f.name, kundennummer: f.kundennummer, type: f.type, tier: f.tier, status: f.status,
-      territoryId: f.territoryId, ownerId: f.ownerId, innendienstId: f.innendienstId,
-      street: f.street, zip: f.zip, city: f.city, phone: f.phone, email: f.email, website: f.website,
-      vatId: f.vatId, paymentTerms: f.paymentTerms, discount: Number(f.discount) || 0,
-      revenueYTD: Number(f.revenueYTD) || 0, customValues: f.customValues || {},
-    });
-    onSaved();
-  };
-
-  return (
-    <Modal title="Firma bearbeiten" wide onClose={onClose}
-      footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Speichern</button></>}>
-      <div className="form-grid">
-        <Field label="Firmenname"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} /></Field>
-        <Field label="Kundennummer"><input className="input" value={f.kundennummer} onChange={(e) => set('kundennummer', e.target.value)} /></Field>
-        <Field label="Typ"><Select className="select" value={f.type} onChange={(e) => set('type', e.target.value)}>{['Krankenhaus', 'Praxis', 'Pflegeeinrichtung', 'Apotheke', 'Großhändler'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Kategorie"><Select className="select" value={f.tier} onChange={(e) => set('tier', e.target.value)}>{['Schlüsselkunde', 'Strategisch', 'Standard', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Status"><Select className="select" value={f.status} onChange={(e) => set('status', e.target.value)}>{['Aktiv', 'Gefährdet', 'Interessent'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Gebiet"><Select className="select" value={f.territoryId} onChange={(e) => set('territoryId', e.target.value)}>{db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
-        <Field label="Außendienst"><Select className="select" value={f.ownerId} onChange={(e) => set('ownerId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
-        <Field label="Innendienst"><Select className="select" value={f.innendienstId} onChange={(e) => set('innendienstId', e.target.value)}>{office.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
-        <Field label="Straße"><input className="input" value={f.street} onChange={(e) => set('street', e.target.value)} /></Field>
-        <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 10 }}>
-          <Field label="PLZ"><input className="input" value={f.zip} onChange={(e) => set('zip', e.target.value)} /></Field>
-          <Field label="Stadt"><input className="input" value={f.city} onChange={(e) => set('city', e.target.value)} /></Field>
-        </div>
-        <Field label="Telefon"><input className="input" value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Field>
-        <Field label="E-Mail"><input className="input" value={f.email} onChange={(e) => set('email', e.target.value)} /></Field>
-        <Field label="Website"><input className="input" value={f.website} onChange={(e) => set('website', e.target.value)} /></Field>
-        <Field label="USt-IdNr."><input className="input" value={f.vatId} onChange={(e) => set('vatId', e.target.value)} /></Field>
-        <Field label="Zahlungsziel"><Select className="select" value={f.paymentTerms} onChange={(e) => set('paymentTerms', e.target.value)}>{['14 Tage netto', '30 Tage netto', '30 Tage 2% Skonto', 'Vorkasse'].map((t) => <option key={t}>{t}</option>)}</Select></Field>
-        <Field label="Standardrabatt %"><input className="input" type="number" value={f.discount} onChange={(e) => set('discount', e.target.value)} /></Field>
-        <Field label="Umsatz lfd. Jahr €"><input className="input" type="number" value={f.revenueYTD} onChange={(e) => set('revenueYTD', e.target.value)} /></Field>
-        <CustomFieldsEditor db={db} entity="Firma" values={f.customValues || {}} onChange={(cv) => set('customValues', cv)} />
-      </div>
-    </Modal>
-  );
-}

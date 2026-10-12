@@ -39,7 +39,7 @@ export default function Leads() {
       ownerId: lead.ownerId, innendienstId: (db.users[1] || db.users[0]).id, city: lead.city || '', zip: '', street: '',
       country: 'Deutschland', phone: lead.phone, email: lead.email, website: '', vatId: '',
       paymentTerms: '30 Tage netto', discount: 0, revenueYTD: 0, beds: 0,
-      createdAt: new Date().toISOString(), color: lead.color, notes: lead.notes || [],
+      createdAt: new Date().toISOString(), color: lead.color, comments: lead.comments || [],
       customValues: {}, priceList: [], leadId: lead.id,
     });
     store.update('leads', lead.id, { status: 'Qualifiziert', accountId: acc.id });
@@ -111,7 +111,7 @@ function NewLead({ db, onClose, toast }) {
       name: f.name, company: f.company, title: f.title || '', source: f.source, status: 'Neu',
       score: Number(f.score) || 0, ownerId: f.ownerId, email: f.email || '', phone: f.phone || '',
       city: f.city || '', potential: Number(f.potential) || 0, createdAt: new Date().toISOString(),
-      color: AV_COLORS[Math.floor(Math.random() * AV_COLORS.length)], notes: [],
+      color: AV_COLORS[Math.floor(Math.random() * AV_COLORS.length)], comments: [],
     });
     toast('Interessent erstellt'); onClose();
   };

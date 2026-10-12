@@ -97,4 +97,22 @@ export const FIELDS = {
   ],
 };
 
-export const REF_TYPES = ['account', 'contact', 'deal', 'order', 'product', 'user', 'incident'];
+// Stammdaten
+FIELDS.accounts = [
+  title('Firmenname', 'name'), F('kundennummer', 'Kundennummer', 'text'),
+  F('type', 'Typ', 'enum', { options: ['Krankenhaus', 'Praxis', 'Pflegeeinrichtung', 'Apotheke', 'Großhändler'] }),
+  F('tier', 'Kategorie', 'enum', { options: ['Schlüsselkunde', 'Strategisch', 'Standard', 'Interessent'] }),
+  F('territoryId', 'Gebiet', 'territory'), F('beds', 'Betten', 'number'),
+  F('ownerId', 'Außendienst', 'user'), F('innendienstId', 'Innendienst', 'user'),
+  F('street', 'Straße', 'text', { full: true }), F('zip', 'PLZ', 'text'), F('city', 'Stadt', 'text'),
+  F('phone', 'Telefon', 'text'), F('email', 'E-Mail', 'text'), F('website', 'Website', 'text'), F('vatId', 'USt-IdNr.', 'text'),
+  F('paymentTerms', 'Zahlungsziel', 'enum', { options: ['14 Tage netto', '30 Tage netto', '30 Tage 2% Skonto', 'Vorkasse'] }),
+  F('discount', 'Standardrabatt %', 'number'), F('revenueYTD', 'Umsatz lfd. Jahr', 'money'),
+];
+FIELDS.contacts = [
+  title('Name', 'name'), F('title', 'Position', 'text'),
+  F('accountId', 'Firma', 'account', { required: true }), F('isPrimary', 'Hauptansprechpartner', 'bool'),
+  F('email', 'E-Mail', 'text'), F('phone', 'Telefon', 'text'),
+];
+
+export const REF_TYPES = ['account', 'contact', 'deal', 'order', 'product', 'user', 'incident', 'territory'];

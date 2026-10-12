@@ -33,7 +33,7 @@ export default function QuickAdd({ onClose, initial = 'account', accountId, actT
         innendienstId: (db.users[1] || db.users[0]).id, city: f.city || '', zip: '', street: '',
         country: 'Deutschland', phone: f.phone || '', email: f.email || '', website: '', vatId: '',
         paymentTerms: '30 Tage netto', discount: 0,
-        revenueYTD: 0, beds: 0, createdAt: new Date().toISOString(), color: '#a81e22', notes: [],
+        revenueYTD: 0, beds: 0, createdAt: new Date().toISOString(), color: '#a81e22', comments: [],
       });
       toast('Firma erstellt');
     } else if (type === 'contact') {

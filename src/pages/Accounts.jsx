@@ -1,3 +1,4 @@
+import { RowActions, CommentCount } from '../components/Vorgang.jsx';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Download, Building2, MapPin, SlidersHorizontal } from 'lucide-react';
@@ -11,7 +12,7 @@ import { exportCsv } from '../lib/csv.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
 
 const TYPE_TONE = { Krankenhaus: 'blue', Praxis: 'teal', Pflegeeinrichtung: 'purple', Apotheke: 'green', Großhändler: 'amber' };
-const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'gray' };
+const STATUS_TONE = { Aktiv: 'green', Gefährdet: 'red', Interessent: 'blue', Inaktiv: 'gray' };
 
 export default function Accounts() {
   const db = useStore();
@@ -19,6 +20,7 @@ export default function Accounts() {
   const [q, setQ] = useState('');
   const [type, setType] = useState('All');
   const [terr, setTerr] = useState('All');
+  const [stat, setStat] = useState('active'); // Inaktive Firmen standardmäßig ausblenden
   const [cfId, setCfId] = useState('');    // Zusatzfeld-Filter: Feld-ID
   const [cfVal, setCfVal] = useState('');  // Zusatzfeld-Filter: Wert
   const [adding, setAdding] = useState(false);
@@ -32,6 +34,7 @@ export default function Accounts() {
     const filtered = db.accounts.filter((a) => {
       if (type !== 'All' && a.type !== type) return false;
       if (terr !== 'All' && a.territoryId !== terr) return false;
+      if (stat === 'active' ? a.status === 'Inaktiv' : stat !== 'All' && a.status !== stat) return false;
       if (cfId && cfVal) {
         const v = a.customValues?.[cfId];
         if (cfField?.type === 'Auswahl') { if (v !== cfVal) return false; }
@@ -44,7 +47,7 @@ export default function Accounts() {
       kundennummer: (a) => a.kundennummer, name: (a) => a.name, type: (a) => a.type, tier: (a) => a.tier,
       owner: (a) => owner(a.ownerId)?.name, status: (a) => a.status, revenueYTD: (a) => a.revenueYTD,
     });
-  }, [db.accounts, q, type, terr, cfId, cfVal, cfField, sort]);
+  }, [db.accounts, q, type, terr, stat, cfId, cfVal, cfField, sort]);
 
   const toast = useToast();
   const terrName = (id) => db.territories.find((t) => t.id === id)?.name || '—';
@@ -84,6 +87,9 @@ export default function Accounts() {
         <Select className="select" style={{ width: 'auto' }} value={type} onChange={(e) => setType(e.target.value)}>
           {[['All', 'Alle Typen'], ['Krankenhaus', 'Krankenhaus'], ['Praxis', 'Praxis'], ['Pflegeeinrichtung', 'Pflegeeinrichtung'], ['Apotheke', 'Apotheke'], ['Großhändler', 'Großhändler']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </Select>
+        <Select className="select" style={{ width: 'auto' }} value={stat} onChange={(e) => setStat(e.target.value)} aria-label="Status filtern">
+          {[['active', 'Ohne inaktive'], ['All', 'Alle Status'], ['Aktiv', 'Aktiv'], ['Gefährdet', 'Gefährdet'], ['Interessent', 'Interessent'], ['Inaktiv', 'Inaktiv']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </Select>
         <Select className="select" style={{ width: 'auto' }} value={terr} onChange={(e) => setTerr(e.target.value)}>
           <option value="All">Alle Gebiete</option>
           {db.territories.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -114,6 +120,7 @@ export default function Accounts() {
                 <SortTh label="Außendienst" sortKey="owner" sort={sort} onSort={toggle} />
                 <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
                 <SortTh label="Umsatz lfd. Jahr" sortKey="revenueYTD" sort={sort} onSort={toggle} align="right" />
+                <th className="right">Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -124,7 +131,7 @@ export default function Accounts() {
                     <div className="avatar-row">
                       <Avatar name={a.name} color={a.color} />
                       <div>
-                        <div className="cell-main">{a.name}</div>
+                        <div className="cell-main">{a.name}<CommentCount rec={a} /></div>
                         <div className="cell-sub"><MapPin size={11} style={{ verticalAlign: -1 }} /> {a.city}</div>
                       </div>
                     </div>
@@ -134,6 +141,7 @@ export default function Accounts() {
                   <td><UserChip user={owner(a.ownerId)} short /></td>
                   <td><Badge tone={STATUS_TONE[a.status]} dot>{a.status}</Badge></td>
                   <td className="right"><b>{fmtMoney(a.revenueYTD)}</b></td>
+                  <td className="right nowrap"><RowActions kind="accounts" rec={a} toast={toast} /></td>
                 </tr>
               ))}
             </tbody>

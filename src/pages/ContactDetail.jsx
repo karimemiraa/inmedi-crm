@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Mail, Phone, Building2, Star, Target, LifeBuoy, CalendarCheck, FileSignature, Presentation } from 'lucide-react';
+import { ArrowLeft, Pencil, Mail, Phone, Building2, Star, Target, LifeBuoy, CalendarCheck, FileSignature, Presentation, Copy, MessageSquare, Trash2 } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { AccountLink, Avatar, Badge, Card, Empty, Field, Modal, ScoreMeter, Select } from '../components/ui.jsx';
 import { statusTone } from '../lib/status.js';
-import { vorgangLink } from '../lib/vorgang.js';
-import Notes from '../components/Notes.jsx';
+import { vorgangLink, updateVorgang, requestDelete, duplicateVorgang } from '../lib/vorgang.js';
+import { Comments, EditForm, HistoryList, toDraft, diffDraft } from '../components/Vorgang.jsx';
+import { FIELDS } from '../lib/vorgangFields.js';
 import { CustomFieldsEditor, CustomFieldsDisplay } from '../components/CustomFields.jsx';
 import { openLink } from '../lib/nav.js';
 import { useToast } from '../components/Toast.jsx';
@@ -18,10 +19,11 @@ const TABS = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'activities', label: 'Aktivitäten' },
   { key: 'deals', label: 'Deals' },
-  { key: 'tickets', label: 'Service' },
+  { key: 'tickets', label: 'Kundendienst' },
   { key: 'events', label: 'Messen' },
   { key: 'custom', label: 'Zusatzfelder' },
-  { key: 'notes', label: 'Notizen' },
+  { key: 'comments', label: 'Kommentare' },
+  { key: 'history', label: 'Verlauf' },
 ];
 
 export default function ContactDetail() {
@@ -30,10 +32,23 @@ export default function ContactDetail() {
   const nav = useNavigate();
   const toast = useToast();
   const [tab, setTab] = useState('overview');
-  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null); // Bearbeitungsmodus
 
   const c = db.contacts.find((x) => x.id === id);
-  if (!c) return <div className="page"><Empty label="Ansprechpartner nicht gefunden" /></div>;
+  if (!c) {
+    const t = (db.trash || []).find((x) => (x.kind === 'contacts' && x.record.id === id) || (x.cascade || []).some((k) => k.record.id === id));
+    return <div className="page"><Card><Empty label={t ? 'Ansprechpartner liegt im Papierkorb' : 'Ansprechpartner nicht gefunden'} action={t ? { label: 'Zum Papierkorb', onClick: () => nav('/settings?tab=data') } : undefined} /></Card></div>;
+  }
+  const fields = FIELDS.contacts;
+  const startEdit = () => { setDraft(toDraft(c, fields)); setTab('overview'); };
+  const save = () => {
+    const { patch, changed, error } = diffDraft('contacts', c, fields, draft);
+    if (error) { toast(error); return; }
+    if (changed.length) { updateVorgang('contacts', c.id, patch, 'Geändert: ' + changed.join(', ')); toast('Ansprechpartner gespeichert'); }
+    setDraft(null);
+  };
+  const remove = () => { if (requestDelete('contacts', c.id) === 'trashed') { toast('Ansprechpartner in den Papierkorb verschoben'); nav('/contacts'); } };
+  const duplicate = () => { const d = duplicateVorgang('contacts', c.id); if (d) { toast('Ansprechpartner dupliziert'); nav('/contacts/' + d.id); } };
 
   const account = db.accounts.find((a) => a.id === c.accountId);
   const activities = db.activities.filter((a) => a.contactId === id).sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
@@ -64,8 +79,11 @@ export default function ContactDetail() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <button className="btn primary" onClick={() => setEditing(true)}><Pencil size={15} /> Bearbeiten</button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => setTab('comments')}><MessageSquare size={15} /> Kommentieren</button>
+            <button className="btn" onClick={duplicate}><Copy size={15} /> Duplizieren</button>
+            <button className="btn danger" onClick={remove}><Trash2 size={15} /> Löschen</button>
+            <button className="btn primary" onClick={startEdit}><Pencil size={15} /> Bearbeiten</button>
           </div>
         </div>
 
@@ -85,13 +103,24 @@ export default function ContactDetail() {
             {t.key === 'deals' && ` (${deals.length})`}
             {t.key === 'tickets' && ` (${tickets.length})`}
             {t.key === 'events' && ` (${events.length})`}
+            {t.key === 'comments' && ` (${c.comments?.length || 0})`}
           </button>
         ))}
       </div>
 
-      {tab === 'overview' && (
+      {tab === 'overview' && draft && (
+        <Card title="Ansprechpartner bearbeiten" sub="Kontaktdaten inkl. Zusatzfelder — Änderungen werden im Verlauf protokolliert.">
+          <EditForm db={db} kind="contacts" fields={fields} draft={draft} setDraft={setDraft} selfId={c.id} />
+          <div className="vp-form-foot">
+            <button className="btn" onClick={() => setDraft(null)}>Abbrechen</button>
+            <button className="btn primary" onClick={save}>Speichern</button>
+          </div>
+        </Card>
+      )}
+
+      {tab === 'overview' && !draft && (
         <div className="grid cols-2">
-          <Card title="Kontaktdaten" action={<button className="btn ghost sm" onClick={() => setEditing(true)}><Pencil size={13} /> Bearbeiten</button>}>
+          <Card title="Kontaktdaten" action={<button className="btn ghost sm" onClick={startEdit}><Pencil size={13} /> Bearbeiten</button>}>
             <dl className="kv">
               <dt>Name</dt><dd>{c.name}</dd>
               <dt>Position</dt><dd>{c.title || '—'}</dd>
@@ -184,14 +213,15 @@ export default function ContactDetail() {
       )}
 
       {tab === 'custom' && (
-        <Card title="Zusatzfelder" action={<button className="btn ghost sm" onClick={() => setEditing(true)}><Pencil size={13} /> Bearbeiten</button>}>
+        <Card title="Zusatzfelder" action={<button className="btn ghost sm" onClick={startEdit}><Pencil size={13} /> Bearbeiten</button>}>
           <CustomFieldsDisplay db={db} entity="Ansprechpartner" record={c} />
         </Card>
       )}
 
-      {tab === 'notes' && <Card title="Notizen & Kommentare" sub="Sichtbar für Außendienst, Innendienst & Kundendienst"><Notes coll="contacts" record={c} /></Card>}
+      {tab === 'comments' && <Card title="Kommentare" sub="Sichtbar für Außendienst, Innendienst & Kundendienst"><Comments db={db} kind="contacts" r={c} toast={toast} /></Card>}
 
-      {editing && <ContactEdit contact={c} db={db} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); toast('Ansprechpartner gespeichert'); }} />}
+      {tab === 'history' && <Card title="Verlauf"><HistoryList db={db} kind="contacts" r={c} /></Card>}
+
     </div>
   );
 }
@@ -209,28 +239,3 @@ function MiniStat({ icon: Icon, label, value, tone }) {
   );
 }
 
-function ContactEdit({ contact, db, onClose, onSaved }) {
-  const [f, setF] = useState({ ...contact, customValues: contact.customValues || {} });
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const save = () => {
-    store.update('contacts', contact.id, {
-      name: f.name, title: f.title, accountId: f.accountId, email: f.email, phone: f.phone,
-      isPrimary: !!f.isPrimary, customValues: f.customValues || {},
-    });
-    onSaved();
-  };
-  return (
-    <Modal title="Ansprechpartner bearbeiten" wide onClose={onClose}
-      footer={<><button className="btn" onClick={onClose}>Abbrechen</button><button className="btn primary" onClick={save}>Speichern</button></>}>
-      <div className="form-grid">
-        <Field label="Name"><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} /></Field>
-        <Field label="Position"><input className="input" value={f.title || ''} onChange={(e) => set('title', e.target.value)} /></Field>
-        <div className="full"><Field label="Firma"><Select className="select" value={f.accountId} onChange={(e) => set('accountId', e.target.value)}>{db.accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field></div>
-        <Field label="E-Mail"><input className="input" value={f.email || ''} onChange={(e) => set('email', e.target.value)} /></Field>
-        <Field label="Telefon"><input className="input" value={f.phone || ''} onChange={(e) => set('phone', e.target.value)} /></Field>
-        <div className="full"><label className="check"><input type="checkbox" checked={!!f.isPrimary} onChange={(e) => set('isPrimary', e.target.checked)} /> Hauptkontakt dieser Firma</label></div>
-        <CustomFieldsEditor db={db} entity="Ansprechpartner" values={f.customValues || {}} onChange={(cv) => set('customValues', cv)} />
-      </div>
-    </Modal>
-  );
-}

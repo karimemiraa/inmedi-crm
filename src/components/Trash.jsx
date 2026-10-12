@@ -18,7 +18,7 @@ export default function Trash({ db, toast }) {
           <tbody>
             {items.map((t) => (
               <tr key={t.id} style={{ cursor: 'default' }}>
-                <td className="cell-main">{vorgangName(t.kind, t.record)}</td>
+                <td className="cell-main">{vorgangName(t.kind, t.record)}{t.cascade?.length ? <span className="muted tiny"> (+ {t.cascade.length} Ansprechpartner)</span> : null}</td>
                 <td><Badge tone="gray">{VORGANG[t.kind]?.label}</Badge></td>
                 <td className="nowrap" title={fmtDate(t.deletedAt)}>{relDate(t.deletedAt)}</td>
                 <td>{user(t.deletedBy)}</td>

@@ -1,3 +1,5 @@
+import { RowActions, CommentCount } from '../components/Vorgang.jsx';
+import { useToast } from '../components/Toast.jsx';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Phone, Mail } from 'lucide-react';
@@ -9,6 +11,7 @@ import { relDate } from '../lib/format.js';
 export default function Contacts() {
   const db = useStore();
   const nav = useNavigate();
+  const toast = useToast();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
 
@@ -37,7 +40,7 @@ export default function Contacts() {
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-wrap">
           <table className="tbl">
-            <thead><tr><th>Name</th><th>Position</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>Letzter Kontakt</th></tr></thead>
+            <thead><tr><th>Name</th><th>Position</th><th>Firma</th><th>E-Mail</th><th>Telefon</th><th>Letzter Kontakt</th><th className="right">Aktionen</th></tr></thead>
             <tbody>
               {rows.map((c) => {
                 const a = acct(c.accountId);
@@ -46,7 +49,7 @@ export default function Contacts() {
                     <td>
                       <div className="avatar-row">
                         <Avatar size="sm" name={c.name} color={c.color} />
-                        <span className="cell-main">{c.name}{c.isPrimary && <Badge tone="brand" >Hauptkontakt</Badge>}</span>
+                        <span className="cell-main">{c.name}<CommentCount rec={c} />{c.isPrimary && <Badge tone="brand" >Hauptkontakt</Badge>}</span>
                       </div>
                     </td>
                     <td>{c.title}</td>
@@ -54,6 +57,7 @@ export default function Contacts() {
                     <td className="muted"><Mail size={12} style={{ verticalAlign: -1, marginRight: 5 }} />{c.email}</td>
                     <td className="muted"><Phone size={12} style={{ verticalAlign: -1, marginRight: 5 }} />{c.phone}</td>
                     <td>{relDate(c.lastContact)}</td>
+                    <td className="right nowrap"><RowActions kind="contacts" rec={c} toast={toast} /></td>
                   </tr>
                 );
               })}

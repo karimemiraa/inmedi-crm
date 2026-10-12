@@ -134,9 +134,9 @@ function runActions(rule, object, rec) {
       });
     } else if (a.type === 'note') {
       const cur = store.get()[coll].find((r) => r.id === rec.id);
-      if (cur && 'notes' in cur) {
-        const note = { id: 'AN' + Date.now(), author: 'Automatik', at: new Date().toISOString(), text: a.params?.text || `Regel „${rule.name}"` };
-        store.update(coll, rec.id, { notes: [note, ...(cur.notes || [])] });
+      if (cur) {
+        const note = { id: 'AN' + Date.now(), userId: null, author: 'Automatik', at: new Date().toISOString(), text: a.params?.text || `Regel „${rule.name}"`, editedAt: null };
+        store.update(coll, rec.id, { comments: [...(cur.comments || []), note] }, { silent: true });
       }
     } else if (a.type === 'setField') {
       const key = a.params?.field; let val = a.params?.value;
