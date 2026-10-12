@@ -43,6 +43,7 @@ import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import VorgangPage from './pages/VorgangPage.jsx';
 import TeamMember from './pages/TeamMember.jsx';
+import Assistant from './pages/Assistant.jsx';
 
 const router = createHashRouter([
   {
@@ -81,6 +82,7 @@ const router = createHashRouter([
       { path: 'settings', element: <Settings /> },
       { path: 'vorgang/:slug/:id', element: <VorgangPage /> },
       { path: 'team/:id', element: <TeamMember /> },
+      { path: 'assistant', element: <Assistant /> },
       // Entfernte Module (Serviceaufträge, Geräte) und unbekannte Links → Dashboard
       { path: '*', element: <Navigate to="/" replace /> },
     ],

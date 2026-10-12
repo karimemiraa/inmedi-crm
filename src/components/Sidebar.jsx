@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users, Target, ShoppingCart, Package,
   CalendarCheck, UserPlus, Megaphone, Map, BarChart3, FileText, Settings,
   LifeBuoy, Receipt, Calculator, ShieldCheck, LogOut, ShieldAlert,
-  FileSignature, Lightbulb, Mail, Presentation, Repeat, CopyCheck, Percent, Scale,
+  FileSignature, Lightbulb, Mail, Presentation, Repeat, CopyCheck, Percent, Scale, Sparkles,
 } from 'lucide-react';
 import { Logo } from './Logo.jsx';
 import { Avatar } from './ui.jsx';
@@ -15,7 +15,10 @@ import { isOpen } from '../lib/status.js';
 const GROUPS = [
   {
     label: 'Überblick',
-    items: [{ to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true }],
+    items: [
+      { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+      { to: '/assistant', icon: Sparkles, label: 'KI-Assistent' },
+    ],
   },
   {
     label: 'Kontakte',

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks } from 'lucide-react';
+import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks, Sparkles } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
@@ -9,9 +9,11 @@ import { LogoMark } from '../components/Logo.jsx';
 import { useToast } from '../components/Toast.jsx';
 import StatusSettings from '../components/StatusSettings.jsx';
 import Trash from '../components/Trash.jsx';
+import AiSettings from '../components/ai/AiSettings.jsx';
 
 const TABS = [
   ['status', 'Vorgänge & Status', ListChecks],
+  ['ai', 'KI-Assistent', Sparkles],
   ['automation', 'Automatisierung', Zap],
   ['fields', 'Benutzerdefinierte Felder', SlidersHorizontal],
   ['users', 'Benutzer & Rollen', Users],
@@ -55,6 +57,7 @@ export default function Settings() {
         </div>
 
         <div>
+          {tab === 'ai' && <AiSettings toast={toast} />}
           {tab === 'status' && <StatusSettings db={db} toast={toast} initialKind={params.get('kind')} />}
 
           {tab === 'automation' && (
