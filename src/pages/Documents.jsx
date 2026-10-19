@@ -1,18 +1,16 @@
 import { useState, useMemo, useRef } from 'react';
-import { Upload, Search, FileText, FileType2, FileSpreadsheet, File, ScanLine, CheckCircle2, AlertTriangle, Building2, Pencil, Trash2 } from 'lucide-react';
+import { Upload, Search, FileText, FileType2, FileSpreadsheet, File, ScanLine, CheckCircle2, AlertTriangle, Building2, Pencil, Trash2, Mail, RefreshCw, Settings2, Download } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useStore, store } from '../data/store.js';
 import { AccountLink, Avatar, Badge, Drawer, Empty, Field, KpiCard, Modal, Select, UserChip, UserLink } from '../components/ui.jsx';
 import { useToast } from '../components/Toast.jsx';
 import { extractInvoiceFromFile } from '../lib/pdfExtract.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
+import { exportCsv } from '../lib/csv.js';
+import { matchAccount, useIntakeSettings, useIntakeState, intakeConfigured, syncIntake, INVOICE_COLUMNS, POSITION_COLUMNS, positionRows } from '../lib/intake.js';
+import { syncSummary } from '../components/IntakeSettings.jsx';
 
 const TYPE_TONE = { Vertrag: 'blue', Angebot: 'amber', Auftrag: 'teal', Katalog: 'purple', Präsentation: 'red', Regulatorisch: 'red', Sonstiges: 'gray' };
-const onlyDigits = (s) => String(s || '').replace(/\D/g, '');
-const matchAccount = (db, kdnr) => {
-  const d = onlyDigits(kdnr);
-  if (!d) return null;
-  return db.accounts.find((a) => onlyDigits(a.kundennummer) === d) || null;
-};
 
 export default function Documents() {
   const db = useStore();
@@ -24,6 +22,10 @@ export default function Documents() {
   const [importing, setImporting] = useState(false);
   const [selInv, setSelInv] = useState(null);
   const [editDoc, setEditDoc] = useState(null);
+  const [invFilter, setInvFilter] = useState('all'); // all | review | email | upload
+  const [invQ, setInvQ] = useState('');
+  const intakeSettings = useIntakeSettings();
+  const intake = useIntakeState();
 
   const delDoc = (d) => {
     if (!window.confirm(`Dokument „${d.name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`)) return;
@@ -64,6 +66,16 @@ export default function Documents() {
 
   const inv = db.incomingInvoices;
   const assigned = inv.filter((i) => i.accountId).length;
+  const reviewCount = inv.filter((i) => i.needsReview).length;
+  const invRows = useMemo(() => {
+    const ql = invQ.trim().toLowerCase();
+    return inv.filter((i) => (invFilter === 'all' || (invFilter === 'review' && i.needsReview) || (invFilter === 'email' && i.source === 'email') || (invFilter === 'upload' && i.source !== 'email'))
+      && (!ql || [i.rechnungsnummer, i.kundennummer, i.kundeName, i.lieferant, db.accounts.find((a) => a.id === i.accountId)?.name].some((v) => String(v || '').toLowerCase().includes(ql))));
+  }, [inv, invFilter, invQ, db.accounts]);
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  const exportInvoices = () => { exportCsv(`rechnungen-${stamp()}.csv`, INVOICE_COLUMNS(db), invRows); toast(`${invRows.length} Rechnung(en) exportiert`); };
+  const exportPositions = () => { const rows = positionRows(invRows); exportCsv(`rechnungspositionen-${stamp()}.csv`, POSITION_COLUMNS(db), rows); toast(`${rows.length} Position(en) exportiert`); };
+  const syncNow = async () => { const r = await syncIntake({ manual: true }); toast(!r ? 'Abgleich läuft bereits' : r.ok ? 'Abgeglichen: ' + syncSummary(r) : r.error); };
 
   return (
     <div className="page">
@@ -79,8 +91,8 @@ export default function Documents() {
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <KpiCard icon={ScanLine} tone="brand" label="Eingelesene Rechnungen" value={inv.length} />
         <KpiCard icon={CheckCircle2} tone="green" label="Zugeordnet (Kundennr.)" value={assigned} />
+        <KpiCard icon={AlertTriangle} tone="amber" label="Zu prüfen" value={reviewCount} />
         <KpiCard icon={FileText} tone="teal" label="Dateien" value={db.documents.length} />
-        <KpiCard icon={AlertTriangle} tone="amber" label="Ohne Zuordnung" value={inv.length - assigned} />
       </div>
 
       <div className="tabs">
@@ -88,29 +100,54 @@ export default function Documents() {
         <button className={tab === 'files' ? 'active' : ''} onClick={() => setTab('files')}>Dateien ({db.documents.length})</button>
       </div>
 
-      {tab === 'invoices' && (
+      {tab === 'invoices' && (<>
+        <div className="inv-intake">
+          <Mail size={16} style={{ color: 'var(--brand)' }} />
+          <div className="grow">
+            {intakeConfigured(intakeSettings)
+              ? <>E-Mail-Eingang aktiv · {intake.last ? <>zuletzt abgeglichen {new Date(intake.last.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} – {syncSummary(intake.last)}</> : 'noch nicht abgeglichen'}</>
+              : <>E-Mail-Eingang ist nicht eingerichtet – Rechnungen werden nur manuell eingelesen.</>}
+          </div>
+          {intakeConfigured(intakeSettings)
+            ? <button className="btn sm" onClick={syncNow} disabled={intake.running}><RefreshCw size={13} className={intake.running ? 'spin' : ''} /> Jetzt abgleichen</button>
+            : <Link className="btn sm" to="/settings?tab=intake"><Settings2 size={13} /> Einrichten</Link>}
+        </div>
+        <div className="filter-bar">
+          <div className="search" style={{ maxWidth: 300 }}>
+            <Search size={16} /><input placeholder="Rechnungen suchen…" value={invQ} onChange={(e) => setInvQ(e.target.value)} aria-label="Rechnungen suchen" />
+          </div>
+          <div className="seg">
+            {[['all', 'Alle'], ['review', `Zu prüfen (${reviewCount})`], ['email', 'E-Mail'], ['upload', 'Upload']].map(([k, l]) => (
+              <button key={k} className={invFilter === k ? 'active' : ''} onClick={() => setInvFilter(k)}>{l}</button>
+            ))}
+          </div>
+          <span style={{ flex: 1 }} />
+          <button className="btn sm" onClick={exportInvoices} disabled={!invRows.length}><Download size={13} /> Rechnungen (CSV)</button>
+          <button className="btn sm" onClick={exportPositions} disabled={!invRows.length}><Download size={13} /> Positionen (CSV)</button>
+        </div>
         <div className="card" style={{ overflow: 'hidden' }}>
           <div className="table-wrap"><table className="tbl">
-            <thead><tr><th>Rechnungsnr.</th><th>Lieferant</th><th>Kundennr.</th><th>Kunde</th><th>Zugeordnet an</th><th>Datum</th><th className="right">Gesamt</th></tr></thead>
+            <thead><tr><th>Rechnungsnr.</th><th>Lieferant</th><th>Kundennr.</th><th>Kunde</th><th>Zugeordnet an</th><th>Datum</th><th>Quelle</th><th className="right">Gesamt</th></tr></thead>
             <tbody>
-              {inv.map((i) => {
+              {invRows.map((i) => {
                 const a = acct(i.accountId); const rep = user(i.ownerId);
                 return (
-                  <tr key={i.id} onClick={() => setSelInv(i)}>
-                    <td className="cell-main nowrap">{i.rechnungsnummer || '—'}</td>
+                  <tr key={i.id} onClick={() => setSelInv(i.id)}>
+                    <td className="cell-main nowrap">{i.rechnungsnummer || i.fileName || '—'}{i.needsReview && <> <Badge tone="amber" dot>Zu prüfen</Badge></>}</td>
                     <td>{i.lieferant || '—'}</td>
                     <td className="nowrap"><b>{i.kundennummer || '—'}</b></td>
                     <td>{i.kundeName || '—'}</td>
-                    <td>{a ? <UserChip user={rep} short /> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</td>
+                    <td>{a ? <><span className="tiny">{a.name}</span> · <UserChip user={rep} short /></> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</td>
                     <td className="nowrap">{i.datum || '—'}</td>
+                    <td>{i.source === 'email' ? <Badge tone="blue"><Mail size={11} style={{ verticalAlign: -1 }} /> E-Mail</Badge> : <Badge tone="gray">Upload</Badge>}</td>
                     <td className="right"><b>{i.gesamt != null ? fmtMoney(i.gesamt) : '—'}</b></td>
                   </tr>
                 );
               })}
             </tbody>
-          </table>{inv.length === 0 && <Empty label="Noch keine Rechnungen eingelesen" hint="Oben rechts eine PDF-Rechnung importieren." />}</div>
+          </table>{invRows.length === 0 && <Empty label={inv.length ? 'Keine Rechnungen für diesen Filter' : 'Noch keine Rechnungen eingelesen'} hint={inv.length ? 'Filter oder Suche anpassen.' : 'Oben rechts eine PDF-Rechnung importieren oder den E-Mail-Eingang einrichten.'} />}</div>
         </div>
-      )}
+      </>)}
 
       {tab === 'files' && (<>
         <div className="filter-bar">
@@ -145,7 +182,7 @@ export default function Documents() {
       </>)}
 
       {importing && <ImportInvoice db={db} onClose={() => setImporting(false)} toast={toast} />}
-      {selInv && <InvoiceDrawer db={db} inv={selInv} onClose={() => setSelInv(null)} />}
+      {selInv && db.incomingInvoices.some((x) => x.id === selInv) && <InvoiceDrawer db={db} inv={db.incomingInvoices.find((x) => x.id === selInv)} toast={toast} onClose={() => setSelInv(null)} />}
       {editDoc && <DocEditModal db={db} doc={editDoc} onClose={() => setEditDoc(null)} onDelete={delDoc} toast={toast} />}
     </div>
   );
@@ -229,11 +266,13 @@ function ImportInvoice({ db, onClose, toast }) {
   const rep = matched ? db.users.find((u) => u.id === matched.ownerId) : null;
 
   const save = () => {
+    const reasons = matched ? [] : ['Keine Firma zugeordnet'];
     const rec = {
-      ...data, fileName,
+      ...data, fileName, source: 'upload',
       accountId: matched ? matched.id : null,
       ownerId: matched ? matched.ownerId : null,
       importedAt: new Date().toISOString(), importedBy: db.meta.currentUserId,
+      needsReview: reasons.length > 0, reviewReasons: reasons,
     };
     store.add('incomingInvoices', rec);
     store.add('auditLog', { at: new Date().toISOString(), userId: db.meta.currentUserId, action: 'Rechnung eingelesen', entity: 'RE ' + (data.rechnungsnummer || ''), detail: `${data.lieferant || ''} · Kundennr. ${data.kundennummer || '—'}${matched ? ' → ' + matched.name : ''}` });
@@ -315,33 +354,74 @@ function ImportInvoice({ db, onClose, toast }) {
   );
 }
 
-function InvoiceDrawer({ db, inv, onClose }) {
+function InvoiceDrawer({ db, inv, toast, onClose }) {
   const a = db.accounts.find((x) => x.id === inv.accountId);
   const rep = db.users.find((u) => u.id === inv.ownerId);
+  const me = db.meta.currentUserId;
+  const log = (action, detail) => store.add('auditLog', { at: new Date().toISOString(), userId: me, action, entity: 'RE ' + (inv.rechnungsnummer || inv.fileName || ''), detail });
+  const assign = (accountId) => {
+    const acc = db.accounts.find((x) => x.id === accountId) || null;
+    const reasons = (inv.reviewReasons || []).filter((r) => !/Firma zugeordnet|keiner Firma/.test(r));
+    if (!acc) reasons.push('Keine Firma zugeordnet');
+    store.update('incomingInvoices', inv.id, { accountId: acc?.id || null, ownerId: acc?.ownerId || null, reviewReasons: reasons, needsReview: reasons.length > 0 });
+    log('Rechnung zugeordnet', acc ? acc.name : 'Zuordnung entfernt');
+    toast(acc ? 'Zugeordnet: ' + acc.name : 'Zuordnung entfernt');
+  };
+  const markReviewed = () => {
+    store.update('incomingInvoices', inv.id, { needsReview: false, reviewedAt: new Date().toISOString(), reviewedBy: me });
+    log('Rechnung geprüft', (inv.reviewReasons || []).join(' | '));
+    toast('Als geprüft markiert');
+  };
+  const del = () => {
+    if (!window.confirm(`Rechnung „${inv.rechnungsnummer || inv.fileName}“ aus dem CRM löschen? Die Original-Mail im Postfach bleibt erhalten.`)) return;
+    store.remove('incomingInvoices', inv.id);
+    log('Rechnung gelöscht', inv.lieferant || '');
+    toast('Rechnung gelöscht');
+    onClose();
+  };
   return (
-    <Drawer title={'Rechnung ' + (inv.rechnungsnummer || '')} onClose={onClose} footer={<button className="btn primary" onClick={onClose}>Schließen</button>}>
-      <dl className="kv" style={{ marginBottom: 16 }}>
+    <Drawer title={'Rechnung ' + (inv.rechnungsnummer || inv.fileName || '')} onClose={onClose}
+      footer={<>
+        <button className="btn danger" onClick={del}><Trash2 size={14} /> Löschen</button>
+        <span style={{ flex: 1 }} />
+        {inv.needsReview && <button className="btn" onClick={markReviewed}><CheckCircle2 size={14} /> Als geprüft markieren</button>}
+        <button className="btn primary" onClick={onClose}>Schließen</button>
+      </>}>
+      {inv.needsReview && (
+        <div className="inv-review"><b><AlertTriangle size={14} style={{ verticalAlign: -2, color: 'var(--amber)' }} /> Zu prüfen</b>
+          <ul>{(inv.reviewReasons || ['Bitte prüfen']).map((r) => <li key={r}>{r}</li>)}</ul>
+        </div>
+      )}
+      <Field label="Zugeordnete Firma">
+        <Select value={inv.accountId || ''} onChange={(e) => assign(e.target.value)} aria-label="Zugeordnete Firma">
+          <option value="">— Nicht zugeordnet —</option>
+          {db.accounts.slice().sort((x, y) => x.name.localeCompare(y.name)).map((x) => <option key={x.id} value={x.id}>{x.name}{x.kundennummer ? ` (${x.kundennummer})` : ''}</option>)}
+        </Select>
+      </Field>
+      <dl className="kv" style={{ margin: '12px 0 16px' }}>
         <dt>Lieferant</dt><dd>{inv.lieferant || '—'}</dd>
         <dt>Datum</dt><dd>{inv.datum || '—'}</dd>
         <dt>Kundennummer</dt><dd><b>{inv.kundennummer || '—'}</b></dd>
         <dt>Kunde</dt><dd>{inv.kundeName || '—'}</dd>
         <dt>Zugeordnet</dt><dd>{a ? <><AccountLink account={a} /> → <UserLink user={rep} /></> : <Badge tone="amber" dot>nicht zugeordnet</Badge>}</dd>
         <dt>Referenz</dt><dd>{inv.referenz || '—'}</dd>
-        <dt>Zahlbar bis</dt><dd>{inv.zahlbarBis || '—'}</dd>
+        <dt>Zahlbar bis</dt><dd>{inv.zahlbarBis || '—'}{inv.zahlungskonditionen ? ` (${inv.zahlungskonditionen})` : ''}</dd>
+        <dt>Quelle</dt><dd>{inv.source === 'email' ? <>E-Mail von {inv.emailFrom || '—'}{inv.emailSubject ? <> · „{inv.emailSubject}“</> : null}</> : 'Manueller Upload'}</dd>
+        <dt>Eingegangen</dt><dd>{fmtDate(inv.receivedAt || inv.importedAt)}</dd>
         <dt>Datei</dt><dd>{inv.fileName || '—'}</dd>
       </dl>
-      <h3 style={{ fontSize: 14, marginBottom: 10 }}>Positionen</h3>
-      <div className="card" style={{ overflow: 'hidden' }}><table className="tbl">
+      <h3 style={{ fontSize: 14, marginBottom: 10 }}>Positionen ({(inv.items || []).length})</h3>
+      <div className="card" style={{ overflow: 'hidden' }}><div className="table-wrap"><table className="tbl">
         <thead><tr><th>Artikelnr.</th><th>Bezeichnung</th><th className="right">Menge</th><th className="right">Betrag</th></tr></thead>
         <tbody>
-          {inv.items.map((it) => (
+          {(inv.items || []).map((it) => (
             <tr key={it.pos} style={{ cursor: 'default' }}>
-              <td className="nowrap">{it.artikelnr || '—'}</td><td className="cell-main">{it.name}</td>
+              <td className="nowrap">{it.artikelnr || '—'}</td><td className="cell-main">{it.name}{it.lot ? <div className="tiny muted">LOT {it.lot}{it.ablauf ? ' · Ablauf ' + it.ablauf : ''}</div> : null}</td>
               <td className="right">{it.menge} {it.einheit}</td><td className="right"><b>{fmtMoney(it.betrag)}</b></td>
             </tr>
           ))}
         </tbody>
-      </table></div>
+      </table></div></div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontWeight: 800, fontSize: 15, padding: '0 4px' }}>
         <span>Gesamt</span><span>{inv.gesamt != null ? fmtMoney(inv.gesamt) : '—'}</span>
       </div>

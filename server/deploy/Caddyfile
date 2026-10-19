@@ -1,0 +1,10 @@
+# Caddy holt und erneuert das HTTPS-Zertifikat (Let's Encrypt) automatisch.
+# Domain anpassen; ein DNS-A-Eintrag muss auf die öffentliche IP des Oracle-Servers zeigen.
+# sudo cp Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+rechnungen.ihre-domain.de {
+	reverse_proxy 127.0.0.1:8787
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
