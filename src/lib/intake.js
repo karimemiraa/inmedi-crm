@@ -8,7 +8,8 @@ import { store } from '../data/store.js';
 const KEY = 'inmedi-intake-settings';
 const STATE_KEY = 'inmedi-intake-state';
 const LOCK_KEY = 'inmedi-intake-lock';
-export const INTAKE_DEFAULTS = { serverUrl: '', token: '', autoSync: true, intervalMin: 5 };
+// intervalMin: Ersatz-Abgleich – normal kommen neue Rechnungen live über den Server-Kanal
+export const INTAKE_DEFAULTS = { serverUrl: '', token: '', autoSync: true, intervalMin: 15, autoDetected: false };
 
 const onlyDigits = (s) => String(s || '').replace(/\D/g, '');
 export const matchAccount = (db, kdnr) => {
@@ -23,16 +24,18 @@ const emit = () => listeners.forEach((l) => l());
 const readJson = (k, def) => { try { return { ...def, ...JSON.parse(localStorage.getItem(k) || '{}') }; } catch (e) { return { ...def }; } };
 let settings = null, syncState = null;
 const getSettings = () => (settings ||= readJson(KEY, INTAKE_DEFAULTS));
-const getState = () => (syncState ||= readJson(STATE_KEY, { running: false, last: null, log: [] }));
+const getState = () => (syncState ||= { ...readJson(STATE_KEY, { running: false, last: null, log: [] }), running: false, live: 'off' });
 export const getIntakeSettings = getSettings;
 export function saveIntakeSettings(patch) {
-  settings = { ...getSettings(), ...patch };
+  const prev = getSettings();
+  settings = { ...prev, ...patch };
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) {}
   emit();
+  if (prev.serverUrl !== settings.serverUrl || prev.token !== settings.token || prev.autoSync !== settings.autoSync) restartLive();
 }
 function setState(patch) {
   syncState = { ...getState(), ...patch };
-  try { localStorage.setItem(STATE_KEY, JSON.stringify({ ...syncState, running: false })); } catch (e) {}
+  try { const { running, live, ...keep } = syncState; localStorage.setItem(STATE_KEY, JSON.stringify(keep)); } catch (e) {}
   emit();
 }
 const sub = (l) => { listeners.add(l); return () => listeners.delete(l); };
@@ -91,10 +94,11 @@ function takeLock() {
 const releaseLock = () => { try { localStorage.removeItem(LOCK_KEY); } catch (e) {} };
 
 // Neue Rechnungen abholen und speichern. Gibt eine Zusammenfassung zurück.
+let again = false;
 export async function syncIntake({ manual = false } = {}) {
   const s = getSettings();
   if (!intakeConfigured(s)) return null;
-  if (getState().running) return null;
+  if (getState().running) { again = true; return null; } // läuft schon → danach direkt noch einmal
   if (!takeLock()) return null;
   setState({ running: true });
   const sum = { at: new Date().toISOString(), manual, ok: true, added: 0, review: 0, duplicates: 0, errors: 0, error: null };
@@ -123,14 +127,29 @@ export async function syncIntake({ manual = false } = {}) {
           detail: `${inv.lieferant || inv.emailFrom || ''} · Kundennr. ${inv.kundennummer || '—'}${inv.accountId ? ' → ' + (db.accounts.find((a) => a.id === inv.accountId)?.name || '') : ''}${inv.needsReview ? ' · zu prüfen' : ''}`,
         });
       }
-      sum.added += fresh.length;
-      // Ein Schreibvorgang je Seite: Rechnungen + Protokoll + Abrufposition
-      store.set((st) => ({
-        ...st,
-        incomingInvoices: [...fresh.reverse(), ...st.incomingInvoices],
-        auditLog: [...audit, ...st.auditLog],
-        meta: { ...st.meta, intakeSeq: Math.max(seq || 0, st.meta?.intakeSeq || 0) },
-      }));
+      // Ein Schreibvorgang je Seite: Rechnungen + Protokoll + Abrufposition.
+      // Doppelt-Prüfung erneut gegen den AKTUELLEN Stand – ein anderer Tab kann dieselbe
+      // Rechnung gerade eben gespeichert haben (gleichzeitige Live-Benachrichtigung).
+      let added = [];
+      store.reloadFromStorage();
+      store.set((st) => {
+        const ids = new Set(st.incomingInvoices.map((i) => i.intakeId).filter(Boolean));
+        const keys = new Set(st.incomingInvoices.map(keyOf).filter(Boolean));
+        added = fresh.filter((i) => !ids.has(i.intakeId) && !(keyOf(i) && keys.has(keyOf(i))));
+        const addedIds = new Set(added.map((i) => 'AL' + i.id));
+        const auditIds = new Set(st.auditLog.map((a) => a.id));
+        return {
+          ...st,
+          incomingInvoices: [...added.slice().reverse(), ...st.incomingInvoices],
+          auditLog: [...audit.filter((a) => addedIds.has(a.id) && !auditIds.has(a.id)), ...st.auditLog],
+          meta: { ...st.meta, intakeSeq: Math.max(seq || 0, st.meta?.intakeSeq || 0) },
+        };
+      });
+      const skipped = fresh.length - added.length;
+      sum.added += added.length;
+      sum.duplicates += skipped;
+      sum.review -= fresh.filter((i) => i.needsReview && !added.includes(i)).length;
+      sum.errors -= fresh.filter((i) => i.readError && !added.includes(i)).length;
       if (!more) break;
     }
   } catch (e) {
@@ -141,20 +160,79 @@ export async function syncIntake({ manual = false } = {}) {
     const log = [sum, ...(getState().log || [])].slice(0, 30);
     setState({ running: false, last: sum, log });
   }
+  if (again) { again = false; setTimeout(() => syncIntake(), 0); }
   return sum;
 }
 
-// Hintergrund-Abgleich: beim Öffnen des CRM und danach alle n Minuten.
+// ---- Live-Kanal zum Server: neue Rechnungen erscheinen sofort ----
+// fetch-Streaming statt EventSource, damit das Token im Header (nicht in der URL) übertragen wird.
+let liveCtrl = null, liveTimer = null, backoff = 5000, liveWanted = false, liveGen = 0;
+const setLive = (live) => { if (getState().live !== live) { syncState = { ...getState(), live }; emit(); } };
+async function connectLive() {
+  clearTimeout(liveTimer);
+  const s = getSettings();
+  if (!liveWanted || !intakeConfigured(s) || !s.autoSync) { setLive('off'); return; }
+  const gen = ++liveGen; // ältere Verbindungsversuche erkennen und still beenden
+  liveCtrl = new AbortController();
+  setLive('connecting');
+  try {
+    const res = await fetch(base(s) + '/api/events', { headers: { Authorization: 'Bearer ' + s.token.trim() }, signal: liveCtrl.signal, cache: 'no-store' });
+    if (res.status === 401) backoff = 60_000; // falsches Token: selten erneut versuchen
+    if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+    setLive('connected');
+    backoff = 5000;
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const ev = (block.match(/^event: (.+)$/m) || [])[1];
+        if (ev === 'hello' || ev === 'invoice') syncIntake(); // hello: nach (Wieder-)Verbindung nachholen
+      }
+    }
+    throw new Error('Verbindung beendet');
+  } catch (e) {
+    if (gen !== liveGen || !liveWanted) return;
+    setLive('error');
+    liveTimer = setTimeout(connectLive, backoff);
+    backoff = Math.min(backoff * 2, 60_000);
+  }
+}
+function restartLive() {
+  if (!liveWanted) return;
+  liveGen++;
+  liveCtrl?.abort();
+  backoff = 5000;
+  setTimeout(connectLive, 0);
+}
+
+// Läuft das CRM auf demselben Server wie der Eingang? Dann Adresse automatisch übernehmen.
+async function detectSameOriginServer() {
+  if (getSettings().serverUrl || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return;
+  try {
+    const res = await fetch(location.origin + '/health', { cache: 'no-store' });
+    const data = await res.json();
+    if (data?.service === 'inmedi-intake') saveIntakeSettings({ serverUrl: location.origin, autoDetected: true });
+  } catch (e) { /* kein Eingangs-Server unter dieser Adresse */ }
+}
+
+// Start beim Öffnen des CRM: Server erkennen, live verbinden, Ersatz-Abgleich alle n Minuten.
 let timer = null;
 export function startIntakeAutoSync() {
+  liveWanted = true;
   const tick = async () => {
     const s = getSettings();
     if (s.autoSync && intakeConfigured(s)) await syncIntake();
-    timer = setTimeout(tick, Math.max(1, Number(getSettings().intervalMin) || 5) * 60_000);
+    timer = setTimeout(tick, Math.max(1, Number(getSettings().intervalMin) || 15) * 60_000);
   };
   clearTimeout(timer);
-  timer = setTimeout(tick, 1500);
-  return () => clearTimeout(timer);
+  detectSameOriginServer().finally(() => { connectLive(); timer = setTimeout(tick, 60_000); });
+  return () => { liveWanted = false; clearTimeout(timer); clearTimeout(liveTimer); liveCtrl?.abort(); setLive('off'); };
 }
 
 // ---- Export ----

@@ -7,7 +7,7 @@ import path from 'node:path';
 export function openStore(dir) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const file = path.join(dir, 'intake.json');
-  let data = { seq: 0, invoices: [], runs: [] };
+  let data = { seq: 0, invoices: [], runs: [], events: [], webhook: {} };
   if (fs.existsSync(file)) data = { ...data, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
 
   const save = () => {
@@ -29,6 +29,16 @@ export function openStore(dir) {
     since(seq, limit = 200) {
       const list = data.invoices.filter((i) => i.seq > seq).slice(0, limit);
       return { invoices: list, seq: list.length ? list[list.length - 1].seq : seq, more: data.invoices.some((i) => i.seq > (list.at(-1)?.seq ?? seq)) };
+    },
+    // Einzelereignisse (je Mail) für die Statusanzeige
+    addEvent(ev) {
+      data.events.unshift(ev);
+      data.events = data.events.slice(0, 200);
+      save();
+    },
+    setWebhook(patch) {
+      data.webhook = { ...data.webhook, ...patch };
+      save();
     },
     addRun(run) {
       data.runs.unshift(run);

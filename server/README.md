@@ -1,41 +1,46 @@
 # InMedi Rechnungseingang (invoice intake server)
 
-A small Node.js service that reads PDF invoices from a Microsoft 365 mailbox around the clock and hands them to the InMedi CRM.
+Runs on your own server (Oracle) next to the CRM. Every email that lands in the Microsoft 365 invoice mailbox is processed **immediately** and appears in every open CRM within seconds.
 
 ```
 Supplier ──email + PDF──▶ rechnungen@… (Microsoft 365)
-                                │  every 5 min (Microsoft Graph, app-only, ONE mailbox)
+                                │  Microsoft notifies the server instantly (Graph change notification)
                                 ▼
-                     Oracle server: inmedi-intake (this folder)
-                       · reads each PDF (same parser as the CRM: src/lib/invoiceParse.js)
-                       · stores the extracted data (data/intake.json)
+          https://crm.ihre-domain.de  (Caddy: HTTPS + CRM + this service)
+                                │
+                     inmedi-intake (this folder)
+                       · fetches the new mail, reads each PDF (same parser as the CRM)
+                       · stores the extracted data (/var/lib/inmedi-intake/intake.json)
                        · moves the mail → "Rechnungen verarbeitet" / "Rechnungen prüfen"
-                                │  HTTPS + token (Caddy)
+                       · pushes "new invoice" to every open CRM (live channel)
                                 ▼
-                     InMedi CRM (browser) – syncs on open and every few minutes
-                       · matches Kundennummer → Firma + Betreuer
+                     InMedi CRM (browser, served from the same address)
+                       · imports within seconds, matches Kundennummer → Firma + Betreuer
                        · unclear invoices get "Zu prüfen", duplicates are skipped
                        · export: Rechnungen CSV, Positionen CSV, full JSON backup
 ```
+
+**Instant, not polling.** The server registers once with Microsoft ("tell me about every new message in this folder"). Microsoft then calls `https://…/graph/notify` within seconds of each new mail. The server renews this registration automatically every few days and recreates it if Microsoft ever drops it.
+
+**Safety net.** Microsoft documents that a notification can occasionally be lost. A control check runs once an hour (and at every start) and processes anything still in the inbox. In normal operation it finds nothing.
 
 ## What it does, exactly
 
 | Situation | Mailbox | CRM |
 |---|---|---|
-| Readable invoice | moved to **Rechnungen verarbeitet** | created automatically; assigned via Kundennummer |
+| Readable invoice | moved to **Rechnungen verarbeitet** | appears within seconds; assigned via Kundennummer |
 | Readable, but Kundennummer unknown in the CRM | **Rechnungen verarbeitet** | created with **Zu prüfen** (assign Firma in one click) |
 | PDF unreadable / required fields missing (Rechnungsnr., Kundennr., total, positions) | **Rechnungen prüfen** | created with **Zu prüfen** and the reason |
-| Mail with attachments but no PDF | **Rechnungen prüfen** | – |
+| Mail without a PDF (question, order confirmation, …) | **Rechnungen prüfen** for a person to read | – |
 | Same PDF again, or same supplier + Rechnungsnr. again | **Rechnungen verarbeitet** | skipped (duplicate) |
-| Mail without attachments | stays in the inbox, untouched | – |
 
 - The original PDF stays in the mailbox. The mailbox (or your accounting system) remains the legal archive; the CRM is the working copy.
 - The server stores only the extracted invoice data plus sender, subject, date and file name. No PDFs and no other mail content are kept.
-- If a run is interrupted, the next run recognises already processed PDFs by their SHA-256 hash, so nothing is created twice.
+- Processing is idempotent: duplicate notifications, restarts or a crash mid-way never create an invoice twice (SHA-256 of each PDF).
 
 ## Setup (one-time, about 45 minutes)
 
-You need: an admin for Microsoft 365, SSH access to the Oracle server, and a (sub)domain whose DNS you control, e.g. `rechnungen.ihre-domain.de`.
+You need: an admin for Microsoft 365, SSH access to the Oracle server, and a (sub)domain whose DNS you control, e.g. `crm.ihre-domain.de`. The CRM and the intake service share this one address.
 
 ### 1. Microsoft: register the app (Microsoft Entra admin center)
 
@@ -64,7 +69,7 @@ The script ends with `Test-ServicePrincipalAuthorization`; it must show `InScope
 2. Host firewall:
    - Ubuntu image: `sudo iptables -I INPUT 6 -p tcp -m multiport --dports 80,443 -j ACCEPT && sudo netfilter-persistent save`
    - Oracle Linux image: `sudo firewall-cmd --permanent --add-service=http --add-service=https && sudo firewall-cmd --reload`
-3. DNS: create an **A record** `rechnungen.ihre-domain.de` → public IP of the instance.
+3. DNS: create an **A record** `crm.ihre-domain.de` → public IP of the instance.
    (No domain at hand? `<ip-with-dashes>.sslip.io`, e.g. `141-147-1-2.sslip.io`, also works with Let's Encrypt.)
 
 ### 4. Oracle server: install the service
@@ -76,43 +81,54 @@ sudo apt-get install -y nodejs git                                  # (Oracle Li
 
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin inmedi
 sudo git clone https://github.com/karimemiraa/inmedi-crm.git /opt/inmedi-crm
+cd /opt/inmedi-crm && sudo npm ci && sudo npm run build     # builds the CRM into /opt/inmedi-crm/dist
 cd /opt/inmedi-crm/server && sudo npm ci --omit=dev
 
 sudo cp deploy/inmedi-intake.env.example /etc/inmedi-intake.env
-sudo nano /etc/inmedi-intake.env          # fill in tenant/client ID, secret, mailbox, API_TOKEN
+sudo nano /etc/inmedi-intake.env          # tenant/client ID, secret, mailbox, PUBLIC_URL=https://crm.ihre-domain.de, API_TOKEN
 openssl rand -hex 32                      # → use as API_TOKEN
 sudo chown root:inmedi /etc/inmedi-intake.env && sudo chmod 640 /etc/inmedi-intake.env
 
 sudo cp deploy/inmedi-intake.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now inmedi-intake
-sudo journalctl -u inmedi-intake -f       # should show: "API auf http://127.0.0.1:8787 · Postfach: rechnungen@…"
+sudo journalctl -u inmedi-intake -f       # "API auf http://127.0.0.1:8787 · Postfach: rechnungen@… · Sofort-Benachrichtigung über https://crm…"
 ```
 
-### 5. Oracle server: HTTPS with Caddy
+### 5. Oracle server: HTTPS + CRM with Caddy
+
+Caddy serves the CRM, forwards `/api`, `/graph` and `/health` to the intake service, and gets the HTTPS certificate automatically.
 
 ```bash
 sudo apt-get install -y caddy            # (Oracle Linux: see https://caddyserver.com/docs/install)
 sudo cp /opt/inmedi-crm/server/deploy/Caddyfile /etc/caddy/Caddyfile
 sudo nano /etc/caddy/Caddyfile           # set your domain
 sudo systemctl reload caddy
-curl https://rechnungen.ihre-domain.de/health   # → {"ok":true,...}
+curl https://crm.ihre-domain.de/health   # → {"ok":true,"service":"inmedi-intake",...}
+sudo journalctl -u inmedi-intake -n 20   # → "Sofort-Benachrichtigung aktiv bis …"
 ```
+
+If the service started before Caddy had its certificate, the first registration with Microsoft fails; the service retries automatically after 1 minute, then at growing intervals. While instant notification is not active, the mailbox is checked every 5 minutes instead, so no invoice waits long.
+
+**Troubleshooting instant notification** (status under Einstellungen → Integrationen → Microsoft 365, or `journalctl -u inmedi-intake`):
+- `403` / "Access is denied": the mailbox permission from step 2 is not active yet (can take up to an hour). Check with `Test-ServicePrincipalAuthorization`.
+- "validation request failed": Microsoft cannot reach `https://crm…/graph/notify`. Check DNS, port 443 and the Caddyfile.
 
 ### 6. CRM: connect
 
-In the CRM: **Einstellungen → Rechnungseingang**
-- Server-Adresse: `https://rechnungen.ihre-domain.de`
-- Zugangs-Token: the `API_TOKEN` value
-- **Verbindung testen** → shows the mailbox. **Postfach jetzt prüfen** runs immediately.
+Open `https://crm.ihre-domain.de` → **Einstellungen → Rechnungseingang**. The server address is detected automatically; enter only the **Zugangs-Token** (the `API_TOKEN` value). **Verbindung testen** should show "Sofort-Verarbeitung aktiv", and the badge should read **Live verbunden**.
 
-Each employee enters this once in their browser. The address and token are kept only in that browser and are never part of the data export.
+**Einstellungen → Integrationen → Microsoft 365** shows the real connection: mailbox, instant processing (with renewal date), control check, and the last mails received.
+
+Each employee enters the token once in their browser. It is kept only in that browser and is never part of the data export.
+
+**Test:** send an email with an invoice PDF to the mailbox. It should appear under **Dokumente → Rechnungen** within a few seconds, with no reload.
 
 ## Operation
 
 | Task | Command |
 |---|---|
 | Status / live log | `sudo systemctl status inmedi-intake` · `sudo journalctl -u inmedi-intake -f` |
-| Update to the latest version | `cd /opt/inmedi-crm && sudo git pull && cd server && sudo npm ci --omit=dev && sudo systemctl restart inmedi-intake` |
+| Update CRM + service to the latest version | `sudo /opt/inmedi-crm/server/deploy/update.sh` |
 | Backup | copy `/var/lib/inmedi-intake/intake.json` (a few KB per invoice) |
 | Renew the client secret | Entra → app → Certificates & secrets → new secret → update `/etc/inmedi-intake.env` → restart |
 | Change the token | new `API_TOKEN` in the env file → restart → enter the new token in every CRM browser |
@@ -127,12 +143,15 @@ All `/api/*` calls need `Authorization: Bearer <API_TOKEN>`. CORS is allowed onl
 | `GET /api/invoices?since=<seq>&limit=200` | invoices newer than `seq` (`{ invoices, seq, more }`) |
 | `GET /api/status` | mailbox, schedule, last 20 runs, counters |
 | `POST /api/run` | check the mailbox now |
+| `GET /api/events` | live channel (Server-Sent Events): `invoice` when something new arrived |
+| `POST /graph/notify`, `/graph/lifecycle` | called by Microsoft only; verified by a secret `clientState` per subscription. The server never trusts the payload content: it takes only the message ID and fetches the mail itself. |
 
 ## Security
 
 - Microsoft access is limited to one mailbox by Exchange RBAC for Applications (step 2).
 - The client secret and API token live only in `/etc/inmedi-intake.env` (readable by root and the service), never in Git.
 - The service listens on `127.0.0.1`; only Caddy (HTTPS) is reachable from outside.
+- Without `PUBLIC_URL` the service still works, but checks the mailbox every 5 minutes instead of being notified.
 - PDFs are parsed with pdf.js with script evaluation disabled; the service runs as an unprivileged user with a read-only system (systemd hardening).
 - Data protection: invoice data is processed on your own Oracle server. Oracle Cloud acts as a processor, so make sure a data processing agreement (AVV/DPA, part of the Oracle Cloud terms) is in place and the region is in the EU (e.g. Frankfurt).
 
@@ -142,6 +161,6 @@ All `/api/*` calls need `Authorization: Bearer <API_TOKEN>`. CORS is allowed onl
 cd server && npm ci && npm test
 ```
 
-The tests run the real service against a simulated Microsoft 365 mailbox (`test/mockGraph.js`) with generated invoice PDFs (`test/makePdf.js`). They cover import, folder moves, duplicates, unreadable PDFs, mail without PDF, several PDFs per mail, throttling (429), token caching, API authentication, CORS, paging and persistence.
+The tests run the real service against a simulated Microsoft 365 (`test/mockGraph.js`): login, mailbox, and change notifications including Microsoft's address validation, duplicate and lost notifications, and lifecycle events. Invoice PDFs are generated by `test/makePdf.js`. They cover instant processing, duplicate notifications, forged notifications, the safety net, renewal and re-creation of the subscription, duplicates, unreadable PDFs, mail without a PDF, several PDFs per mail, throttling (429), the live channel, API authentication, CORS, paging and persistence across restarts.
 
 The parser is tuned to the current supplier layout (Ovesco Endoscopy AG). Invoices from other suppliers are still saved, but marked **Zu prüfen** when fields are missing.

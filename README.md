@@ -55,11 +55,12 @@ Plus a **KI-Assistent** (see below), global search, notifications, quick-add (ac
 
 ## Rechnungseingang per E-Mail
 
-PDF invoices sent to a Microsoft 365 mailbox are imported fully automatically:
-- A small server (`server/`, runs on your own Oracle server) reads the mailbox every 5 minutes, day and night. It parses each PDF and files the email into "Rechnungen verarbeitet" or "Rechnungen prüfen".
-- The CRM syncs on opening and every few minutes while open. It assigns each invoice to a Firma and Betreuer by Kundennummer, marks unclear invoices **Zu prüfen** (fixable in one click), and skips duplicates.
-- **Dokumente → Rechnungen** shows the source (E-Mail/Upload), a "Zu prüfen" filter, search, and CSV/Excel exports for invoices and for positions (filtered). **Einstellungen → Daten** also has both CSV exports and the full JSON backup.
-- Setup guide: [`server/README.md`](server/README.md). Connect in **Einstellungen → Rechnungseingang** (the server address and token stay in the browser).
+PDF invoices sent to the Microsoft 365 invoice mailbox are imported fully automatically, **the moment they arrive**:
+- The intake service (`server/`) runs on your own Oracle server, behind the same address as the CRM. Microsoft notifies it instantly about each new mail. It reads the PDF, files the email into "Rechnungen verarbeitet" or "Rechnungen prüfen", and pushes the invoice live to every open CRM. An hourly control check catches anything Microsoft failed to report.
+- In the CRM, invoices appear within seconds, with no reload. Each is assigned to a Firma and Betreuer by Kundennummer. Unclear invoices are marked **Zu prüfen** (fixable in one click), and duplicates are skipped.
+- **Dokumente → Rechnungen**: source (E-Mail/Upload), live status, "Zu prüfen" filter, search, and CSV/Excel exports of invoices and positions. **Einstellungen → Daten**: both CSV exports and the full JSON backup.
+- **Einstellungen → Integrationen → Microsoft 365** shows the real connection status and the latest mails. **Einstellungen → Rechnungseingang** takes the access token; the server address is detected automatically when the CRM runs on the server.
+- Setup: [`server/README.md`](server/README.md).
 
 ## KI-Assistent
 

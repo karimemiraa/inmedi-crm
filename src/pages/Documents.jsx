@@ -8,7 +8,7 @@ import { extractInvoiceFromFile } from '../lib/pdfExtract.js';
 import { fmtMoney, fmtDate } from '../lib/format.js';
 import { exportCsv } from '../lib/csv.js';
 import { matchAccount, useIntakeSettings, useIntakeState, intakeConfigured, syncIntake, INVOICE_COLUMNS, POSITION_COLUMNS, positionRows } from '../lib/intake.js';
-import { syncSummary } from '../components/IntakeSettings.jsx';
+import { syncSummary, LiveBadge } from '../components/IntakeSettings.jsx';
 
 const TYPE_TONE = { Vertrag: 'blue', Angebot: 'amber', Auftrag: 'teal', Katalog: 'purple', Präsentation: 'red', Regulatorisch: 'red', Sonstiges: 'gray' };
 
@@ -105,7 +105,7 @@ export default function Documents() {
           <Mail size={16} style={{ color: 'var(--brand)' }} />
           <div className="grow">
             {intakeConfigured(intakeSettings)
-              ? <>E-Mail-Eingang aktiv · {intake.last ? <>zuletzt abgeglichen {new Date(intake.last.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} – {syncSummary(intake.last)}</> : 'noch nicht abgeglichen'}</>
+              ? <><LiveBadge live={intake.live} /> · E-Mail-Eingang · {intake.last ? <>zuletzt abgeglichen {new Date(intake.last.at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} – {syncSummary(intake.last)}</> : 'noch nicht abgeglichen'}</>
               : <>E-Mail-Eingang ist nicht eingerichtet – Rechnungen werden nur manuell eingelesen.</>}
           </div>
           {intakeConfigured(intakeSettings)

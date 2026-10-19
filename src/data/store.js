@@ -57,6 +57,15 @@ function persist() {
 }
 function emit() { listeners.forEach((l) => l()); }
 
+// Mehrere Tabs: Änderungen aus einem anderen Tab sofort übernehmen, damit kein Tab mit
+// veraltetem Stand speichert und dabei die Änderungen des anderen überschreibt.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY || !e.newValue) return;
+    try { state = migrate(JSON.parse(e.newValue)); emit(); } catch (err) { /* ignore */ }
+  });
+}
+
 // Neue Vorgänge bekommen immer einen gültigen Status aus der Konfiguration
 // (z. B. wenn ein Status umbenannt wurde) — Aufgaben zusätzlich passendes `done`.
 function withStatus(coll, rec) {
@@ -98,6 +107,10 @@ export const store = {
     if (!opts.silent) notifyMutation(coll, 'update', state[coll].find((r) => r.id === id), prev);
   },
   setMutationHandler(fn) { mutationHandler = fn; },
+  // Neuesten gespeicherten Stand übernehmen (ein anderer Tab hat evtl. gerade gespeichert)
+  reloadFromStorage() {
+    try { const raw = localStorage.getItem(KEY); if (raw) { state = migrate(JSON.parse(raw)); emit(); } } catch (e) { /* ignore */ }
+  },
   remove(coll, id) {
     state = { ...state, [coll]: state[coll].filter((r) => r.id !== id) };
     persist(); emit();
