@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks, Sparkles, MailCheck, FileSpreadsheet } from 'lucide-react';
+import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, ListChecks, Sparkles, MailCheck, FileSpreadsheet } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
@@ -11,6 +11,7 @@ import StatusSettings from '../components/StatusSettings.jsx';
 import Trash from '../components/Trash.jsx';
 import AiSettings from '../components/ai/AiSettings.jsx';
 import IntakeSettings from '../components/IntakeSettings.jsx';
+import Microsoft365Status from '../components/Microsoft365Status.jsx';
 import { exportCsv } from '../lib/csv.js';
 import { INVOICE_COLUMNS, POSITION_COLUMNS, positionRows } from '../lib/intake.js';
 
@@ -142,7 +143,7 @@ export default function Settings() {
             </Card>
           )}
 
-          {tab === 'integrations' && <Microsoft365 toast={toast} db={db} />}
+          {tab === 'integrations' && <Microsoft365Status />}
 
           {tab === 'branding' && <Branding toast={toast} db={db} />}
 
@@ -302,134 +303,6 @@ function UserModal({ db, onClose, toast }) {
         <div className="full"><Field label="E-Mail"><input className="input" onChange={(e) => set('email', e.target.value)} placeholder="name@inmedi.de" /></Field></div>
       </div>
     </Modal>
-  );
-}
-
-function SecLabel({ children }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.07em', color: 'var(--muted)', textTransform: 'uppercase', margin: '24px 0 12px' }}>{children}</div>;
-}
-
-function Toggle({ checked, onChange, label }) {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
-  );
-}
-
-function Microsoft365({ db, toast }) {
-  const saved = db.meta?.integrations?.microsoft365 || {};
-  const [f, setF] = useState({
-    tenantId: saved.tenantId || '', clientId: saved.clientId || '', clientSecret: '',
-    ssoEnabled: !!saved.ssoEnabled,
-    emailEnabled: !!saved.emailEnabled, senderMailbox: saved.senderMailbox || '', sampleReleaseTo: saved.sampleReleaseTo || '',
-    sharepointEnabled: !!saved.sharepointEnabled, sharepointSite: saved.sharepointSite || '', sharepointFolder: saved.sharepointFolder || '',
-    teamsEnabled: !!saved.teamsEnabled, teamsWebhook: '',
-  });
-  const [testTo, setTestTo] = useState('');
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const redirectUri = `${window.location.origin}/api/auth/microsoft/callback`;
-  const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 };
-
-  const save = () => {
-    const next = {
-      tenantId: f.tenantId.trim(), clientId: f.clientId.trim(),
-      clientSecretSet: f.clientSecret ? true : !!saved.clientSecretSet,
-      ssoEnabled: f.ssoEnabled,
-      emailEnabled: f.emailEnabled, senderMailbox: f.senderMailbox.trim(), sampleReleaseTo: f.sampleReleaseTo.trim(),
-      sharepointEnabled: f.sharepointEnabled, sharepointSite: f.sharepointSite.trim(), sharepointFolder: f.sharepointFolder.trim(),
-      teamsEnabled: f.teamsEnabled,
-      teamsWebhookSet: f.teamsWebhook ? true : !!saved.teamsWebhookSet,
-    };
-    store.set((s) => ({ ...s, meta: { ...s.meta, integrations: { ...s.meta.integrations, microsoft365: next } } }));
-    setF((p) => ({ ...p, clientSecret: '', teamsWebhook: '' }));
-    toast('Microsoft 365 Einstellungen gespeichert');
-  };
-
-  const needsBase = () => {
-    if (!saved.tenantId || !saved.clientId || !saved.clientSecretSet) { toast('Bitte zuerst Tenant ID, Client ID und Clientschlüssel speichern'); return false; }
-    return true;
-  };
-  const testMail = () => {
-    if (!needsBase()) return;
-    if (!saved.emailEnabled) { toast('E-Mail-Versand über Microsoft 365 ist nicht aktiviert'); return; }
-    if (!testTo.trim()) { toast('Bitte eine Empfängeradresse angeben'); return; }
-    toast(`Testmail an ${testTo.trim()} ausgelöst`);
-  };
-  const testSharepoint = () => {
-    if (!needsBase()) return;
-    if (!saved.sharepointSite) { toast('Bitte zuerst die SharePoint-Website speichern'); return; }
-    toast('Verbindung zu SharePoint erfolgreich geprüft');
-  };
-  const testTeams = () => {
-    if (!needsBase()) return;
-    if (!saved.teamsWebhookSet) { toast('Bitte zuerst die Workflow-Adresse des Kanals speichern'); return; }
-    toast('Testnachricht an den Teams-Kanal gesendet');
-  };
-
-  const secretLabel = <>Geheimer Clientschlüssel (Wert) {saved.clientSecretSet && <span style={{ color: 'var(--green)', fontWeight: 600 }}>· gesetzt</span>}</>;
-  const webhookLabel = <>Workflow-Adresse des Kanals {saved.teamsWebhookSet && <span style={{ color: 'var(--green)', fontWeight: 600 }}>· gesetzt</span>}</>;
-
-  return (
-    <div className="card">
-      <div className="card-head" style={{ alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--brand-050)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Cloud size={20} style={{ color: 'var(--brand)' }} /></div>
-          <div>
-            <h3>Microsoft 365</h3>
-            <div className="muted tiny" style={{ marginTop: 3, maxWidth: 640, lineHeight: 1.55 }}>E-Mails aus Ihrem Postfach senden, freigegebene QM-Berichte nach SharePoint ablegen und Meldungen an einen Teams-Kanal senden. Anleitung: <code>docs/microsoft365-einrichtung.md</code></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card-pad">
-        <SecLabel>App-Registrierung (Entra ID)</SecLabel>
-        <div style={grid}>
-          <Field label="Verzeichnis-ID (Tenant ID)"><input className="input" value={f.tenantId} onChange={(e) => set('tenantId', e.target.value)} placeholder="z. B. b1f0fea6-9e5b-4d23-8b4c-512785aa4b2b" /></Field>
-          <Field label="Anwendungs-ID (Client ID)"><input className="input" value={f.clientId} onChange={(e) => set('clientId', e.target.value)} placeholder="z. B. 4ce3296b-1d6c-43a7-9a0c-e0df1b798b8f" /></Field>
-        </div>
-        <div style={{ marginTop: 16 }}>
-          <Field label={secretLabel}><input className="input" type="password" value={f.clientSecret} onChange={(e) => set('clientSecret', e.target.value)} placeholder="•••• (leer lassen = unverändert)" autoComplete="new-password" /></Field>
-        </div>
-
-        <SecLabel>Anmeldung</SecLabel>
-        <Toggle checked={f.ssoEnabled} onChange={(v) => set('ssoEnabled', v)} label={'„Mit Microsoft anmelden" auf der Anmeldeseite anbieten'} />
-        <div className="muted tiny" style={{ marginTop: 10, lineHeight: 1.6 }}>
-          Umleitungs-URI für die App-Registrierung (Authentifizierung → Web): <code>{redirectUri}</code> . Angemeldet wird, wer hier bereits als aktiver Benutzer mit derselben E-Mail-Adresse angelegt ist. Die Anmeldung mit Passwort bleibt möglich.
-        </div>
-
-        <SecLabel>E-Mail</SecLabel>
-        <Toggle checked={f.emailEnabled} onChange={(v) => set('emailEnabled', v)} label="Alle E-Mails der Plattform über Microsoft 365 senden (statt SMTP)" />
-        <div style={{ ...grid, marginTop: 16 }}>
-          <Field label="Absender-Postfach"><input className="input" value={f.senderMailbox} onChange={(e) => set('senderMailbox', e.target.value)} placeholder="qualitymanagement@inmedi-service.com" /></Field>
-          <Field label="Meldung bei Musterausgabe an"><input className="input" value={f.sampleReleaseTo} onChange={(e) => set('sampleReleaseTo', e.target.value)} placeholder="name@inmedi-service.com" /></Field>
-        </div>
-
-        <SecLabel>SharePoint</SecLabel>
-        <Toggle checked={f.sharepointEnabled} onChange={(v) => set('sharepointEnabled', v)} label="Freigegebene QM-Berichte zusätzlich in SharePoint ablegen" />
-        <div style={{ ...grid, marginTop: 16 }}>
-          <Field label="SharePoint-Website"><input className="input" value={f.sharepointSite} onChange={(e) => set('sharepointSite', e.target.value)} placeholder="https://firma.sharepoint.com/sites/IMS-Management" /></Field>
-          <Field label={'Ordner in „Dokumente"'}><input className="input" value={f.sharepointFolder} onChange={(e) => set('sharepointFolder', e.target.value)} placeholder="QM und RA" /></Field>
-        </div>
-
-        <SecLabel>Teams</SecLabel>
-        <Toggle checked={f.teamsEnabled} onChange={(v) => set('teamsEnabled', v)} label="Wichtige Benachrichtigungen zusätzlich in einen Teams-Kanal senden" />
-        <div style={{ marginTop: 16, maxWidth: 520 }}>
-          <Field label={webhookLabel}><input className="input" type="password" value={f.teamsWebhook} onChange={(e) => set('teamsWebhook', e.target.value)} placeholder="•••• (leer lassen = unverändert)" autoComplete="new-password" /></Field>
-        </div>
-
-        <hr className="hr" style={{ margin: '24px 0 16px' }} />
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button className="btn primary" onClick={save}>Speichern</button>
-          <input className="input" style={{ width: 200 }} value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="test@empfänger.de" />
-          <button className="btn" onClick={testMail}><Send size={15} /> Testmail</button>
-          <button className="btn" onClick={testSharepoint}>SharePoint testen</button>
-          <button className="btn" onClick={testTeams}>Teams testen</button>
-        </div>
-        <div className="muted tiny" style={{ marginTop: 10 }}>Tests nutzen die gespeicherten Werte: bitte zuerst speichern.</div>
-      </div>
-    </div>
   );
 }
 

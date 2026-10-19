@@ -1,10 +1,30 @@
+# Eine Adresse für alles: das CRM (statische Dateien) + Eingangs-Server + Microsoft-Benachrichtigungen.
 # Caddy holt und erneuert das HTTPS-Zertifikat (Let's Encrypt) automatisch.
 # Domain anpassen; ein DNS-A-Eintrag muss auf die öffentliche IP des Oracle-Servers zeigen.
-# sudo cp Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
-rechnungen.ihre-domain.de {
-	reverse_proxy 127.0.0.1:8787
+#   sudo cp Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+crm.ihre-domain.de {
+	encode gzip
+
+	# Eingangs-Server (Node, nur lokal erreichbar)
+	@intake path /api/* /graph/* /health
+	handle @intake {
+		# flush_interval -1: Live-Kanal (Server-Sent Events) ohne Pufferung
+		reverse_proxy 127.0.0.1:8787 {
+			flush_interval -1
+		}
+	}
+
+	# CRM (gebaut mit: cd /opt/inmedi-crm && npm ci && npm run build)
+	handle {
+		root * /opt/inmedi-crm/dist
+		try_files {path} /index.html
+		file_server
+	}
+
 	header {
 		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
 }

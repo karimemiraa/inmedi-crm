@@ -5,6 +5,8 @@ export class GraphError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
 
+const MSG_FIELDS = 'id,subject,from,receivedDateTime,internetMessageId,hasAttachments';
+
 export function createGraph(cfg, fetchImpl = fetch) {
   let token = null, tokenExp = 0;
   const folderIds = new Map();
@@ -47,10 +49,11 @@ export function createGraph(cfg, fetchImpl = fetch) {
   }
 
   return {
-    // Ungelesene wie gelesene Nachrichten mit Anhängen im Quellordner (älteste zuerst)
+    // Alle Nachrichten im Quellordner (älteste zuerst). Verarbeitete Mails werden verschoben,
+    // daher ist alles, was hier liegt, noch offen.
     async listMessages(limit) {
       const out = [];
-      let url = `/users/${mb}/mailFolders/${encodeURIComponent(cfg.sourceFolder)}/messages?$filter=hasAttachments eq true&$top=25&$select=id,subject,from,receivedDateTime,internetMessageId`;
+      let url = `/users/${mb}/mailFolders/${encodeURIComponent(cfg.sourceFolder)}/messages?$top=25&$select=${MSG_FIELDS}`;
       while (url && out.length < limit) {
         const page = await call('GET', url);
         out.push(...(page.value || []));
@@ -58,6 +61,26 @@ export function createGraph(cfg, fetchImpl = fetch) {
       }
       return out.sort((a, b) => String(a.receivedDateTime).localeCompare(String(b.receivedDateTime))).slice(0, limit);
     },
+    // Einzelne Nachricht (null, wenn sie nicht mehr existiert, z. B. schon verschoben)
+    async getMessage(messageId) {
+      try {
+        return await call('GET', `/users/${mb}/messages/${encodeURIComponent(messageId)}?$select=${MSG_FIELDS},parentFolderId`);
+      } catch (e) {
+        if (e.status === 404) return null;
+        throw e;
+      }
+    },
+    async sourceFolderId() {
+      if (folderIds.has('__source')) return folderIds.get('__source');
+      const f = await call('GET', `/users/${mb}/mailFolders/${encodeURIComponent(cfg.sourceFolder)}?$select=id`);
+      folderIds.set('__source', f.id);
+      return f.id;
+    },
+    // ---- Sofort-Benachrichtigungen (Change Notifications) ----
+    createSubscription(body) { return call('POST', '/subscriptions', { body }); },
+    renewSubscription(id, expirationDateTime) { return call('PATCH', `/subscriptions/${encodeURIComponent(id)}`, { body: { expirationDateTime } }); },
+    async deleteSubscription(id) { try { await call('DELETE', `/subscriptions/${encodeURIComponent(id)}`); } catch (e) { if (e.status !== 404) throw e; } },
+    resourceFor: () => `users/${cfg.mailbox}/mailFolders('${cfg.sourceFolder}')/messages`,
     async listAttachments(messageId) {
       const page = await call('GET', `/users/${mb}/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`);
       return page.value || [];
