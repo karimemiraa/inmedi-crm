@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks, Sparkles } from 'lucide-react';
+import { Zap, SlidersHorizontal, Users, Palette, Database, Plus, Trash2, Cloud, Send, ListChecks, Sparkles, MailCheck, FileSpreadsheet } from 'lucide-react';
 import { useStore, store } from '../data/store.js';
 import { adminResetUser } from '../data/auth.js';
 import { OBJECTS, EVENTS, OPERATORS, ACTIONS, ruleSummary, fieldsForObject } from '../lib/automation.js';
@@ -10,10 +10,14 @@ import { useToast } from '../components/Toast.jsx';
 import StatusSettings from '../components/StatusSettings.jsx';
 import Trash from '../components/Trash.jsx';
 import AiSettings from '../components/ai/AiSettings.jsx';
+import IntakeSettings from '../components/IntakeSettings.jsx';
+import { exportCsv } from '../lib/csv.js';
+import { INVOICE_COLUMNS, POSITION_COLUMNS, positionRows } from '../lib/intake.js';
 
 const TABS = [
   ['status', 'Vorgänge & Status', ListChecks],
   ['ai', 'KI-Assistent', Sparkles],
+  ['intake', 'Rechnungseingang', MailCheck],
   ['automation', 'Automatisierung', Zap],
   ['fields', 'Benutzerdefinierte Felder', SlidersHorizontal],
   ['users', 'Benutzer & Rollen', Users],
@@ -58,6 +62,7 @@ export default function Settings() {
 
         <div>
           {tab === 'ai' && <AiSettings toast={toast} />}
+          {tab === 'intake' && <IntakeSettings toast={toast} />}
           {tab === 'status' && <StatusSettings db={db} toast={toast} initialKind={params.get('kind')} />}
 
           {tab === 'automation' && (
@@ -146,6 +151,8 @@ export default function Settings() {
               <p className="muted" style={{ marginBottom: 16 }}>InMedi CRM wird mit realistischen Demodaten ausgeliefert, damit Sie jede Funktion ausprobieren können. Sie können den Demodatensatz jederzeit wiederherstellen oder vollständig leeren, um „von 0" zu starten. Im Produktivbetrieb würde hier eine echte API/Datenbank angebunden.</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={exportAll}>Alle Daten exportieren (JSON)</button>
+                <button className="btn" onClick={() => { exportCsv(`rechnungen-${new Date().toISOString().slice(0, 10)}.csv`, INVOICE_COLUMNS(db), db.incomingInvoices); toast('Rechnungen exportiert (CSV)'); }}><FileSpreadsheet size={14} /> Rechnungen (CSV/Excel)</button>
+                <button className="btn" onClick={() => { exportCsv(`rechnungspositionen-${new Date().toISOString().slice(0, 10)}.csv`, POSITION_COLUMNS(db), positionRows(db.incomingInvoices)); toast('Positionen exportiert (CSV)'); }}><FileSpreadsheet size={14} /> Rechnungspositionen (CSV/Excel)</button>
                 <button className="btn" onClick={() => { if (confirm('Demodatensatz wiederherstellen? Vorhandene Änderungen gehen verloren.')) { store.reset(); toast('Demodaten wiederhergestellt'); } }}><Trash2 size={14} /> Demodaten wiederherstellen</button>
                 <button className="btn danger" onClick={() => { if (confirm('Alle Daten löschen und leer starten? Dies kann nicht rückgängig gemacht werden.')) { store.reset({ empty: true }); toast('Alle Daten gelöscht'); } }}><Trash2 size={14} /> Alle Daten löschen</button>
               </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
+import { startIntakeAutoSync } from '../lib/intake.js';
 import Topbar from './Topbar.jsx';
 import QuickAdd from './QuickAdd.jsx';
 import AssistantPanel from './ai/AssistantPanel.jsx';
@@ -12,6 +13,7 @@ export default function Layout() {
   });
   const [quickAdd, setQuickAdd] = useState(false);
 
+  useEffect(() => startIntakeAutoSync(), []); // Rechnungseingang per E-Mail im Hintergrund abgleichen
   useEffect(() => { try { localStorage.setItem('inmedi-sb-collapsed', collapsed ? '1' : '0'); } catch (e) {} }, [collapsed]);
 
   return (

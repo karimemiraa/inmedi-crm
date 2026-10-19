@@ -128,7 +128,7 @@ export function parseInvoice(pages) {
     let lot = (bt.match(/LOT-?Nr\.?:?\s*([A-Za-z0-9][A-Za-z0-9\-\/]*)/i) || [])[1] || null;
     if (!lot) { const li = block.findIndex((l) => /LOT-?Nr/i.test(l)); if (li > 0) lot = (block[li - 1].match(/([A-Za-z0-9\-\/]{4,})/) || [])[1] || null; }
     const ablauf = (bt.match(/Ablaufdatum:?\s*(\d{2}\.\d{2}\.\d{4})/i) || [])[1] || null;
-    const beschreibung = block.filter((l) => l && !/Artikel-?nr|LOT-?Nr|Ablaufdatum|Zolltarif|Ursprungsland|^\d/.test(l)).join(' ').trim() || null;
+    const beschreibung = block.filter((l) => l && !/Artikel-?nr|LOT-?Nr|Ablaufdatum|Zolltarif|Ursprungsland|^\d/i.test(l)).join(' ').trim() || null;
     items.push({ pos: n + 1, name, artikelnr, menge: parseDE(m[2]), einheit: m[3], preis: parseDE(m[4]), ust: Number(m[5]), betrag: parseDE(m[6]), lot, ablauf, beschreibung });
   }
 

@@ -53,6 +53,14 @@ Plus a **KI-Assistent** (see below), global search, notifications, quick-add (ac
 - **Dashboard drill-downs** — KPI cards and charts jump into the matching (filtered) view; empty states carry a primary create button.
 - **Dark mode** — sun/moon toggle in the top bar, remembers your choice and follows the OS by default.
 
+## Rechnungseingang per E-Mail
+
+PDF invoices sent to a Microsoft 365 mailbox are imported fully automatically:
+- A small server (`server/`, runs on your own Oracle server) reads the mailbox every 5 minutes, day and night. It parses each PDF and files the email into "Rechnungen verarbeitet" or "Rechnungen prüfen".
+- The CRM syncs on opening and every few minutes while open. It assigns each invoice to a Firma and Betreuer by Kundennummer, marks unclear invoices **Zu prüfen** (fixable in one click), and skips duplicates.
+- **Dokumente → Rechnungen** shows the source (E-Mail/Upload), a "Zu prüfen" filter, search, and CSV/Excel exports for invoices and for positions (filtered). **Einstellungen → Daten** also has both CSV exports and the full JSON backup.
+- Setup guide: [`server/README.md`](server/README.md). Connect in **Einstellungen → Rechnungseingang** (the server address and token stay in the browser).
+
 ## KI-Assistent
 
 A data-connected assistant for meeting preparation and analysis. It is available as a full page (**KI-Assistent** in the sidebar), as a side panel on every page (floating button, bottom right) and through the **Gesprächsvorbereitung** button on each Firma.

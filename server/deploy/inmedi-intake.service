@@ -1,0 +1,27 @@
+# systemd-Dienst: sudo cp inmedi-intake.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#                 sudo systemctl enable --now inmedi-intake
+[Unit]
+Description=InMedi Rechnungseingang (Microsoft 365 → CRM)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=inmedi
+Group=inmedi
+WorkingDirectory=/opt/inmedi-crm/server
+EnvironmentFile=/etc/inmedi-intake.env
+ExecStart=/usr/bin/node /opt/inmedi-crm/server/src/index.js
+Restart=always
+RestartSec=10
+# Härtung
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/inmedi-intake
+StateDirectory=inmedi-intake
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target
